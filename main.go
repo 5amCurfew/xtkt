@@ -11,7 +11,7 @@ type Record map[string]interface{}
 
 type Message struct {
 	Type               string      `json:"type"`
-	Data               Record      `json:"data,omitempty"`
+	Data               Record      `json:"record,omitempty"`
 	Stream             string      `json:"stream,omitempty"`
 	Schema             interface{} `json:"schema,omitempty"`
 	KeyProperties      []string    `json:"key_properties,omitempty"`
@@ -80,22 +80,40 @@ func main() {
 	apiResponse := `
 	{
 		"data": [{
-		  "type": "articles",
-		  "id": "1",
-		  "attributes": {
+			"type": "articles",
+			"id": "1",
+			"attributes": {
 			"title": "JSON:API paints my bikeshed!",
 			"body": "The shortest article. Ever.",
 			"created": "2015-05-22T14:56:29.000Z",
 			"updated": "2015-05-22T14:56:28.000Z"
-		  },
-		  "relationships": {
+			},
+			"relationships": {
 			"author": {
-			  "data": {"id": "42", "type": "people"}
+				"data": {"id": "42", "type": "people"}
 			}
-		  },
-		  "test": true,
-		  "updatedAt": "2020-01-02 15:04:05.999",
-		  "createdAt": "2020-01-02"
+			},
+			"test": true,
+			"updatedAt": "2020-01-02 15:04:05.999",
+			"createdAt": "2020-01-02"
+		},
+		{
+			"type": "articles",
+			"id": "2",
+			"attributes": {
+				"title": "JSON:API paints my bikeshed!",
+				"body": "The shortest article. Ever.",
+				"created": "2015-05-22T14:56:29.000Z",
+				"updated": "2015-05-22T14:56:28.000Z"
+			},
+			"relationships": {
+				"author": {
+				"data": {"id": "42", "type": "people"}
+				}
+			},
+			"test": true,
+			"updatedAt": "2020-01-02 15:04:05.999",
+			"createdAt": "2020-01-02"
 		}],
 		"included": [
 		  {
