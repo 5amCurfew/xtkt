@@ -13,7 +13,9 @@ type Message struct {
 	Type               string      `json:"type"`
 	Data               Record      `json:"record,omitempty"`
 	Stream             string      `json:"stream,omitempty"`
+	TimeExtracted      time.Time   `json:"time_extracted,omitempty"`
 	Schema             interface{} `json:"schema,omitempty"`
+	Value              interface{} `json:"value,omitempty"`
 	KeyProperties      []string    `json:"key_properties,omitempty"`
 	BookmarkProperties []string    `json:"bookmark_properties,omitempty"`
 }
@@ -70,6 +72,63 @@ func generateSchema(records []interface{}) map[string]interface{} {
 	return schema
 }
 
+func generateState(record Record, streamName string, updatedAtField string) {
+	if updatedAtField == "" {
+		updatedAtField = "updated_at"
+	}
+	stream := make(map[string]interface{})
+	data := make(map[string]interface{})
+
+	if _, err := os.Stat("state.json"); os.IsNotExist(err) {
+		data["updated_at"] = record[updatedAtField].(string)
+		stream[streamName] = data
+
+		values := make(map[string]interface{})
+		values["bookmarks"] = stream
+
+		message := Message{
+			Type:          "STATE",
+			Value:         values,
+			TimeExtracted: time.Now(),
+		}
+
+		messageJson, err := json.Marshal(message)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(string(messageJson))
+		os.WriteFile("state.json", messageJson, 0644)
+
+	} else {
+		var state map[string]interface{}
+		bytes, _ := os.ReadFile("state.json")
+		_ = json.Unmarshal(bytes, &state)
+
+		if record["updatedAt"].(string) > state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[streamName].(map[string]interface{})["updated_at"].(string) {
+			data["updated_at"] = record[updatedAtField].(string)
+			stream[streamName] = data
+
+			values := make(map[string]interface{})
+			values["bookmarks"] = stream
+
+			message := Message{
+				Type:          "STATE",
+				Value:         values,
+				TimeExtracted: time.Now(),
+			}
+
+			messageJson, err := json.Marshal(message)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(messageJson))
+			os.WriteFile("state.json", messageJson, 0644)
+		}
+	}
+}
+
 func main() {
 
 	/////////////////////////////////////////////////////////////
@@ -112,7 +171,7 @@ func main() {
 				}
 			},
 			"test": true,
-			"updatedAt": "2020-01-02 15:04:05.999",
+			"updatedAt": "2020-01-02 17:04:05.999",
 			"createdAt": "2020-01-02"
 		}],
 		"included": [
@@ -163,7 +222,7 @@ func main() {
 	fmt.Println(string(schemaJson))
 
 	/////////////////////////////////////////////////////////////
-	// OUTPUT RECORD messages
+	// OUTPUT RECORD messages & UPDATE STATE Message
 	/////////////////////////////////////////////////////////////
 	for _, record := range records {
 		Record, ok := record.(map[string]interface{})
@@ -171,10 +230,12 @@ func main() {
 			fmt.Fprint(os.Stderr, "Error: user is not a map\n")
 			os.Exit(1)
 		}
+
 		message := Message{
-			Type:   "RECORD",
-			Data:   Record,
-			Stream: responseRecordsPath,
+			Type:          "RECORD",
+			Data:          Record,
+			Stream:        responseRecordsPath,
+			TimeExtracted: time.Now(),
 		}
 		messageJson, err := json.Marshal(message)
 		if err != nil {
@@ -182,5 +243,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println(string(messageJson))
+
+		generateState(Record, responseRecordsPath, "updatedAt")
 	}
 }
