@@ -141,9 +141,7 @@ func parseResponse(url, responseRecordsPath string, idField string, updatedAtFie
 	if responseRecordsPath == "" {
 		responseRecordsPath = "id"
 	}
-	/////////////////////////////////////////////////////////////
-	// EXAMPLE
-	/////////////////////////////////////////////////////////////
+
 	apiResponse, err := http.Get(url)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
