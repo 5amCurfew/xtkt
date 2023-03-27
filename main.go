@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"time"
 )
@@ -72,7 +74,10 @@ func generateSchema(records []interface{}) map[string]interface{} {
 	return schema
 }
 
-func generateState(record Record, streamName string, updatedAtField string) {
+func generateState(record Record, responseRecordsPath string, updatedAtField string) {
+	if responseRecordsPath == "default" {
+		responseRecordsPath = "results"
+	}
 	if updatedAtField == "" {
 		updatedAtField = "updated_at"
 	}
@@ -81,7 +86,7 @@ func generateState(record Record, streamName string, updatedAtField string) {
 
 	if _, err := os.Stat("state.json"); os.IsNotExist(err) {
 		data["updated_at"] = record[updatedAtField].(string)
-		stream[streamName] = data
+		stream[responseRecordsPath] = data
 
 		values := make(map[string]interface{})
 		values["bookmarks"] = stream
@@ -105,9 +110,9 @@ func generateState(record Record, streamName string, updatedAtField string) {
 		bytes, _ := os.ReadFile("state.json")
 		_ = json.Unmarshal(bytes, &state)
 
-		if record["updatedAt"].(string) > state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[streamName].(map[string]interface{})["updated_at"].(string) {
+		if record[updatedAtField].(string) > state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[responseRecordsPath].(map[string]interface{})["updated_at"].(string) {
 			data["updated_at"] = record[updatedAtField].(string)
-			stream[streamName] = data
+			stream[responseRecordsPath] = data
 
 			values := make(map[string]interface{})
 			values["bookmarks"] = stream
@@ -129,76 +134,55 @@ func generateState(record Record, streamName string, updatedAtField string) {
 	}
 }
 
-func main() {
-
+func parseResponse(url, responseRecordsPath string, idField string, updatedAtField string) {
+	if responseRecordsPath == "" {
+		responseRecordsPath = "default"
+	}
+	if responseRecordsPath == "" {
+		responseRecordsPath = "id"
+	}
 	/////////////////////////////////////////////////////////////
 	// EXAMPLE
 	/////////////////////////////////////////////////////////////
-	responseRecordsPath := "data"
-
-	apiResponse := `
-	{
-		"data": [{
-			"type": "articles",
-			"id": "1",
-			"attributes": {
-			"title": "JSON:API paints my bikeshed!",
-			"body": "The shortest article. Ever.",
-			"created": "2015-05-22T14:56:29.000Z",
-			"updated": "2015-05-22T14:56:28.000Z"
-			},
-			"relationships": {
-			"author": {
-				"data": {"id": "42", "type": "people"}
-			}
-			},
-			"test": true,
-			"updatedAt": "2020-01-02 15:04:05.999",
-			"createdAt": "2020-01-02"
-		},
-		{
-			"type": "articles",
-			"id": "2",
-			"attributes": {
-				"title": "JSON:API paints my bikeshed!",
-				"body": "The shortest article. Ever.",
-				"created": "2015-05-22T14:56:29.000Z",
-				"updated": "2015-05-22T14:56:28.000Z"
-			},
-			"relationships": {
-				"author": {
-				"data": {"id": "42", "type": "people"}
-				}
-			},
-			"test": true,
-			"updatedAt": "2020-01-02 17:04:05.999",
-			"createdAt": "2020-01-02"
-		}],
-		"included": [
-		  {
-			"type": "people",
-			"id": "42",
-			"attributes": {
-			  "name": "John",
-			  "age": 80,
-			  "gender": "male"
-			}
-		  }
-		]
-	  }
-    `
+	apiResponse, err := http.Get(url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
+		os.Exit(1)
+	}
+	defer apiResponse.Body.Close()
+	body, err := io.ReadAll(apiResponse.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+	}
+	output := string(body)
 
 	/////////////////////////////////////////////////////////////
 	// Parse API response JSON into a Map
 	/////////////////////////////////////////////////////////////
 	var responseMap map[string]interface{}
-	err := json.Unmarshal([]byte(apiResponse), &responseMap)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing JSON: %v\n", err)
-		os.Exit(1)
+	if responseRecordsPath == "default" && output[0:1] == "{" {
+		outputAsArray := "{\"results\":[" + output + "]}"
+		jsonParseErr := json.Unmarshal([]byte(outputAsArray), &responseMap)
+		if jsonParseErr != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing JSON Array (refer to responseRecordsPath) 1: %v\n", err)
+			os.Exit(1)
+		}
+	} else if responseRecordsPath == "default" && output[0:1] == "[" {
+		outputAsArray := "{\"results\":" + output + "}"
+		jsonParseErr := json.Unmarshal([]byte(outputAsArray), &responseMap)
+		if jsonParseErr != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing JSON Array (refer to responseRecordsPath) 1: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		jsonParseErr := json.Unmarshal([]byte(output), &responseMap)
+		if jsonParseErr != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing JSON Array (refer to responseRecordsPath) 2: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
-	records, ok := responseMap[responseRecordsPath].([]interface{})
+	records, ok := responseMap["results"].([]interface{})
 	if !ok {
 		fmt.Fprint(os.Stderr, "Error: records is not an array\n")
 		os.Exit(1)
@@ -211,8 +195,9 @@ func main() {
 		Type:               "SCHEMA",
 		Stream:             responseRecordsPath,
 		Schema:             generateSchema(records),
-		KeyProperties:      []string{"id"},
+		KeyProperties:      []string{idField},
 		BookmarkProperties: []string{"updated_at"},
+		TimeExtracted:      time.Now(),
 	}
 	schemaJson, err := json.Marshal(schemaMessage)
 	if err != nil {
@@ -243,7 +228,28 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println(string(messageJson))
-
-		generateState(Record, responseRecordsPath, "updatedAt")
+		if updatedAtField != "" {
+			generateState(Record, responseRecordsPath, updatedAtField)
+		}
 	}
+
+}
+
+func main() {
+
+	// https://rickandmortyapi.com/api/character/2, "", "id", "created"
+	// https://rickandmortyapi.com/api/character/, "results", "id", "created"
+	// https://cat-fact.herokuapp.com/facts, "", "_id", "updatedAt"
+
+	parseResponse(
+		// url
+		"https://cat-fact.herokuapp.com/facts",
+		// responseRecordsPath
+		"",
+		// ID
+		"_id",
+		// bookmark
+		"updatedAt",
+	)
+
 }
