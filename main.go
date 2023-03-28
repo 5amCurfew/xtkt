@@ -52,7 +52,7 @@ func generateSchema(records []interface{}) map[string]interface{} {
 					case nil:
 						properties[key].(map[string]interface{})["type"] = "null"
 					case string:
-						if _, err := time.Parse("2006-01-02 15:04:05.999", value.(string)); err == nil {
+						if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
 							properties[key].(map[string]interface{})["type"] = "timestamp"
 							break
 						} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
