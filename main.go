@@ -23,7 +23,7 @@ type Message struct {
 }
 
 // ///////////////////////////////////////////////////////////
-// Create JSON Schema
+// Create JSON SCHEMA
 // ///////////////////////////////////////////////////////////
 func generateSchema(records []interface{}) map[string]interface{} {
 
@@ -32,15 +32,11 @@ func generateSchema(records []interface{}) map[string]interface{} {
 
 	if len(records) > 0 {
 		for _, record := range records {
-			record, ok := record.(map[string]interface{})
-			if !ok {
-				fmt.Fprint(os.Stderr, "Error: record is not a map\n")
-				os.Exit(1)
-			}
+			record, _ := record.(map[string]interface{})
 			for key, value := range record {
-				if _, ok := properties[key]; !ok {
+				if _, exists := properties[key]; !exists {
 					properties[key] = make(map[string]interface{})
-					switch v := value.(type) {
+					switch value.(type) {
 					case bool:
 						properties[key].(map[string]interface{})["type"] = "boolean"
 					case int:
@@ -48,9 +44,11 @@ func generateSchema(records []interface{}) map[string]interface{} {
 					case float64:
 						properties[key].(map[string]interface{})["type"] = "number"
 					case map[string]interface{}:
-						subProps := generateSchema([]interface{}{v})
+						subProps := generateSchema([]interface{}{value})
 						properties[key].(map[string]interface{})["type"] = "object"
 						properties[key].(map[string]interface{})["properties"] = subProps["properties"]
+					case []interface{}:
+						properties[key].(map[string]interface{})["type"] = "array"
 					case nil:
 						properties[key].(map[string]interface{})["type"] = "null"
 					case string:
@@ -74,13 +72,18 @@ func generateSchema(records []interface{}) map[string]interface{} {
 	return schema
 }
 
+// ///////////////////////////////////////////////////////////
+// Generate/Update STATE
+// ///////////////////////////////////////////////////////////
 func generateState(record Record, responseRecordsPath string, updatedAtField string) {
 	if responseRecordsPath == "default" {
 		responseRecordsPath = "results"
 	}
+
 	if updatedAtField == "" {
 		updatedAtField = "updated_at"
 	}
+
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
@@ -102,7 +105,9 @@ func generateState(record Record, responseRecordsPath string, updatedAtField str
 			fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
 			os.Exit(1)
 		}
+
 		fmt.Println(string(messageJson))
+
 		os.WriteFile("state.json", messageJson, 0644)
 
 	} else {
@@ -128,16 +133,22 @@ func generateState(record Record, responseRecordsPath string, updatedAtField str
 				fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
 				os.Exit(1)
 			}
+
 			fmt.Println(string(messageJson))
+
 			os.WriteFile("state.json", messageJson, 0644)
 		}
 	}
 }
 
-func parseResponse(url, responseRecordsPath string, idField string, updatedAtField string) {
+// ///////////////////////////////////////////////////////////
+// PARSE RECORDS (parse response > generate SCHEMA msg > generate RECORD msg > handle STATE updates)
+// ///////////////////////////////////////////////////////////
+func parseResponse(url, responseRecordsPath, idField, updatedAtField string) {
 	if responseRecordsPath == "" {
 		responseRecordsPath = "default"
 	}
+
 	if responseRecordsPath == "" {
 		responseRecordsPath = "id"
 	}
@@ -147,38 +158,28 @@ func parseResponse(url, responseRecordsPath string, idField string, updatedAtFie
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
 		os.Exit(1)
 	}
+
 	defer apiResponse.Body.Close()
+
 	body, err := io.ReadAll(apiResponse.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
 	}
+
 	output := string(body)
 
 	/////////////////////////////////////////////////////////////
 	// Parse API response JSON into a Map
 	/////////////////////////////////////////////////////////////
 	var responseMap map[string]interface{}
+
 	if responseRecordsPath == "default" && output[0:1] == "{" {
-		outputAsArray := "{\"results\":[" + output + "]}"
-		jsonParseErr := json.Unmarshal([]byte(outputAsArray), &responseMap)
-		if jsonParseErr != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing JSON Array (refer to responseRecordsPath) 1: %v\n", err)
-			os.Exit(1)
-		}
+		output = "{\"results\":[" + output + "]}"
 	} else if responseRecordsPath == "default" && output[0:1] == "[" {
-		outputAsArray := "{\"results\":" + output + "}"
-		jsonParseErr := json.Unmarshal([]byte(outputAsArray), &responseMap)
-		if jsonParseErr != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing JSON Array (refer to responseRecordsPath) 1: %v\n", err)
-			os.Exit(1)
-		}
-	} else {
-		jsonParseErr := json.Unmarshal([]byte(output), &responseMap)
-		if jsonParseErr != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing JSON Array (refer to responseRecordsPath) 2: %v\n", err)
-			os.Exit(1)
-		}
+		output = "{\"results\":" + output + "}"
 	}
+
+	json.Unmarshal([]byte(output), &responseMap)
 
 	records, ok := responseMap["results"].([]interface{})
 	if !ok {
@@ -189,43 +190,49 @@ func parseResponse(url, responseRecordsPath string, idField string, updatedAtFie
 	/////////////////////////////////////////////////////////////
 	// OUTPUT SCHEMA message
 	/////////////////////////////////////////////////////////////
+	streamName := responseRecordsPath
+	if streamName == "default" {
+		streamName = "results"
+	}
+
 	schemaMessage := Message{
 		Type:               "SCHEMA",
-		Stream:             responseRecordsPath,
+		Stream:             streamName,
 		Schema:             generateSchema(records),
 		KeyProperties:      []string{idField},
 		BookmarkProperties: []string{"updated_at"},
 		TimeExtracted:      time.Now(),
 	}
+
 	schemaJson, err := json.Marshal(schemaMessage)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating SCHEMA message: %v\n", err)
 		os.Exit(1)
 	}
+
 	fmt.Println(string(schemaJson))
 
 	/////////////////////////////////////////////////////////////
 	// OUTPUT RECORD messages & UPDATE STATE Message
 	/////////////////////////////////////////////////////////////
 	for _, record := range records {
-		Record, ok := record.(map[string]interface{})
-		if !ok {
-			fmt.Fprint(os.Stderr, "Error: user is not a map\n")
-			os.Exit(1)
-		}
+		Record, _ := record.(map[string]interface{})
 
 		message := Message{
 			Type:          "RECORD",
 			Data:          Record,
-			Stream:        responseRecordsPath,
+			Stream:        streamName,
 			TimeExtracted: time.Now(),
 		}
+
 		messageJson, err := json.Marshal(message)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
 			os.Exit(1)
 		}
+
 		fmt.Println(string(messageJson))
+
 		if updatedAtField != "" {
 			generateState(Record, responseRecordsPath, updatedAtField)
 		}
@@ -241,13 +248,13 @@ func main() {
 
 	parseResponse(
 		// url
-		"https://cat-fact.herokuapp.com/facts",
+		"https://rickandmortyapi.com/api/character",
 		// responseRecordsPath
-		"",
+		"results",
 		// ID
-		"_id",
+		"id",
 		// bookmark
-		"updatedAt",
+		"created",
 	)
 
 }
