@@ -11,7 +11,7 @@ import (
 var version = "0.0.1"
 
 var rootCmd = &cobra.Command{
-	Use:     "xtkt <PATH_TO_FILE>",
+	Use:     "xtkt <CONNECTION_ID>",
 	Version: version,
 	Short:   "xtkt - REST API data extraction CLI",
 	Long:    `xtkt is a command line interface to extract data from a REST API using the Singer Specification`,
