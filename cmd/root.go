@@ -14,7 +14,7 @@ var rootCmd = &cobra.Command{
 	Use:     "xtkt <PATH_TO_FILE>",
 	Version: version,
 	Short:   "xtkt - REST API data extraction CLI",
-	Long:    `xpln is a command line interface to extract data from a REST API using the Singer Specification`,
+	Long:    `xtkt is a command line interface to extract data from a REST API using the Singer Specification`,
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 
