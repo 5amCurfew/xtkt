@@ -21,8 +21,8 @@ var rootCmd = &cobra.Command{
 
 		var c xtkt.Config
 
-		bytes, _ := os.ReadFile("config.json")
-		_ = json.Unmarshal(bytes, &c)
+		config, _ := os.ReadFile("config.json")
+		_ = json.Unmarshal(config, &c)
 
 		// https://rickandmortyapi.com/api/character/2, "", "id", "created"
 		// https://rickandmortyapi.com/api/character/, "results", "id", "created"
