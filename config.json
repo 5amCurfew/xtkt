@@ -1,0 +1,7 @@
+{
+	"url": "https://rickandmortyapi.com/api/character/2",   
+	"response_records_path": "",
+	"unique_key": "id",
+    "bookmark": true,
+	"primary_bookmark": "created"
+}

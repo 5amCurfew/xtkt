@@ -1,6 +1,7 @@
 package xtkt
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -18,20 +19,16 @@ var rootCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 
+		var c xtkt.Config
+
+		bytes, _ := os.ReadFile("config.json")
+		_ = json.Unmarshal(bytes, &c)
+
 		// https://rickandmortyapi.com/api/character/2, "", "id", "created"
 		// https://rickandmortyapi.com/api/character/, "results", "id", "created"
 		// https://cat-fact.herokuapp.com/facts, "", "_id", "updatedAt"
 
-		xtkt.ParseResponse(
-			// url
-			"https://rickandmortyapi.com/api/character",
-			// responseRecordsPath
-			"results",
-			// ID
-			"id",
-			// bookmark
-			"created",
-		)
+		xtkt.ParseResponse(c)
 	},
 }
 

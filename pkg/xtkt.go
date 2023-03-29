@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+type Config struct {
+	Url                   string `json:"url"`
+	Response_records_path string `json:"response_records_path"`
+	Unique_key            string `json:"unique_key"`
+	Bookmark              bool   `json:"bookmark"`
+	Primary_bookmark      string `json:"primary_bookmark"`
+}
+
 type Record map[string]interface{}
 
 type Message struct {
@@ -23,7 +31,7 @@ type Message struct {
 }
 
 // ///////////////////////////////////////////////////////////
-// Create JSON SCHEMA
+// GENERATE JSON SCHEMA
 // ///////////////////////////////////////////////////////////
 func generateSchema(records []interface{}) map[string]interface{} {
 
@@ -73,87 +81,58 @@ func generateSchema(records []interface{}) map[string]interface{} {
 }
 
 // ///////////////////////////////////////////////////////////
-// Generate/Update STATE
+// GENERATE/UPDATE/READ STATE
 // ///////////////////////////////////////////////////////////
-func generateState(record Record, responseRecordsPath string, updatedAtField string) {
-	if responseRecordsPath == "default" {
-		responseRecordsPath = "results"
-	}
-
-	if updatedAtField == "" {
-		updatedAtField = "updated_at"
-	}
-
+func createBookmark(c Config) {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
-	if _, err := os.Stat("state.json"); os.IsNotExist(err) {
-		data["updated_at"] = record[updatedAtField].(string)
-		stream[responseRecordsPath] = data
+	data["primary_bookmark"] = ""
+	stream[c.Url+"__"+c.Response_records_path] = data
 
-		values := make(map[string]interface{})
-		values["bookmarks"] = stream
+	values := make(map[string]interface{})
+	values["bookmarks"] = stream
 
-		message := Message{
-			Type:          "STATE",
-			Value:         values,
-			TimeExtracted: time.Now(),
-		}
+	result, _ := json.Marshal(map[string]interface{}{
+		"type":  "STATE",
+		"value": values,
+	})
 
-		messageJson, err := json.Marshal(message)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
-			os.Exit(1)
-		}
+	os.WriteFile("state.json", result, 0644)
+}
 
-		fmt.Println(string(messageJson))
+func updateBookmark(c Config, value string) {
+	stateFile, _ := os.ReadFile("state.json")
 
-		os.WriteFile("state.json", messageJson, 0644)
+	state := make(map[string]interface{})
+	_ = json.Unmarshal(stateFile, &state)
 
-	} else {
-		var state map[string]interface{}
-		bytes, _ := os.ReadFile("state.json")
-		_ = json.Unmarshal(bytes, &state)
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"] = value
 
-		if record[updatedAtField].(string) > state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[responseRecordsPath].(map[string]interface{})["updated_at"].(string) {
-			data["updated_at"] = record[updatedAtField].(string)
-			stream[responseRecordsPath] = data
+	result, _ := json.Marshal(map[string]interface{}{
+		"type":  "STATE",
+		"value": state["value"],
+	})
 
-			values := make(map[string]interface{})
-			values["bookmarks"] = stream
+	os.WriteFile("state.json", result, 0644)
+}
 
-			message := Message{
-				Type:          "STATE",
-				Value:         values,
-				TimeExtracted: time.Now(),
-			}
+func readBookmark(c Config) string {
+	stateFile, _ := os.ReadFile("state.json")
 
-			messageJson, err := json.Marshal(message)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
-				os.Exit(1)
-			}
+	state := make(map[string]interface{})
+	_ = json.Unmarshal(stateFile, &state)
 
-			fmt.Println(string(messageJson))
-
-			os.WriteFile("state.json", messageJson, 0644)
-		}
-	}
+	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"].(string)
 }
 
 // ///////////////////////////////////////////////////////////
-// PARSE RECORDS (parse response > generate SCHEMA msg > generate RECORD msg > handle STATE updates)
+// PARSE RECORDS (parse response > generate SCHEMA msg > generate RECORD msg(s) > handle STATE updates)
 // ///////////////////////////////////////////////////////////
-func ParseResponse(url, responseRecordsPath, idField, updatedAtField string) {
-	if responseRecordsPath == "" {
-		responseRecordsPath = "default"
-	}
+func ParseResponse(c Config) {
+	var responseMap map[string]interface{}
 
-	if responseRecordsPath == "" {
-		responseRecordsPath = "id"
-	}
-
-	apiResponse, err := http.Get(url)
+	apiResponse, err := http.Get(c.Url)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
 		os.Exit(1)
@@ -168,14 +147,9 @@ func ParseResponse(url, responseRecordsPath, idField, updatedAtField string) {
 
 	output := string(body)
 
-	/////////////////////////////////////////////////////////////
-	// Parse API response JSON into a Map
-	/////////////////////////////////////////////////////////////
-	var responseMap map[string]interface{}
-
-	if responseRecordsPath == "default" && output[0:1] == "{" {
+	if c.Response_records_path == "" && output[0:1] == "{" {
 		output = "{\"results\":[" + output + "]}"
-	} else if responseRecordsPath == "default" && output[0:1] == "[" {
+	} else if c.Response_records_path == "" && output[0:1] == "[" {
 		output = "{\"results\":" + output + "}"
 	}
 
@@ -188,40 +162,46 @@ func ParseResponse(url, responseRecordsPath, idField, updatedAtField string) {
 	}
 
 	/////////////////////////////////////////////////////////////
-	// OUTPUT SCHEMA message
+	// GENERATE/READ BOOKMARKS
 	/////////////////////////////////////////////////////////////
-	streamName := responseRecordsPath
-	if streamName == "default" {
-		streamName = "results"
+	if c.Bookmark && c.Primary_bookmark != "" {
+		if _, err := os.Stat("state.json"); os.IsNotExist(err) {
+			createBookmark(c)
+		} else {
+			readBookmark(c)
+		}
 	}
 
-	schemaMessage := Message{
+	/////////////////////////////////////////////////////////////
+	// GENERATE SCHEMA Message
+	/////////////////////////////////////////////////////////////
+	message := Message{
 		Type:               "SCHEMA",
-		Stream:             streamName,
-		Schema:             generateSchema(records),
-		KeyProperties:      []string{idField},
-		BookmarkProperties: []string{"updated_at"},
+		Stream:             c.Url + "__" + c.Response_records_path,
 		TimeExtracted:      time.Now(),
+		Schema:             generateSchema(records),
+		KeyProperties:      []string{c.Unique_key},
+		BookmarkProperties: []string{c.Primary_bookmark},
 	}
 
-	schemaJson, err := json.Marshal(schemaMessage)
+	messageJson, err := json.Marshal(message)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating SCHEMA message: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println(string(schemaJson))
+	fmt.Println(string(messageJson))
 
 	/////////////////////////////////////////////////////////////
-	// OUTPUT RECORD messages & UPDATE STATE Message
+	// GENERATE RECORD Message(s)
 	/////////////////////////////////////////////////////////////
 	for _, record := range records {
-		Record, _ := record.(map[string]interface{})
+		r, _ := record.(map[string]interface{})
 
 		message := Message{
 			Type:          "RECORD",
-			Data:          Record,
-			Stream:        streamName,
+			Data:          r,
+			Stream:        c.Url + "__" + c.Response_records_path,
 			TimeExtracted: time.Now(),
 		}
 
@@ -232,10 +212,28 @@ func ParseResponse(url, responseRecordsPath, idField, updatedAtField string) {
 		}
 
 		fmt.Println(string(messageJson))
+	}
 
-		if updatedAtField != "" {
-			generateState(Record, responseRecordsPath, updatedAtField)
+	/////////////////////////////////////////////////////////////
+	// GENERATE STATE Message (if required)
+	/////////////////////////////////////////////////////////////
+	var state map[string]interface{}
+	stateFile, _ := os.ReadFile("state.json")
+	_ = json.Unmarshal(stateFile, &state)
+
+	if true {
+		message := Message{
+			Type:  "STATE",
+			Value: state["value"],
 		}
+
+		messageJson, err := json.Marshal(message)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println(string(messageJson))
 	}
 
 }
