@@ -6,6 +6,7 @@ import (
 	"os"
 
 	xtkt "github.com/5amCurfew/xtkt/pkg"
+	util "github.com/5amCurfew/xtkt/util"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,7 @@ var rootCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		var c xtkt.Config
+		var c util.Config
 
 		config, _ := os.ReadFile("config.json")
 		_ = json.Unmarshal(config, &c)
