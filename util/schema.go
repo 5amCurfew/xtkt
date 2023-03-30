@@ -1,14 +1,12 @@
-package schema
+package util
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
 	"time"
-
-	util "github.com/5amCurfew/xtkt/util"
 )
 
-func GenerateSurrogateKey(c util.Config, records []interface{}) {
+func GenerateSurrogateKey(c Config, records []interface{}) {
 	if len(records) > 0 {
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})

@@ -1,16 +1,14 @@
-package bookmark
+package util
 
 import (
 	"encoding/json"
 	"os"
-
-	util "github.com/5amCurfew/xtkt/util"
 )
 
 // ///////////////////////////////////////////////////////////
 // GENERATE/UPDATE/READ STATE
 // ///////////////////////////////////////////////////////////
-func CreateBookmark(c util.Config) {
+func CreateBookmark(c Config) {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
@@ -28,7 +26,7 @@ func CreateBookmark(c util.Config) {
 	os.WriteFile("state.json", result, 0644)
 }
 
-func ReadBookmark(c util.Config) string {
+func ReadBookmark(c Config) string {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
@@ -37,7 +35,7 @@ func ReadBookmark(c util.Config) string {
 	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"].(string)
 }
 
-func UpdateBookmark(c util.Config, records []interface{}) {
+func UpdateBookmark(c Config, records []interface{}) {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})

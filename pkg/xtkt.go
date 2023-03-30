@@ -8,8 +8,6 @@ import (
 	"os"
 	"time"
 
-	Bookmark "github.com/5amCurfew/xtkt/bookmark"
-	Schema "github.com/5amCurfew/xtkt/schema"
 	util "github.com/5amCurfew/xtkt/util"
 )
 
@@ -48,14 +46,14 @@ func ParseResponse(c util.Config) {
 		os.Exit(1)
 	}
 
-	Schema.GenerateSurrogateKey(c, records)
+	util.GenerateSurrogateKey(c, records)
 
 	/////////////////////////////////////////////////////////////
 	// GENERATE BOOKMARK
 	/////////////////////////////////////////////////////////////
 	if c.Bookmark && c.Primary_bookmark != "" {
 		if _, err := os.Stat("state.json"); os.IsNotExist(err) {
-			Bookmark.CreateBookmark(c)
+			util.CreateBookmark(c)
 		}
 	}
 
@@ -66,7 +64,7 @@ func ParseResponse(c util.Config) {
 		Type:               "SCHEMA",
 		Stream:             c.Url + "__" + c.Response_records_path,
 		TimeExtracted:      time.Now(),
-		Schema:             Schema.GenerateSchema(records),
+		Schema:             util.GenerateSchema(records),
 		KeyProperties:      []string{"surrogate_key"},
 		BookmarkProperties: []string{c.Primary_bookmark},
 	}
@@ -105,7 +103,7 @@ func ParseResponse(c util.Config) {
 	// GENERATE STATE Message (if required)
 	/////////////////////////////////////////////////////////////
 	if c.Bookmark && c.Primary_bookmark != "" {
-		Bookmark.UpdateBookmark(c, records)
+		util.UpdateBookmark(c, records)
 
 		stateFile, _ := os.ReadFile("state.json")
 		state := make(map[string]interface{})
