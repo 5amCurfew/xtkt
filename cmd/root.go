@@ -13,21 +13,17 @@ import (
 var version = "0.0.1"
 
 var rootCmd = &cobra.Command{
-	Use:     "xtkt <CONNECTION_ID>",
+	Use:     "xtkt <PATH_TO_CONFIG_JSON>",
 	Version: version,
 	Short:   "xtkt - REST API data extraction CLI",
 	Long:    `xtkt is a command line interface to extract data from a REST API using the Singer Specification`,
-	Args:    cobra.ExactArgs(0),
+	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-
+		var file = args[0]
 		var c util.Config
 
-		config, _ := os.ReadFile("config.json")
+		config, _ := os.ReadFile(file)
 		_ = json.Unmarshal(config, &c)
-
-		// https://rickandmortyapi.com/api/character/2, "", "id", "created"
-		// https://rickandmortyapi.com/api/character/, "results", "id", "created"
-		// https://cat-fact.herokuapp.com/facts, "", "_id", "updatedAt"
 
 		xtkt.ParseResponse(c)
 	},
