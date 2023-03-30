@@ -11,6 +11,36 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
+func generateRecordMessages(records []interface{}, c util.Config) {
+	var bookmark string
+	if c.Bookmark && c.Primary_bookmark != "" {
+		bookmark = util.ReadBookmark(c)
+	} else {
+		bookmark = ""
+	}
+
+	for _, record := range records {
+		r, _ := record.(map[string]interface{})
+
+		if r[c.Primary_bookmark].(string) > bookmark {
+			message := util.Message{
+				Type:          "RECORD",
+				Data:          r,
+				Stream:        c.Url + "__" + c.Response_records_path,
+				TimeExtracted: time.Now(),
+			}
+
+			messageJson, err := json.Marshal(message)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println(string(messageJson))
+		}
+	}
+}
+
 // ///////////////////////////////////////////////////////////
 // PARSE RECORDS (parse response > generate SCHEMA msg > generate RECORD msg(s) > handle STATE updates)
 // ///////////////////////////////////////////////////////////
@@ -80,27 +110,10 @@ func ParseResponse(c util.Config) {
 	/////////////////////////////////////////////////////////////
 	// GENERATE RECORD Message(s)
 	/////////////////////////////////////////////////////////////
-	for _, record := range records {
-		r, _ := record.(map[string]interface{})
-
-		message := util.Message{
-			Type:          "RECORD",
-			Data:          r,
-			Stream:        c.Url + "__" + c.Response_records_path,
-			TimeExtracted: time.Now(),
-		}
-
-		messageJson, err := json.Marshal(message)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println(string(messageJson))
-	}
+	generateRecordMessages(records, c)
 
 	/////////////////////////////////////////////////////////////
-	// GENERATE STATE Message (if required)
+	// UPDATE STATE Message (if required) given RECORDS
 	/////////////////////////////////////////////////////////////
 	if c.Bookmark && c.Primary_bookmark != "" {
 		util.UpdateBookmark(c, records)
