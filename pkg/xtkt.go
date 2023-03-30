@@ -1,6 +1,8 @@
 package xtkt
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -40,8 +42,8 @@ func generateSchema(records []interface{}) map[string]interface{} {
 
 	if len(records) > 0 {
 		for _, record := range records {
-			record, _ := record.(map[string]interface{})
-			for key, value := range record {
+			r, _ := record.(map[string]interface{})
+			for key, value := range r {
 				if _, exists := properties[key]; !exists {
 					properties[key] = make(map[string]interface{})
 					switch value.(type) {
@@ -101,13 +103,34 @@ func createBookmark(c Config) {
 	os.WriteFile("state.json", result, 0644)
 }
 
-func updateBookmark(c Config, value string) {
+func readBookmark(c Config) string {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"] = value
+	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"].(string)
+}
+
+func updateBookmark(c Config, records []interface{}) {
+	stateFile, _ := os.ReadFile("state.json")
+
+	state := make(map[string]interface{})
+	_ = json.Unmarshal(stateFile, &state)
+
+	// CURRENT
+	latestBookmark := readBookmark(c)
+
+	// FIND LATEST
+	for _, record := range records {
+		r, _ := record.(map[string]interface{})
+		if r[c.Primary_bookmark].(string) >= latestBookmark {
+			latestBookmark = r[c.Primary_bookmark].(string)
+		}
+	}
+
+	// UPDATE
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"] = latestBookmark
 
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",
@@ -117,13 +140,19 @@ func updateBookmark(c Config, value string) {
 	os.WriteFile("state.json", result, 0644)
 }
 
-func readBookmark(c Config) string {
-	stateFile, _ := os.ReadFile("state.json")
+func generateSurrogateKey(c Config, records []interface{}) {
+	if len(records) > 0 {
+		for _, record := range records {
+			r, _ := record.(map[string]interface{})
+			data := c.Unique_key + r[c.Primary_bookmark].(string)
+			h := sha256.New()
+			h.Write([]byte(data))
 
-	state := make(map[string]interface{})
-	_ = json.Unmarshal(stateFile, &state)
+			hashBytes := h.Sum(nil)
 
-	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"].(string)
+			r["surrogate_key"] = hex.EncodeToString(hashBytes)
+		}
+	}
 }
 
 // ///////////////////////////////////////////////////////////
@@ -161,14 +190,14 @@ func ParseResponse(c Config) {
 		os.Exit(1)
 	}
 
+	generateSurrogateKey(c, records)
+
 	/////////////////////////////////////////////////////////////
-	// GENERATE/READ BOOKMARKS
+	// GENERATE BOOKMARK
 	/////////////////////////////////////////////////////////////
 	if c.Bookmark && c.Primary_bookmark != "" {
 		if _, err := os.Stat("state.json"); os.IsNotExist(err) {
 			createBookmark(c)
-		} else {
-			readBookmark(c)
 		}
 	}
 
@@ -180,7 +209,7 @@ func ParseResponse(c Config) {
 		Stream:             c.Url + "__" + c.Response_records_path,
 		TimeExtracted:      time.Now(),
 		Schema:             generateSchema(records),
-		KeyProperties:      []string{c.Unique_key},
+		KeyProperties:      []string{"surrogate_key"},
 		BookmarkProperties: []string{c.Primary_bookmark},
 	}
 
@@ -217,14 +246,17 @@ func ParseResponse(c Config) {
 	/////////////////////////////////////////////////////////////
 	// GENERATE STATE Message (if required)
 	/////////////////////////////////////////////////////////////
-	var state map[string]interface{}
-	stateFile, _ := os.ReadFile("state.json")
-	_ = json.Unmarshal(stateFile, &state)
+	if c.Bookmark && c.Primary_bookmark != "" {
+		updateBookmark(c, records)
 
-	if true {
+		stateFile, _ := os.ReadFile("state.json")
+		state := make(map[string]interface{})
+		_ = json.Unmarshal(stateFile, &state)
+
 		message := Message{
-			Type:  "STATE",
-			Value: state["value"],
+			Type:          "STATE",
+			Value:         state["value"],
+			TimeExtracted: time.Now(),
 		}
 
 		messageJson, err := json.Marshal(message)
