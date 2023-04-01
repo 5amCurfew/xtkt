@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -41,10 +40,10 @@ func generateSchema(records []interface{}) map[string]interface{} {
 						properties[key].(map[string]interface{})["type"] = "null"
 					case string:
 						if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = "timestamp"
+							properties[key].(map[string]interface{})["type"] = "string"
 							break
 						} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = "date"
+							properties[key].(map[string]interface{})["type"] = "string"
 							break
 						} else {
 							properties[key].(map[string]interface{})["type"] = "string"
@@ -60,14 +59,14 @@ func generateSchema(records []interface{}) map[string]interface{} {
 	return schema
 }
 
-func GenerateSchemaMessage(records []interface{}, c util.Config) {
+func GenerateSchemaMessage(records []interface{}, config util.Config) {
 	message := util.Message{
 		Type:               "SCHEMA",
-		Stream:             c.URL + "__" + strings.Join(c.ResponseRecordsPath, "__"),
+		Stream:             util.GenerateStreamName(config),
 		TimeExtracted:      time.Now(),
 		Schema:             generateSchema(records),
 		KeyProperties:      []string{"surrogate_key"},
-		BookmarkProperties: []string{c.PrimaryBookmark},
+		BookmarkProperties: []string{config.PrimaryBookmark},
 	}
 
 	messageJson, err := json.Marshal(message)

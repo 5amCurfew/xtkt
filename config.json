@@ -5,7 +5,7 @@
 	"auth_password": "",
 	"auth_token": "",
     "response_records_path": ["results"],
-    "pagination": true,
+    "pagination": false,
     "pagination_strategy": "next",
     "pagination_next_path": ["info", "next"],
     "unique_key": "id",

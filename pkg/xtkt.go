@@ -7,8 +7,8 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-func bookmarkSet(c util.Config) bool {
-	return c.Bookmark && c.PrimaryBookmark != ""
+func bookmarkSet(config util.Config) bool {
+	return config.Bookmark && config.PrimaryBookmark != ""
 }
 
 func ParseResponse(config util.Config) {

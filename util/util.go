@@ -1,6 +1,9 @@
 package util
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type Config struct {
 	URL                 string   `json:"url,omitempty"`
@@ -28,6 +31,10 @@ type Message struct {
 	Value              interface{} `json:"value,omitempty"`
 	KeyProperties      []string    `json:"key_properties,omitempty"`
 	BookmarkProperties []string    `json:"bookmark_properties,omitempty"`
+}
+
+func GenerateStreamName(config Config) string {
+	return strings.Replace(config.URL+"__"+strings.Join(config.ResponseRecordsPath, "__"), "/", "_", -1)
 }
 
 func GetValueAtPath(path []string, input map[string]interface{}) interface{} {

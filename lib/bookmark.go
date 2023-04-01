@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -13,12 +12,12 @@ import (
 // ///////////////////////////////////////////////////////////
 // GENERATE/UPDATE/READ STATE
 // ///////////////////////////////////////////////////////////
-func CreateBookmark(c util.Config) {
+func CreateBookmark(config util.Config) {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
 	data["primary_bookmark"] = ""
-	stream[c.URL+"__"+strings.Join(c.ResponseRecordsPath, "__")] = data
+	stream[util.GenerateStreamName(config)] = data
 
 	values := make(map[string]interface{})
 	values["bookmarks"] = stream
@@ -31,34 +30,34 @@ func CreateBookmark(c util.Config) {
 	os.WriteFile("state.json", result, 0644)
 }
 
-func readBookmark(c util.Config) string {
+func readBookmark(config util.Config) string {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
-	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+strings.Join(c.ResponseRecordsPath, "__")].(map[string]interface{})["primary_bookmark"].(string)
+	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(config)].(map[string]interface{})["primary_bookmark"].(string)
 }
 
-func UpdateBookmark(records []interface{}, c util.Config) {
+func UpdateBookmark(records []interface{}, config util.Config) {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
 	// CURRENT
-	latestBookmark := readBookmark(c)
+	latestBookmark := readBookmark(config)
 
 	// FIND LATEST
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
-		if r[c.PrimaryBookmark].(string) >= latestBookmark {
-			latestBookmark = r[c.PrimaryBookmark].(string)
+		if r[config.PrimaryBookmark].(string) >= latestBookmark {
+			latestBookmark = r[config.PrimaryBookmark].(string)
 		}
 	}
 
 	// UPDATE
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+strings.Join(c.ResponseRecordsPath, "__")].(map[string]interface{})["primary_bookmark"] = latestBookmark
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(config)].(map[string]interface{})["primary_bookmark"] = latestBookmark
 
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",

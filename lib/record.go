@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -106,7 +105,7 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
-				Stream:        config.URL + "__" + strings.Join(config.ResponseRecordsPath, "__"),
+				Stream:        util.GenerateStreamName(config),
 				TimeExtracted: time.Now(),
 			}
 
