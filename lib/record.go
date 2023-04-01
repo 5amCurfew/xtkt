@@ -33,13 +33,13 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 	if len(records) > 0 {
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			data := config.UniqueKey + r[config.PrimaryBookmark].(string)
 			h := sha256.New()
-			h.Write([]byte(data))
+			h.Write([]byte(config.UniqueKey + r[config.PrimaryBookmark].(string)))
 
 			hashBytes := h.Sum(nil)
 
 			r["surrogate_key"] = hex.EncodeToString(hashBytes)
+			r["time_extracted"] = time.Now()
 		}
 	}
 }
