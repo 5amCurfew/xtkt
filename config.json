@@ -1,6 +1,9 @@
 {
 	"url": "https://rickandmortyapi.com/api/character",   
 	"response_records_path": "results",
+	"paginated": false,
+	"pagination_strategy": "",
+	"pagination_next_path": "",
 	"unique_key": "id",
     "bookmark": true,
 	"primary_bookmark": "created"

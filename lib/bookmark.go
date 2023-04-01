@@ -17,7 +17,7 @@ func CreateBookmark(c util.Config) {
 	data := make(map[string]interface{})
 
 	data["primary_bookmark"] = ""
-	stream[c.Url+"__"+c.Response_records_path] = data
+	stream[c.URL+"__"+c.ResponseRecordsPath] = data
 
 	values := make(map[string]interface{})
 	values["bookmarks"] = stream
@@ -36,7 +36,7 @@ func readBookmark(c util.Config) string {
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
-	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"].(string)
+	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+c.ResponseRecordsPath].(map[string]interface{})["primary_bookmark"].(string)
 }
 
 func UpdateBookmark(records []interface{}, c util.Config) {
@@ -51,13 +51,13 @@ func UpdateBookmark(records []interface{}, c util.Config) {
 	// FIND LATEST
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
-		if r[c.Primary_bookmark].(string) >= latestBookmark {
-			latestBookmark = r[c.Primary_bookmark].(string)
+		if r[c.PrimaryBookmark].(string) >= latestBookmark {
+			latestBookmark = r[c.PrimaryBookmark].(string)
 		}
 	}
 
 	// UPDATE
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"] = latestBookmark
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+c.ResponseRecordsPath].(map[string]interface{})["primary_bookmark"] = latestBookmark
 
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",

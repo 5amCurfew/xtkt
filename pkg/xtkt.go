@@ -8,7 +8,7 @@ import (
 )
 
 func bookmarkSet(c util.Config) bool {
-	return c.Bookmark && c.Primary_bookmark != ""
+	return c.Bookmark && c.PrimaryBookmark != ""
 }
 
 func ParseResponse(config util.Config) {

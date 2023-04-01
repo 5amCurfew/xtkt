@@ -17,7 +17,7 @@ func generateSurrogateKey(c util.Config, records []interface{}) {
 	if len(records) > 0 {
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			data := c.Unique_key + r[c.Primary_bookmark].(string)
+			data := c.UniqueKey + r[c.PrimaryBookmark].(string)
 			h := sha256.New()
 			h.Write([]byte(data))
 
@@ -31,7 +31,7 @@ func generateSurrogateKey(c util.Config, records []interface{}) {
 func GenerateRecords(c util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
-	apiResponse, err := http.Get(c.Url)
+	apiResponse, err := http.Get(c.URL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
 		os.Exit(1)
@@ -46,9 +46,9 @@ func GenerateRecords(c util.Config) []interface{} {
 
 	output := string(body)
 
-	if c.Response_records_path == "" && output[0:1] == "{" {
+	if c.ResponseRecordsPath == "" && output[0:1] == "{" {
 		output = "{\"results\":[" + output + "]}"
-	} else if c.Response_records_path == "" && output[0:1] == "[" {
+	} else if c.ResponseRecordsPath == "" && output[0:1] == "[" {
 		output = "{\"results\":" + output + "}"
 	}
 
@@ -68,7 +68,7 @@ func GenerateRecords(c util.Config) []interface{} {
 
 func GenerateRecordMessages(records []interface{}, c util.Config) {
 	var bookmark string
-	if c.Bookmark && c.Primary_bookmark != "" {
+	if c.Bookmark && c.PrimaryBookmark != "" {
 		bookmark = readBookmark(c)
 	} else {
 		bookmark = ""
@@ -77,11 +77,11 @@ func GenerateRecordMessages(records []interface{}, c util.Config) {
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
 
-		if r[c.Primary_bookmark].(string) > bookmark {
+		if r[c.PrimaryBookmark].(string) > bookmark {
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
-				Stream:        c.Url + "__" + c.Response_records_path,
+				Stream:        c.URL + "__" + c.ResponseRecordsPath,
 				TimeExtracted: time.Now(),
 			}
 

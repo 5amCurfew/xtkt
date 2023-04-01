@@ -62,11 +62,11 @@ func generateSchema(records []interface{}) map[string]interface{} {
 func GenerateSchemaMessage(records []interface{}, c util.Config) {
 	message := util.Message{
 		Type:               "SCHEMA",
-		Stream:             c.Url + "__" + c.Response_records_path,
+		Stream:             c.URL + "__" + c.ResponseRecordsPath,
 		TimeExtracted:      time.Now(),
 		Schema:             generateSchema(records),
 		KeyProperties:      []string{"surrogate_key"},
-		BookmarkProperties: []string{c.Primary_bookmark},
+		BookmarkProperties: []string{c.PrimaryBookmark},
 	}
 
 	messageJson, err := json.Marshal(message)
