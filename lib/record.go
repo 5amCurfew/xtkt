@@ -40,8 +40,6 @@ func GenerateRecords(c util.Config) []interface{} {
 	defer apiResponse.Body.Close()
 
 	body, err := io.ReadAll(apiResponse.Body)
-	fmt.Println(string(body))
-
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
 	}
