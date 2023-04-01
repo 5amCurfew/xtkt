@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -17,7 +18,7 @@ func CreateBookmark(c util.Config) {
 	data := make(map[string]interface{})
 
 	data["primary_bookmark"] = ""
-	stream[c.URL+"__"+c.ResponseRecordsPath] = data
+	stream[c.URL+"__"+strings.Join(c.ResponseRecordsPath, "__")] = data
 
 	values := make(map[string]interface{})
 	values["bookmarks"] = stream
@@ -36,7 +37,7 @@ func readBookmark(c util.Config) string {
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
-	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+c.ResponseRecordsPath].(map[string]interface{})["primary_bookmark"].(string)
+	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+strings.Join(c.ResponseRecordsPath, "__")].(map[string]interface{})["primary_bookmark"].(string)
 }
 
 func UpdateBookmark(records []interface{}, c util.Config) {
@@ -57,7 +58,7 @@ func UpdateBookmark(records []interface{}, c util.Config) {
 	}
 
 	// UPDATE
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+c.ResponseRecordsPath].(map[string]interface{})["primary_bookmark"] = latestBookmark
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.URL+"__"+strings.Join(c.ResponseRecordsPath, "__")].(map[string]interface{})["primary_bookmark"] = latestBookmark
 
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",

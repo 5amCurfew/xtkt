@@ -35,7 +35,7 @@ func ParseResponse(config util.Config) {
 	lib.GenerateRecordMessages(records, config)
 
 	/////////////////////////////////////////////////////////////
-	// UPDATE STATE Message (if required) given RECORDS
+	// GENERATE STATE Message (if required) given RECORDS
 	/////////////////////////////////////////////////////////////
 	if bookmarkSet(config) {
 		lib.UpdateBookmark(records, config)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -62,7 +63,7 @@ func generateSchema(records []interface{}) map[string]interface{} {
 func GenerateSchemaMessage(records []interface{}, c util.Config) {
 	message := util.Message{
 		Type:               "SCHEMA",
-		Stream:             c.URL + "__" + c.ResponseRecordsPath,
+		Stream:             c.URL + "__" + strings.Join(c.ResponseRecordsPath, "__"),
 		TimeExtracted:      time.Now(),
 		Schema:             generateSchema(records),
 		KeyProperties:      []string{"surrogate_key"},

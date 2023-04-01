@@ -4,7 +4,7 @@ import "time"
 
 type Config struct {
 	URL                 string   `json:"url"`
-	ResponseRecordsPath string   `json:"response_records_path"`
+	ResponseRecordsPath []string `json:"response_records_path"`
 	Paginated           bool     `json:"paginated"`
 	PaginationStrategy  string   `json:"pagination_strategy,omitempty"`
 	PaginationNextPath  []string `json:"pagination_next_path,omitempty"`

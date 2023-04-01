@@ -8,10 +8,20 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
+
+func callAPI(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return io.ReadAll(resp.Body)
+}
 
 func generateSurrogateKey(c util.Config, records []interface{}) {
 	if len(records) > 0 {
@@ -28,38 +38,60 @@ func generateSurrogateKey(c util.Config, records []interface{}) {
 	}
 }
 
+func getValueAtPath(path []string, input map[string]interface{}) interface{} {
+	if check, ok := input[path[0]]; !ok || check == nil {
+		return nil
+	}
+	if len(path) == 1 {
+		return input[path[0]]
+	}
+
+	key := path[0]
+	path = path[1:]
+
+	nextInput, _ := input[key].(map[string]interface{})
+
+	return getValueAtPath(path, nextInput)
+}
+
 func GenerateRecords(c util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
-	apiResponse, err := http.Get(c.URL)
+	apiResponse, err := callAPI(c.URL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
 		os.Exit(1)
 	}
 
-	defer apiResponse.Body.Close()
-
-	body, err := io.ReadAll(apiResponse.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-	}
-
-	output := string(body)
+	output := string(apiResponse)
 	responseMapRecordsPath := c.ResponseRecordsPath
-	if c.ResponseRecordsPath == "" && output[0:1] == "{" {
+	if len(c.ResponseRecordsPath) == 0 && output[0:1] == "{" {
 		output = "{\"results\":[" + output + "]}"
-		responseMapRecordsPath = "results"
-	} else if c.ResponseRecordsPath == "" && output[0:1] == "[" {
+		responseMapRecordsPath = []string{"results"}
+	} else if len(c.ResponseRecordsPath) == 0 && output[0:1] == "[" {
 		output = "{\"results\":" + output + "}"
-		responseMapRecordsPath = "results"
+		responseMapRecordsPath = []string{"results"}
 	}
 
 	json.Unmarshal([]byte(output), &responseMap)
 
-	records, ok := responseMap[responseMapRecordsPath].([]interface{})
+	records, ok := getValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
 		fmt.Fprint(os.Stderr, "Error: records is not an array\n")
 		os.Exit(1)
+	}
+
+	// PAGINATED, "next"
+	if c.Paginated && c.PaginationStrategy == "next" {
+		nextURL := getValueAtPath(c.PaginationNextPath, responseMap)
+		if nextURL == nil {
+			generateSurrogateKey(c, records)
+			return records
+		}
+
+		nextConfig := c
+		nextConfig.URL = nextURL.(string)
+		records = append(records, GenerateRecords(nextConfig)...)
 	}
 
 	generateSurrogateKey(c, records)
@@ -83,7 +115,7 @@ func GenerateRecordMessages(records []interface{}, c util.Config) {
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
-				Stream:        c.URL + "__" + c.ResponseRecordsPath,
+				Stream:        c.URL + "__" + strings.Join(c.ResponseRecordsPath, "__"),
 				TimeExtracted: time.Now(),
 			}
 
