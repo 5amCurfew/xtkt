@@ -45,22 +45,6 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 	}
 }
 
-func getValueAtPath(path []string, input map[string]interface{}) interface{} {
-	if check, ok := input[path[0]]; !ok || check == nil {
-		return nil
-	}
-	if len(path) == 1 {
-		return input[path[0]]
-	}
-
-	key := path[0]
-	path = path[1:]
-
-	nextInput, _ := input[key].(map[string]interface{})
-
-	return getValueAtPath(path, nextInput)
-}
-
 func GenerateRecords(config util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
@@ -82,7 +66,7 @@ func GenerateRecords(config util.Config) []interface{} {
 
 	json.Unmarshal([]byte(output), &responseMap)
 
-	records, ok := getValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
 		fmt.Fprint(os.Stderr, "Error: records is not an array\n")
 		os.Exit(1)
@@ -90,7 +74,7 @@ func GenerateRecords(config util.Config) []interface{} {
 
 	// PAGINATED, "next"
 	if config.Pagination && config.PaginationStrategy == "next" {
-		nextURL := getValueAtPath(config.PaginationNextPath, responseMap)
+		nextURL := util.GetValueAtPath(config.PaginationNextPath, responseMap)
 		if nextURL == nil {
 			generateSurrogateKey(records, config)
 			return records
