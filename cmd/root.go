@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:     "xtkt <PATH_TO_CONFIG_JSON>",
 	Version: version,
 	Short:   "xtkt - REST API data extraction CLI",
-	Long:    `xtkt is a command line interface to extract data from a REST API using the Singer Specification`,
+	Long:    `xtkt is a command line interface to extract data from a REST API using the Singer.io Specification`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var file = args[0]
