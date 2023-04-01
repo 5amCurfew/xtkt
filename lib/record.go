@@ -40,21 +40,25 @@ func GenerateRecords(c util.Config) []interface{} {
 	defer apiResponse.Body.Close()
 
 	body, err := io.ReadAll(apiResponse.Body)
+	fmt.Println(string(body))
+
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
 	}
 
 	output := string(body)
-
+	responseMapRecordsPath := c.ResponseRecordsPath
 	if c.ResponseRecordsPath == "" && output[0:1] == "{" {
 		output = "{\"results\":[" + output + "]}"
+		responseMapRecordsPath = "results"
 	} else if c.ResponseRecordsPath == "" && output[0:1] == "[" {
 		output = "{\"results\":" + output + "}"
+		responseMapRecordsPath = "results"
 	}
 
 	json.Unmarshal([]byte(output), &responseMap)
 
-	records, ok := responseMap["results"].([]interface{})
+	records, ok := responseMap[responseMapRecordsPath].([]interface{})
 	if !ok {
 		fmt.Fprint(os.Stderr, "Error: records is not an array\n")
 		os.Exit(1)
