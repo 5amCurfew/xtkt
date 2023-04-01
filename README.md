@@ -7,7 +7,7 @@
                                   
 ```
 
-`xtkt` is a command line interface to extract data from a REST API using the Singer Specification
+`xtkt` is a command line interface to extract data from a REST API using the Singer.io Specification
 
 TODO:
 
