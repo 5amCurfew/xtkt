@@ -3,14 +3,18 @@ package util
 import "time"
 
 type Config struct {
-	URL                 string   `json:"url"`
-	ResponseRecordsPath []string `json:"response_records_path"`
-	Paginated           bool     `json:"paginated"`
+	URL                 string   `json:"url,omitempty"`
+	AuthStrategy        string   `json:"auth_strategy,omitempty"`
+	AuthUsername        string   `json:"auth_username,omitempty"`
+	AuthPassword        string   `json:"auth_password,omitempty"`
+	AuthToken           string   `json:"auth_token,omitempty"`
+	ResponseRecordsPath []string `json:"response_records_path,omitempty"`
+	Pagination          bool     `json:"pagination,omitempty"`
 	PaginationStrategy  string   `json:"pagination_strategy,omitempty"`
 	PaginationNextPath  []string `json:"pagination_next_path,omitempty"`
-	UniqueKey           string   `json:"unique_key"`
-	Bookmark            bool     `json:"bookmark"`
-	PrimaryBookmark     string   `json:"primary_bookmark"`
+	UniqueKey           string   `json:"unique_key,omitempty"`
+	Bookmark            bool     `json:"bookmark,omitempty"`
+	PrimaryBookmark     string   `json:"primary_bookmark,omitempty"`
 }
 
 type Record map[string]interface{}

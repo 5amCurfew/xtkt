@@ -1,7 +1,11 @@
 {
     "url": "https://rickandmortyapi.com/api/character",
+	"auth_strategy": "",
+	"auth_username": "",
+	"auth_password": "",
+	"auth_token": "",
     "response_records_path": ["results"],
-    "paginated": true,
+    "pagination": true,
     "pagination_strategy": "next",
     "pagination_next_path": ["info", "next"],
     "unique_key": "id",
