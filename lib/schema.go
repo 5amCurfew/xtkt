@@ -40,10 +40,12 @@ func generateSchema(records []interface{}) map[string]interface{} {
 						properties[key].(map[string]interface{})["type"] = "null"
 					case string:
 						if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = "date-time"
+							properties[key].(map[string]interface{})["type"] = "string"
+							properties[key].(map[string]interface{})["format"] = "date-time"
 							break
 						} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = "date"
+							properties[key].(map[string]interface{})["type"] = "string"
+							properties[key].(map[string]interface{})["format"] = "date"
 							break
 						} else {
 							properties[key].(map[string]interface{})["type"] = "string"
