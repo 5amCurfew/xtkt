@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	util "github.com/5amCurfew/xtkt/util"
 )
 
 // ///////////////////////////////////////////////////////////
@@ -57,8 +59,8 @@ func generateSchema(records []interface{}) map[string]interface{} {
 	return schema
 }
 
-func GenerateSchemaMessage(records []interface{}, c Config) {
-	message := Message{
+func GenerateSchemaMessage(records []interface{}, c util.Config) {
+	message := util.Message{
 		Type:               "SCHEMA",
 		Stream:             c.Url + "__" + c.Response_records_path,
 		TimeExtracted:      time.Now(),

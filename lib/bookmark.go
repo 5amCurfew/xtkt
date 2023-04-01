@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	util "github.com/5amCurfew/xtkt/util"
 )
 
 // ///////////////////////////////////////////////////////////
 // GENERATE/UPDATE/READ STATE
 // ///////////////////////////////////////////////////////////
-func CreateBookmark(c Config) {
+func CreateBookmark(c util.Config) {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
@@ -28,7 +30,7 @@ func CreateBookmark(c Config) {
 	os.WriteFile("state.json", result, 0644)
 }
 
-func ReadBookmark(c Config) string {
+func readBookmark(c util.Config) string {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
@@ -37,14 +39,14 @@ func ReadBookmark(c Config) string {
 	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"].(string)
 }
 
-func UpdateBookmark(records []interface{}, c Config) {
+func UpdateBookmark(records []interface{}, c util.Config) {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
 	// CURRENT
-	latestBookmark := ReadBookmark(c)
+	latestBookmark := readBookmark(c)
 
 	// FIND LATEST
 	for _, record := range records {
@@ -70,7 +72,7 @@ func GenerateStateMessage() {
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
-	message := Message{
+	message := util.Message{
 		Type:          "STATE",
 		Value:         state["value"],
 		TimeExtracted: time.Now(),

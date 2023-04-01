@@ -4,13 +4,14 @@ import (
 	"os"
 
 	lib "github.com/5amCurfew/xtkt/lib"
+	util "github.com/5amCurfew/xtkt/util"
 )
 
-func bookmarkSet(c lib.Config) bool {
+func bookmarkSet(c util.Config) bool {
 	return c.Bookmark && c.Primary_bookmark != ""
 }
 
-func ParseResponse(config lib.Config) {
+func ParseResponse(config util.Config) {
 
 	records := lib.GenerateRecords(config)
 

@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	util "github.com/5amCurfew/xtkt/util"
 )
 
-func generateSurrogateKey(c Config, records []interface{}) {
+func generateSurrogateKey(c util.Config, records []interface{}) {
 	if len(records) > 0 {
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
@@ -26,7 +28,7 @@ func generateSurrogateKey(c Config, records []interface{}) {
 	}
 }
 
-func GenerateRecords(c Config) []interface{} {
+func GenerateRecords(c util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
 	apiResponse, err := http.Get(c.Url)
@@ -64,10 +66,10 @@ func GenerateRecords(c Config) []interface{} {
 
 }
 
-func GenerateRecordMessages(records []interface{}, c Config) {
+func GenerateRecordMessages(records []interface{}, c util.Config) {
 	var bookmark string
 	if c.Bookmark && c.Primary_bookmark != "" {
-		bookmark = ReadBookmark(c)
+		bookmark = readBookmark(c)
 	} else {
 		bookmark = ""
 	}
@@ -76,7 +78,7 @@ func GenerateRecordMessages(records []interface{}, c Config) {
 		r, _ := record.(map[string]interface{})
 
 		if r[c.Primary_bookmark].(string) > bookmark {
-			message := Message{
+			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
 				Stream:        c.Url + "__" + c.Response_records_path,
