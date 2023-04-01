@@ -1,30 +1,16 @@
-package util
+package lib
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 )
-
-func GenerateSurrogateKey(c Config, records []interface{}) {
-	if len(records) > 0 {
-		for _, record := range records {
-			r, _ := record.(map[string]interface{})
-			data := c.Unique_key + r[c.Primary_bookmark].(string)
-			h := sha256.New()
-			h.Write([]byte(data))
-
-			hashBytes := h.Sum(nil)
-
-			r["surrogate_key"] = hex.EncodeToString(hashBytes)
-		}
-	}
-}
 
 // ///////////////////////////////////////////////////////////
 // GENERATE JSON SCHEMA
 // ///////////////////////////////////////////////////////////
-func GenerateSchema(records []interface{}) map[string]interface{} {
+func generateSchema(records []interface{}) map[string]interface{} {
 
 	schema := make(map[string]interface{})
 	properties := make(map[string]interface{})
@@ -43,7 +29,7 @@ func GenerateSchema(records []interface{}) map[string]interface{} {
 					case float64:
 						properties[key].(map[string]interface{})["type"] = "number"
 					case map[string]interface{}:
-						subProps := GenerateSchema([]interface{}{value})
+						subProps := generateSchema([]interface{}{value})
 						properties[key].(map[string]interface{})["type"] = "object"
 						properties[key].(map[string]interface{})["properties"] = subProps["properties"]
 					case []interface{}:
@@ -69,4 +55,23 @@ func GenerateSchema(records []interface{}) map[string]interface{} {
 	schema["properties"] = properties
 	schema["type"] = "object"
 	return schema
+}
+
+func GenerateSchemaMessage(records []interface{}, c Config) {
+	message := Message{
+		Type:               "SCHEMA",
+		Stream:             c.Url + "__" + c.Response_records_path,
+		TimeExtracted:      time.Now(),
+		Schema:             generateSchema(records),
+		KeyProperties:      []string{"surrogate_key"},
+		BookmarkProperties: []string{c.Primary_bookmark},
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating SCHEMA message: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(messageJson))
 }

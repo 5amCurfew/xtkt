@@ -1,8 +1,10 @@
-package util
+package lib
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
+	"time"
 )
 
 // ///////////////////////////////////////////////////////////
@@ -35,7 +37,7 @@ func ReadBookmark(c Config) string {
 	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[c.Url+"__"+c.Response_records_path].(map[string]interface{})["primary_bookmark"].(string)
 }
 
-func UpdateBookmark(c Config, records []interface{}) {
+func UpdateBookmark(records []interface{}, c Config) {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
@@ -61,4 +63,24 @@ func UpdateBookmark(c Config, records []interface{}) {
 	})
 
 	os.WriteFile("state.json", result, 0644)
+}
+
+func GenerateStateMessage() {
+	stateFile, _ := os.ReadFile("state.json")
+	state := make(map[string]interface{})
+	_ = json.Unmarshal(stateFile, &state)
+
+	message := Message{
+		Type:          "STATE",
+		Value:         state["value"],
+		TimeExtracted: time.Now(),
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(messageJson))
 }

@@ -1,140 +1,44 @@
 package xtkt
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"time"
 
-	util "github.com/5amCurfew/xtkt/util"
+	lib "github.com/5amCurfew/xtkt/lib"
 )
 
-func generateRecordMessages(records []interface{}, c util.Config) {
-	var bookmark string
-	if c.Bookmark && c.Primary_bookmark != "" {
-		bookmark = util.ReadBookmark(c)
-	} else {
-		bookmark = ""
-	}
-
-	for _, record := range records {
-		r, _ := record.(map[string]interface{})
-
-		if r[c.Primary_bookmark].(string) > bookmark {
-			message := util.Message{
-				Type:          "RECORD",
-				Data:          r,
-				Stream:        c.Url + "__" + c.Response_records_path,
-				TimeExtracted: time.Now(),
-			}
-
-			messageJson, err := json.Marshal(message)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
-				os.Exit(1)
-			}
-
-			fmt.Println(string(messageJson))
-		}
-	}
+func bookmarkSet(c lib.Config) bool {
+	return c.Bookmark && c.Primary_bookmark != ""
 }
 
-// ///////////////////////////////////////////////////////////
-// PARSE RECORDS (parse response > generate SCHEMA msg > generate RECORD msg(s) > handle STATE updates)
-// ///////////////////////////////////////////////////////////
-func ParseResponse(c util.Config) {
-	var responseMap map[string]interface{}
+func ParseResponse(config lib.Config) {
 
-	apiResponse, err := http.Get(c.Url)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
-		os.Exit(1)
-	}
-
-	defer apiResponse.Body.Close()
-
-	body, err := io.ReadAll(apiResponse.Body)
-	if err != nil {
-		fmt.Println("Error reading response body:", err)
-	}
-
-	output := string(body)
-
-	if c.Response_records_path == "" && output[0:1] == "{" {
-		output = "{\"results\":[" + output + "]}"
-	} else if c.Response_records_path == "" && output[0:1] == "[" {
-		output = "{\"results\":" + output + "}"
-	}
-
-	json.Unmarshal([]byte(output), &responseMap)
-
-	records, ok := responseMap["results"].([]interface{})
-	if !ok {
-		fmt.Fprint(os.Stderr, "Error: records is not an array\n")
-		os.Exit(1)
-	}
-
-	util.GenerateSurrogateKey(c, records)
+	records := lib.GenerateRecords(config)
 
 	/////////////////////////////////////////////////////////////
-	// GENERATE BOOKMARK
+	// GENERATE BOOKMARK (if required)
 	/////////////////////////////////////////////////////////////
-	if c.Bookmark && c.Primary_bookmark != "" {
+	if bookmarkSet(config) {
 		if _, err := os.Stat("state.json"); os.IsNotExist(err) {
-			util.CreateBookmark(c)
+			lib.CreateBookmark(config)
 		}
 	}
 
 	/////////////////////////////////////////////////////////////
 	// GENERATE SCHEMA Message
 	/////////////////////////////////////////////////////////////
-	message := util.Message{
-		Type:               "SCHEMA",
-		Stream:             c.Url + "__" + c.Response_records_path,
-		TimeExtracted:      time.Now(),
-		Schema:             util.GenerateSchema(records),
-		KeyProperties:      []string{"surrogate_key"},
-		BookmarkProperties: []string{c.Primary_bookmark},
-	}
-
-	messageJson, err := json.Marshal(message)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating SCHEMA message: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(messageJson))
+	lib.GenerateSchemaMessage(records, config)
 
 	/////////////////////////////////////////////////////////////
 	// GENERATE RECORD Message(s)
 	/////////////////////////////////////////////////////////////
-	generateRecordMessages(records, c)
+	lib.GenerateRecordMessages(records, config)
 
 	/////////////////////////////////////////////////////////////
 	// UPDATE STATE Message (if required) given RECORDS
 	/////////////////////////////////////////////////////////////
-	if c.Bookmark && c.Primary_bookmark != "" {
-		util.UpdateBookmark(c, records)
-
-		stateFile, _ := os.ReadFile("state.json")
-		state := make(map[string]interface{})
-		_ = json.Unmarshal(stateFile, &state)
-
-		message := util.Message{
-			Type:          "STATE",
-			Value:         state["value"],
-			TimeExtracted: time.Now(),
-		}
-
-		messageJson, err := json.Marshal(message)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println(string(messageJson))
+	if bookmarkSet(config) {
+		lib.UpdateBookmark(records, config)
+		lib.GenerateStateMessage()
 	}
 
 }
