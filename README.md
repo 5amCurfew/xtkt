@@ -18,8 +18,8 @@ TODO:
 
 2. Handle authorisation
 
-    * API Key: This involves providing a unique key to the user or application, which is used to authenticate API requests. This key is usually included in the header or query parameters of the request.
+    * :white_check_mark: API Key: This involves providing a unique key to the user or application, which is used to authenticate API requests. This key is usually included in the header or query parameters of the request.
     * OAuth 2.0: This is a widely used authorization framework that allows users or applications to access protected resources on behalf of a user. OAuth 2.0 works by providing an access token that is used to authenticate API requests.
     * JSON Web Tokens (JWT): JWT is a self-contained token that contains user or application information, which can be used to authenticate API requests. JWTs are signed and encrypted, providing a secure method of authentication.
-    * Basic Authentication: This involves using a username and password to authenticate API requests. The credentials are usually passed in the header of the request, encoded in Base64.
+    * :white_check_mark: Basic Authentication: This involves using a username and password to authenticate API requests. The credentials are usually passed in the header of the request, encoded in Base64.
 
