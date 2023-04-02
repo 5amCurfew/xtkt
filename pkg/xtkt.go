@@ -8,11 +8,14 @@ import (
 )
 
 func bookmarkSet(config util.Config) bool {
-	return config.Bookmark && len(config.PrimaryBookmarkPath) > 0
+	return *config.Bookmark && config.PrimaryBookmarkPath != nil
 }
 
 func ParseResponse(config util.Config) {
 
+	/////////////////////////////////////////////////////////////
+	// GENERATE RECORDS
+	/////////////////////////////////////////////////////////////
 	records := lib.GenerateRecords(config)
 
 	/////////////////////////////////////////////////////////////

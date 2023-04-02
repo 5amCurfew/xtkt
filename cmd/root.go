@@ -25,6 +25,7 @@ var rootCmd = &cobra.Command{
 		config, _ := os.ReadFile(file)
 		_ = json.Unmarshal(config, &c)
 
+		util.ValidateConfig(c)
 		xtkt.ParseResponse(c)
 	},
 }
