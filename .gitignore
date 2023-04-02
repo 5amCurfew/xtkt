@@ -1,4 +1,5 @@
-xtkt
+config*
 go.sum
 output.jsonl
 state.json
+xtkt
