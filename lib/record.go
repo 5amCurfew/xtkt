@@ -13,6 +13,9 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
+// ///////////////////////////////////////////////////////////
+// PARSE RECORDS
+// ///////////////////////////////////////////////////////////
 func callAPI(config util.Config) ([]byte, error) {
 	req, _ := http.NewRequest("GET", config.URL, nil)
 
