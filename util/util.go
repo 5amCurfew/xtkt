@@ -39,7 +39,7 @@ func ToString(v interface{}) string {
 }
 
 func GenerateStreamName(config Config) string {
-	return strings.Replace(config.URL+"__"+strings.Join(config.ResponseRecordsPath, "__"), "/", "_", -1)
+	return strings.Replace(strings.Replace(config.URL+"__"+strings.Join(config.ResponseRecordsPath, "__"), "/", "_", -1), "https:__", "", -1)
 }
 
 func GetValueAtPath(path []string, input map[string]interface{}) interface{} {
