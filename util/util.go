@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -15,7 +16,7 @@ type Config struct {
 	Pagination          bool     `json:"pagination,omitempty"`
 	PaginationStrategy  string   `json:"pagination_strategy,omitempty"`
 	PaginationNextPath  []string `json:"pagination_next_path,omitempty"`
-	UniqueKey           string   `json:"unique_key,omitempty"`
+	UniqueKeyPath       []string `json:"unique_key_path,omitempty"`
 	Bookmark            bool     `json:"bookmark,omitempty"`
 	PrimaryBookmarkPath []string `json:"primary_bookmark_path,omitempty"`
 }
@@ -33,22 +34,30 @@ type Message struct {
 	BookmarkProperties []string    `json:"bookmark_properties,omitempty"`
 }
 
+func ToString(v interface{}) string {
+	return fmt.Sprintf("%v", v)
+}
+
 func GenerateStreamName(config Config) string {
 	return strings.Replace(config.URL+"__"+strings.Join(config.ResponseRecordsPath, "__"), "/", "_", -1)
 }
 
 func GetValueAtPath(path []string, input map[string]interface{}) interface{} {
-	if check, ok := input[path[0]]; !ok || check == nil {
-		return nil
+	if len(path) > 0 {
+		if check, ok := input[path[0]]; !ok || check == nil {
+			return nil
+		}
+		if len(path) == 1 {
+			return input[path[0]]
+		}
+
+		key := path[0]
+		path = path[1:]
+
+		nextInput, _ := input[key].(map[string]interface{})
+
+		return GetValueAtPath(path, nextInput)
+	} else {
+		return input
 	}
-	if len(path) == 1 {
-		return input[path[0]]
-	}
-
-	key := path[0]
-	path = path[1:]
-
-	nextInput, _ := input[key].(map[string]interface{})
-
-	return GetValueAtPath(path, nextInput)
 }

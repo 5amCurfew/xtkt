@@ -19,8 +19,10 @@ func callAPI(config util.Config) ([]byte, error) {
 	if config.AuthStrategy == "basic" && config.AuthUsername != "" && config.AuthPassword != "" {
 		req.SetBasicAuth(config.AuthUsername, config.AuthPassword)
 	} else if config.AuthStrategy == "token" && config.AuthToken != "" {
-		req.Header.Add("Authorization", "Bearer "+config.AuthToken)
+		req.Header.Set("Authorization", "Bearer "+config.AuthToken)
 	}
+	req.Header.Set("Accept", "application/json")
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -34,7 +36,7 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
 			h := sha256.New()
-			h.Write([]byte(config.UniqueKey + util.GetValueAtPath(config.PrimaryBookmarkPath, r).(string)))
+			h.Write([]byte(util.ToString(util.GetValueAtPath(config.UniqueKeyPath, r)) + util.ToString(util.GetValueAtPath(config.PrimaryBookmarkPath, r))))
 
 			hashBytes := h.Sum(nil)
 
@@ -55,10 +57,11 @@ func GenerateRecords(config util.Config) []interface{} {
 
 	output := string(apiResponse)
 	responseMapRecordsPath := config.ResponseRecordsPath
-	if len(config.ResponseRecordsPath) == 0 && output[0:1] == "{" {
+
+	if len(responseMapRecordsPath) == 0 && output[0:1] == "{" {
 		output = "{\"results\":[" + output + "]}"
 		responseMapRecordsPath = []string{"results"}
-	} else if len(config.ResponseRecordsPath) == 0 && output[0:1] == "[" {
+	} else if len(responseMapRecordsPath) == 0 && output[0:1] == "[" {
 		output = "{\"results\":" + output + "}"
 		responseMapRecordsPath = []string{"results"}
 	}
@@ -101,7 +104,7 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
 
-		if util.GetValueAtPath(config.PrimaryBookmarkPath, r).(string) > bookmark {
+		if util.ToString(util.GetValueAtPath(config.PrimaryBookmarkPath, r)) > bookmark {
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
