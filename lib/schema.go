@@ -68,7 +68,7 @@ func GenerateSchemaMessage(records []interface{}, config util.Config) {
 		TimeExtracted:      time.Now(),
 		Schema:             generateSchema(records),
 		KeyProperties:      []string{"surrogate_key"},
-		BookmarkProperties: []string{config.PrimaryBookmark},
+		BookmarkProperties: config.PrimaryBookmarkPath,
 	}
 
 	messageJson, err := json.Marshal(message)

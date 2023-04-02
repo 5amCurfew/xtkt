@@ -17,7 +17,7 @@ type Config struct {
 	PaginationNextPath  []string `json:"pagination_next_path,omitempty"`
 	UniqueKey           string   `json:"unique_key,omitempty"`
 	Bookmark            bool     `json:"bookmark,omitempty"`
-	PrimaryBookmark     string   `json:"primary_bookmark,omitempty"`
+	PrimaryBookmarkPath []string `json:"primary_bookmark_path,omitempty"`
 }
 
 type Record map[string]interface{}

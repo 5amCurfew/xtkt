@@ -51,8 +51,8 @@ func UpdateBookmark(records []interface{}, config util.Config) {
 	// FIND LATEST
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
-		if r[config.PrimaryBookmark].(string) >= latestBookmark {
-			latestBookmark = r[config.PrimaryBookmark].(string)
+		if util.GetValueAtPath(config.PrimaryBookmarkPath, r).(string) >= latestBookmark {
+			latestBookmark = util.GetValueAtPath(config.PrimaryBookmarkPath, r).(string)
 		}
 	}
 

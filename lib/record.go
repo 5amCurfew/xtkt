@@ -34,7 +34,7 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
 			h := sha256.New()
-			h.Write([]byte(config.UniqueKey + r[config.PrimaryBookmark].(string)))
+			h.Write([]byte(config.UniqueKey + util.GetValueAtPath(config.PrimaryBookmarkPath, r).(string)))
 
 			hashBytes := h.Sum(nil)
 
@@ -92,7 +92,7 @@ func GenerateRecords(config util.Config) []interface{} {
 
 func GenerateRecordMessages(records []interface{}, config util.Config) {
 	var bookmark string
-	if config.Bookmark && config.PrimaryBookmark != "" {
+	if config.Bookmark && len(config.PrimaryBookmarkPath) > 0 {
 		bookmark = readBookmark(config)
 	} else {
 		bookmark = ""
@@ -101,7 +101,7 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
 
-		if r[config.PrimaryBookmark].(string) > bookmark {
+		if util.GetValueAtPath(config.PrimaryBookmarkPath, r).(string) > bookmark {
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
