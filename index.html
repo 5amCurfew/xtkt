@@ -108,7 +108,7 @@
   </head>
   <body>
     <header>
-      <h1>> xtkt config.json</h1>
+      <h1>> <span style="font-weight: bold; color: #3EB489;">xtkt</span> config.json</h1>
     </header>
     <nav>
       <ul>
@@ -124,9 +124,9 @@
       <section id="overview">
         <h2>Overview</h2>
         <p>
-            Introducing xtkt: a generic but opinionated data extraction tool that adheres to the Singer.io specification and is designed to meet the needs of modern data stacks and business expectations.
-            At its core, xtkt takes an opinionated approach to data extraction (ELT for OLAP) importing updated and new data as new rows using either record change detection or an appropriate bookmark for any data source.
-            Streams are always handled independently. xtkt can be pipe'd to any target that meets the Singer.io specification.
+            Introducing <span style="font-weight: bold; color: #3EB489;">xtkt</span>: a generic but opinionated data extraction tool that adheres to the Singer.io specification and is designed to meet the needs of modern data stacks and business expectations.
+            At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing updated and new data as new rows using either record change detection or an appropriate bookmark for any data source.
+            Streams are always handled independently. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification.
         </p>
       </section>
 
@@ -138,10 +138,10 @@
       <section id="usage">
         <h2>Usage</h2>
         <p>
-            &#62;&#62; xtkt &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target
+            &#62;&#62; <span style="font-weight: bold; color: #3EB489;">xtkt</span> &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target
             <br>
             <br>
-            <p style="color: #3EB489;"">config.json</p>
+            <p style="font-weight: bold; color: #3EB489;">config.json</p>
             <pre style="border: 1px solid black;">
                 <code class="language-javascript">
 {
@@ -170,7 +170,7 @@
       
       <section id="Metadata">
         <h2>Metadata</h2>
-        <p>xtkt adds the following metadata to records</p>
+        <p><span style="font-weight: bold; color: #3EB489;">xtkt</span> adds the following metadata to records</p>
       </section>
 
       <section id="examples">
@@ -182,7 +182,7 @@
         <div style="display: flex; flex-direction: row; justify-content: space-between;">
             
             <div style="flex: 1; margin-right: 5px">
-                <p style="font-weight: bold">Response</p>
+                <p style="font-weight: bold; color: #3EB489;">Response</p>
                 <pre style="border: 1px solid black;">
                     <code class="language-javascript">
 {
@@ -224,7 +224,7 @@
                 </pre>
             </div>
             <div style="flex: 1; text-align: left; margin-left: 5px">
-                <p style="font-weight: bold">config.json</p>
+                <p style="font-weight: bold; color: #3EB489;">example config.json</p>
                 <pre style="border: 1px solid black;">
                     <code class="language-javascript">
 {
@@ -253,10 +253,12 @@
           <p>https://api.github.com/repos/OWNER/REPO/commits</p>
           <p>API authorisation required using API token, records returned as an array, no pagination, bookmark'd using a "created" field in "commit.author" </p>
 
+          <br>
+
           <div style="display: flex; flex-direction: row; justify-content: space-between;">
               
               <div style="flex: 1; margin: 5px">
-                  <p>Response</p>
+                  <p style="font-weight: bold; color: #3EB489;">Response</p>
                   <pre style="border: 1px solid black;">
                       <code class="language-javascript">
 [
@@ -286,7 +288,7 @@
                   </pre>
               </div>
               <div style="flex: 1; text-align: left; margin: 5px">
-                  <p>config.json</p>
+                  <p style="font-weight: bold; color: #3EB489;">example config.json</p>
                   <pre style="border: 1px solid black;">
                       <code class="language-javascript">
 {
