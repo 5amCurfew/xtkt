@@ -25,30 +25,30 @@ func generateSchema(records []interface{}) map[string]interface{} {
 					properties[key] = make(map[string]interface{})
 					switch value.(type) {
 					case bool:
-						properties[key].(map[string]interface{})["type"] = "boolean"
+						properties[key].(map[string]interface{})["type"] = []string{"boolean", "null"}
 					case int:
-						properties[key].(map[string]interface{})["type"] = "integer"
+						properties[key].(map[string]interface{})["type"] = []string{"integer", "null"}
 					case float64:
-						properties[key].(map[string]interface{})["type"] = "number"
+						properties[key].(map[string]interface{})["type"] = []string{"number", "null"}
 					case map[string]interface{}:
 						subProps := generateSchema([]interface{}{value})
-						properties[key].(map[string]interface{})["type"] = "object"
+						properties[key].(map[string]interface{})["type"] = []string{"object", "null"}
 						properties[key].(map[string]interface{})["properties"] = subProps["properties"]
 					case []interface{}:
-						properties[key].(map[string]interface{})["type"] = "array"
+						properties[key].(map[string]interface{})["type"] = []string{"array", "null"}
 					case nil:
-						properties[key].(map[string]interface{})["type"] = "null"
+						properties[key].(map[string]interface{})["type"] = []string{"null", "null"}
 					case string:
 						if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = "string"
+							properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
 							properties[key].(map[string]interface{})["format"] = "date-time"
 							break
 						} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = "string"
+							properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
 							properties[key].(map[string]interface{})["format"] = "date"
 							break
 						} else {
-							properties[key].(map[string]interface{})["type"] = "string"
+							properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
 						}
 					}
 				}
