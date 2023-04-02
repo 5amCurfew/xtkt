@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CLI Documentation</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Reset Styles */
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: "Monaco", monospace;
+        }
+  
+        /* Global Styles */
+        body {
+          font-family: 'Roboto', sans-serif;
+          font-size: 16px;
+          line-height: 1.5;
+          color: #333;
+          background-color: #f9f9f9;
+        }
+  
+        /* Header */
+        header {
+          background-color: #474747;
+          color: #f9f9f9;
+          padding: 20px;
+          text-align: center;
+        }
+  
+        header h1 {
+          font-size: 32px;
+          margin-bottom: 10px;
+        }
+  
+        /* Navigation */
+        nav {
+          background-color: #f9f9f9;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+          padding: 10px;
+        }
+  
+        nav ul {
+          list-style: none;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+  
+        nav li {
+          margin: 0 2%;
+        }
+  
+        nav a {
+          text-decoration: none;
+          color: #333;
+          font-weight: bold;
+          transition: all 0.3s ease-in-out;
+        }
+  
+        nav a:hover {
+          color: #3EB489;
+        }
+  
+        /* Main Content */
+        main {
+          max-width: 80%;
+          margin: 0 auto;
+          padding: 20px;
+        }
+  
+        /* Sections */
+        section {
+          margin-bottom: 30px;
+        }
+  
+        section h2 {
+          font-size: 24px;
+          margin-bottom: 5px;
+        }
+
+        section a{
+            font-size: 20px;
+        }
+  
+        section p {
+          line-height: 1.5;
+        }
+
+        a {
+          color: #3EB489;
+        }
+  
+        /* Footer */
+        footer {
+          background-color: #474747;
+          color: #f9f9f9;
+          padding: 10px;
+          text-align: center;
+        }
+  
+        footer p {
+          font-size: 14px;
+        }
+      </style>
+  </head>
+  <body>
+    <header>
+      <h1>> xtkt config.json</h1>
+    </header>
+    <nav>
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#usage">Usage</a></li>
+        <li><a href="#Metadata">Metadata</a></li>
+        <li><a href="#examples">Examples</a></li>
+      </ul>
+    </nav>
+    <main>
+
+      <section id="overview">
+        <h2>Overview</h2>
+        <p>
+            Introducing xtkt: a generic but opinionated data extraction tool that adheres to the Singer.io specification and is designed to meet the needs of modern data stacks and business expectations.
+            At its core, xtkt takes an opinionated approach to data extraction (ELT for OLAP) importing updated and new data as new rows using either using or any record changes or an appropriate bookmark for any data source.
+            Streams are always handled independently. xtkt can be pipe'd to any target that meets the Singer.io specification.
+        </p>
+      </section>
+
+      <section id="installation">
+        <h2>Installation</h2>
+        <p>Installation</p>
+      </section>
+      
+      <section id="usage">
+        <h2>Usage</h2>
+        <p>
+            &#62;&#62; xtkt &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target
+            <br>
+            <br>
+            <p style="color: #3EB489;"">config.json</p>
+            <pre style="border: 1px solid black;">
+                <code class="language-javascript">
+{
+    "url": string,
+    "auth": {
+        "required": boolean, 
+        "strategy": string,
+        "username": string,
+        "password" string,
+        "token": string,
+    },
+    "response": {
+        "records_path": [] // array of strings,
+        "pagination": boolean,
+        "pagination_strategy": string,
+        "pagination_next_path": [] // array of strings
+    },
+    "unique_key": string,
+    "bookmark": boolean,
+    "primary_bookmark_path": [] // array of strings
+}
+                </code>
+            </pre>
+        </p>
+      </section>
+      
+      <section id="Metadata">
+        <h2>Metadata</h2>
+        <p>xtkt adds the following metadata to records</p>
+      </section>
+
+      <section id="examples">
+        <h2>Examples</h2>
+        <a href="https://rickandmortyapi.com/">Rick & Morty API</a>
+        <p>https://rickandmortyapi.com/api/character</p>
+        <p>No authorisation required, records found in the response "results" array, paginated using "next", no bookmark implemented</p>
+        <br>
+        <div style="display: flex; flex-direction: row; justify-content: space-between;">
+            
+            <div style="flex: 1; margin-right: 5px">
+                <p style="font-weight: bold">Response</p>
+                <pre style="border: 1px solid black;">
+                    <code class="language-javascript">
+{
+    "info": {
+        "count": 826,
+        "pages": 42,
+        "next": "https://rickandmortyapi.com/api/character/?page=2",
+        "prev": null
+    },
+    "results": [
+        {
+        "id": 1,
+        "name": "Rick Sanchez",
+        "status": "Alive",
+        "species": "Human",
+        "type": "",
+        "gender": "Male",
+        "origin": {
+            "name": "Earth",
+            "url": "https://rickandmortyapi.com/api/location/1"
+        },
+        "location": {
+            "name": "Earth",
+            "url": "https://rickandmortyapi.com/api/location/20"
+        },
+        "image": "https://rickandmortyapi.com/...",
+        "episode": [
+            "https://rickandmortyapi.com/api/episode/1",
+            "https://rickandmortyapi.com/api/episode/2",
+            // ...
+        ],
+        "url": "https://rickandmortyapi.com/api/character/1",
+        "created": "2017-11-04T18:48:46.250Z"
+        },
+        // ...
+    ]
+    }
+                    </code>
+                </pre>
+            </div>
+            <div style="flex: 1; text-align: left; margin-left: 5px">
+                <p style="font-weight: bold">config.json</p>
+                <pre style="border: 1px solid black;">
+                    <code class="language-javascript">
+{
+    "url": "https://rickandmortyapi.com/api/character",
+    "auth": {
+        "required": false
+    },
+    "response": {
+        "records_path": ["results"],
+        "pagination": true,
+        "pagination_strategy": "next",
+        "pagination_next_path": ["info", "next"]
+    },
+    "unique_key": "id",
+    "bookmark": false
+}
+                    </code>
+                </pre>
+            </div>
+          </div>
+
+          <br>
+          <br>
+
+          <a href="https://docs.github.com/en/rest">Github API</a>
+          <p>https://api.github.com/repos/OWNER/REPO/commits</p>
+          <p>API authorisation required using API token, records returned as an array, no pagination, bookmark'd using a "created" field in "commit.author" </p>
+
+          <div style="display: flex; flex-direction: row; justify-content: space-between;">
+              
+              <div style="flex: 1; margin: 5px">
+                  <p>Response</p>
+                  <pre style="border: 1px solid black;">
+                      <code class="language-javascript">
+[
+    {
+        "url": "https://api.github.com/repos/OWNER/REPO/...",
+        "sha": "6dcb09b5b57...",
+        ...
+        "commit": {
+            "url": "https://api.github.com/repos/...",
+            "author": {
+                "name": "Monalisa Octocat",
+                "email": "support@github.com",
+                "date": "2011-04-14T16:00:49Z"
+        },
+        ...
+        "message": "Fix all the bugs",
+        "tree": {
+            "url": "https://api.github.com/repos/...",
+            "sha": "6dcb09b5b57..."
+        },
+        ...
+        }
+    }
+    ...
+]
+                      </code>
+                  </pre>
+              </div>
+              <div style="flex: 1; text-align: left; margin: 5px">
+                  <p>config.json</p>
+                  <pre style="border: 1px solid black;">
+                      <code class="language-javascript">
+{
+    "url": "https://api.github.com/repos/OWNER/REPO/commits",
+    "auth": {
+        "required": true,
+        "strategy": "token",
+        "token": "YOUR_GITHUB_API_TOKEN"
+    },
+    "response": {
+        "pagination": false
+    },
+    "unique_key": "sha",
+    "bookmark": true,
+    "primary_bookmark_path": ["commit", "author", "date"]
+}
+                      </code>
+                  </pre>
+              </div>
+            </div>
+      </section>
+    </main>
+    <footer>
+      <p>Made by <a href="https://github.com/5amCurfew">5am</a></p>
+    </footer>
+  </body>
+</html>
