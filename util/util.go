@@ -29,29 +29,32 @@ type Config struct {
 
 func ValidateConfig(cfg Config) error {
 	if cfg.URL == nil {
-		return errors.New("URL is required")
+		return errors.New("url is required")
 	}
 	if cfg.Auth.Required == nil {
-		return errors.New("Auth.Required must be either (true or false)'")
+		return errors.New("auth.required is required (true or false)'")
 	}
 	if *cfg.Auth.Required && *cfg.Auth.Strategy == "basic" && (cfg.Auth.Username == nil || cfg.Auth.Password == nil) {
-		return errors.New("Auth.Username and Auth.Password are required for basic authentication")
+		return errors.New("auth.username and auth.password are required for basic authentication")
 	}
 	if *cfg.Auth.Required && *cfg.Auth.Strategy == "token" && cfg.Auth.Token == nil {
-		return errors.New("Auth.Token is required for token authentication")
+		return errors.New("auth.token is required for token authentication")
 	}
 	if cfg.Response.Pagination == nil {
-		return errors.New("Response.Pagination is required (true or false)")
+		return errors.New("response.pagination is required (true or false)")
 	}
 	if *cfg.Response.Pagination && cfg.Response.PaginationStrategy == nil {
-		return errors.New("Response.PaginationStrategy is required when Pagination is true (e.g. 'next')")
+		return errors.New("response.pagination_strategy is required when auth.pagination is true (e.g. 'next')")
 	}
 	if cfg.UniqueKeyPath == nil {
-		return errors.New("UniqueKeyPath is required")
+		return errors.New("unique_key_path is required")
+	}
+	if cfg.Bookmark == nil {
+		return errors.New("bookmark is required (true or false)")
 	}
 	if *cfg.Bookmark {
 		if cfg.PrimaryBookmarkPath == nil {
-			return errors.New("PrimaryBookmarkPath is required when Bookmark is true")
+			return errors.New("primary_bookmark_path is required when bookmark is true")
 		}
 	}
 	return nil
