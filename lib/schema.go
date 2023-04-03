@@ -62,18 +62,12 @@ func generateSchema(records []interface{}) map[string]interface{} {
 }
 
 func GenerateSchemaMessage(records []interface{}, config util.Config) {
-	var bookmarkProperties []string
-	if config.Records.PrimaryBookmarkPath != nil {
-		bookmarkProperties = *config.Records.PrimaryBookmarkPath
-	}
-
 	message := util.Message{
-		Type:               "SCHEMA",
-		Stream:             util.GenerateStreamName(URLsParsed[0], config),
-		TimeExtracted:      time.Now().Format(time.RFC3339),
-		Schema:             generateSchema(records),
-		KeyProperties:      []string{"surrogate_key"},
-		BookmarkProperties: bookmarkProperties,
+		Type:          "SCHEMA",
+		Stream:        util.GenerateStreamName(URLsParsed[0], config),
+		TimeExtracted: time.Now().Format(time.RFC3339),
+		Schema:        generateSchema(records),
+		KeyProperties: []string{"surrogate_key"},
 	}
 
 	messageJson, err := json.Marshal(message)
