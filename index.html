@@ -114,8 +114,8 @@
       <ul>
         <li><a href="#overview">Overview</a></li>
         <li><a href="#installation">Installation</a></li>
-        <li><a href="#usage">Usage</a></li>
         <li><a href="#Metadata">Metadata</a></li>
+        <li><a href="#usage">Usage</a></li>
         <li><a href="#examples">Examples</a></li>
       </ul>
     </nav>
@@ -124,9 +124,7 @@
       <section id="overview">
         <h2>Overview</h2>
         <p>
-            Introducing <span style="font-weight: bold; color: #3EB489;">xtkt</span>: a generic but opinionated data extraction tool that adheres to the Singer.io specification and is designed to meet the needs of modern data stacks and business expectations.
-            At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing updated and new data as new rows using either record change detection or an appropriate bookmark for any data source.
-            Streams are always handled independently. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification.
+            Introducing <span style="font-weight: bold; color: #3EB489;">xtkt</span>: a generic but opinionated data extraction tool that adheres to the Singer.io specification. At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing new and updated data as new rows using either new-record detection or an appropriate bookmark for any RESTful API. Streams are always handled independently. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification.
         </p>
       </section>
 
@@ -134,66 +132,105 @@
         <h2>Installation</h2>
         <p>Installation</p>
       </section>
-      
-      <section id="usage">
-        <h2>Usage</h2>
-        <p>
-            &#62;&#62; <span style="font-weight: bold; color: #3EB489;">xtkt</span> &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target
-            <br>
-            <br>
-            <p style="font-weight: bold; color: #3EB489;">config.json</p>
-            <pre style="border: 1px solid black;">
-                <code class="language-javascript">
-{
-  "url": "https://www.helloworld.com/route",
-  "auth": {
-      "required": true,
-      "strategy": "token",
-      "basic": {
-          "username": "u",
-          "password": "p"
-      },
-      "token": {
-          "header": "Authorization",
-          "header_value": "Bearer YOUR_API_TOKEN"
-      }
-  },
-  "response": {
-      "records_path": [
-          "results"
-      ],
-      "pagination": true,
-      "pagination_strategy": "next",
-      "pagination_next_path": [
-          "info",
-          "next"
-      ]
-  },
-  "records": {
-      "unique_key_path": [
-          "id"
-      ],
-      "bookmark": true,
-      "primary_bookmark_path": [
-          "updated_at"
-      ]
-  }
-}
-                </code>
-            </pre>
-        </p>
-      </section>
-      
+
       <section id="Metadata">
         <h2>Metadata</h2>
         <p><span style="font-weight: bold; color: #3EB489;">xtkt</span> adds the following metadata to records</p>
+        <br>
+        <li><span style="font-weight: bold; color: #3EB489;">surrogate_key</span>: an identifier of a record (SHA256) generated using the unique_key and bookmark (if provided). If record detection is used, this is generated using the entire record object</li>
+        <br>
+        <li><span style="font-weight: bold; color: #3EB489;">time_extracted</span>: a timestamp (R3339) at the time of the data extraction</li>
+      </section>
+      
+      <section id="usage">
+        <h2>Usage</h2>
+        <p>&#62;&#62; <span style="font-weight: bold; color: #3EB489;">xtkt</span> &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target </p>
+        <br>
+        
+        <div style="display: flex; flex-direction: row; justify-content: space-between;">
+
+<div style="flex: 1; text-align: left; margin-left: 5px">  
+      <h3 style="font-weight: bold;">config.json</h3>
+      <br>
+      <li><span style="font-weight: bold; color: #3EB489;">url</span>: <i>string</i> the Restful API address</li>
+      <li><span style="font-weight: bold; color: #3EB489;">auth.required</span>: <i>boolean</i> stating if an authentication method is used</li>
+      <li><span style="font-weight: bold; color: #3EB489;">response.pagination</span>: <i>boolean</i> stating if response pagination is used</li>
+      <li><span style="font-weight: bold; color: #3EB489;">records.unique_key_path</span>: <i>array</i> stating relative path within a response record for the unique identifier of a record</li>
+      <li><span style="font-weight: bold; color: #3EB489;">records.bookmark</span>: <i>boolean</i> stating whether state should be tracked using a bookmark</li>
+      
+      <br>
+
+      <h3 style="font-weight: bold;">Optional</h3>
+      <br>
+      <h4 style="font-weight: bold;">auth</h4>
+      <li><span style="font-weight: bold; color: #3EB489;">auth.strategy</span>: <i>string</i> stating authorisation strategy (accepted values are currently "basic" or "token")</li>
+      <li><span style="font-weight: bold; color: #3EB489;">auth.basic</span>: <i>{object}</i> objecting containing credentials for basic authorisation {"username", "password"}</li>
+      <li><span style="font-weight: bold; color: #3EB489;">auth.token</span>: <i>{object}</i> objecting containing request Header information for token authorisation {"header", "header_value"}</li>
+
+      <br>
+      <h4 style="font-weight: bold;">response</h4>
+      <li><span style="font-weight: bold; color: #3EB489;">response.records_path</span>: <i>array</i> stating relative path for records in response</li>
+      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_strategy</span>: <i>string</i> stating pagination strategy (accepted values are current "next")</li>
+      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_next_path</span>: <i>array</i> stating relative path within response for the next page address</li>
+
+      <br>
+      <h4 style="font-weight: bold;">records</h4>
+      <li><span style="font-weight: bold; color: #3EB489;">records.primary_bookmark_path</span>: <i>array</i> stating relative path within record for bookmark value (to use new/updated record detection use ["*"]</li>
+</div>
+
+<div style="flex: 1; margin-right: 5px">
+  <p>
+      <p style="font-weight: bold; color: #3EB489;">example</p>
+      <pre style="border: 1px solid black;">
+          <code class="language-javascript">
+{
+  "url": "https://www.helloworld.com/route",
+  "auth": {
+    "required": true,
+    "strategy": "token",
+    "basic": {
+        "username": "u",
+        "password": "p"
+    },
+    "token": {
+        "header": "Authorization",
+        "header_value": "Bearer YOUR_API_TOKEN"
+    }
+  },
+  "response": {
+    "records_path": [
+        "results"
+    ],
+    "pagination": true,
+    "pagination_strategy": "next",
+    "pagination_next_path": [
+        "info",
+        "next"
+    ]
+  },
+  "records": {
+    "unique_key_path": [
+        "id"
+    ],
+    "bookmark": true,
+    "primary_bookmark_path": [
+        "updated_at"
+    ]
+  }
+}
+          </code>
+      </pre>
+  </p>
+</div>
+</div>
+
       </section>
 
       <section id="examples">
         <h2>Examples</h2>
         <a href="https://rickandmortyapi.com/">Rick & Morty API</a>
         <p>https://rickandmortyapi.com/api/character</p>
-        <p>No authorisation required, records found in the response "results" array, paginated using "next", no bookmark implemented</p>
+        <p>No authorisation required, records found in the response "results" array, paginated using "next", new/updated record detection used</p>
         <br>
         <div style="display: flex; flex-direction: row; justify-content: space-between;">
             
@@ -261,7 +298,8 @@
   },
   "records": {
       "unique_key_path": ["id"],
-      "bookmark": false
+      "bookmark": true,
+      "primary_bookmark_path": ["*"]
   }
 }
                     </code>
@@ -274,7 +312,7 @@
 
           <a href="https://docs.github.com/en/rest">Github API</a>
           <p>https://api.github.com/repos/OWNER/REPO/commits</p>
-          <p>API authorisation required using API token, records returned as an array, no pagination, bookmark'd using a "created" field in "commit.author" </p>
+          <p>API authorisation required using API token, records returned as an array, no pagination, bookmark'd using "commit.author.date" </p>
 
           <br>
 
