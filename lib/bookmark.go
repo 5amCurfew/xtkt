@@ -14,13 +14,12 @@ func BookmarkSet(config util.Config) bool {
 	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
 }
 
-func detectionSetContains(s []string, str string) bool {
+func detectionSetContains(s []interface{}, str interface{}) bool {
 	for _, v := range s {
 		if v == str {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -54,9 +53,9 @@ func readBookmarkValue(config util.Config) interface{} {
 	_ = json.Unmarshal(stateFile, &state)
 
 	if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
-		return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["detection_bookmark"].([]string)
+		return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["detection_bookmark"]
 	} else {
-		return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["primary_bookmark"].(string)
+		return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["primary_bookmark"]
 	}
 }
 
@@ -95,13 +94,13 @@ func UpdateDetectionBookmark(records []interface{}, config util.Config) {
 	_ = json.Unmarshal(stateFile, &state)
 
 	// CURRENT SET
-	latestBookmark := readBookmarkValue(config).([]string)
+	latestBookmark := readBookmarkValue(config).([]interface{})
 
 	// FIND LATEST
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
-		if detectionSetContains(latestBookmark, r["detection_key"].(string)) {
-			latestBookmark = append(latestBookmark, r["detection_key"].(string))
+		if !detectionSetContains(latestBookmark, r["surrogate_key"]) {
+			latestBookmark = append(latestBookmark, r["surrogate_key"])
 		}
 	}
 
@@ -124,7 +123,7 @@ func GenerateStateMessage() {
 	message := util.Message{
 		Type:          "STATE",
 		Value:         state["value"],
-		TimeExtracted: time.Now(),
+		TimeExtracted: time.Now().Format(time.RFC3339),
 	}
 
 	messageJson, err := json.Marshal(message)

@@ -13,37 +13,34 @@ import (
 )
 
 func generateSurrogateKey(records []interface{}, config util.Config) {
+	h := sha256.New()
+
 	if len(records) > 0 {
-		if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
-			for _, record := range records {
-				r, _ := record.(map[string]interface{})
-				h := sha256.New()
-
-				h.Write([]byte(util.ToString(r)))
-				hashBytes := h.Sum(nil)
-
-				r["surrogate_key"] = hex.EncodeToString(hashBytes)
-				r["time_extracted"] = time.Now()
-			}
-		} else {
-			for _, record := range records {
-				r, _ := record.(map[string]interface{})
-				keyComponent := ""
-
-				h := sha256.New()
-				if config.Records.PrimaryBookmarkPath != nil {
-					keyComponent = util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r))
+		for _, record := range records {
+			r, _ := record.(map[string]interface{})
+			if config.Records.PrimaryBookmarkPath != nil {
+				if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
+					h.Write([]byte(util.ToString(r)))
+				} else {
+					keyComponent := util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r))
+					h.Write([]byte(util.ToString(util.GetValueAtPath(*config.Records.UniqueKeyPath, r)) + keyComponent))
 				}
-
-				h.Write([]byte(util.ToString(util.GetValueAtPath(*config.Records.UniqueKeyPath, r)) + keyComponent))
-
-				hashBytes := h.Sum(nil)
-
-				r["surrogate_key"] = hex.EncodeToString(hashBytes)
-				r["time_extracted"] = time.Now()
+			} else {
+				h.Write([]byte(util.ToString(util.GetValueAtPath(*config.Records.UniqueKeyPath, r))))
 			}
+			hashBytes := h.Sum(nil)
+			r["surrogate_key"] = hex.EncodeToString(hashBytes)
 		}
 	}
+}
+
+func AddMetadata(records []interface{}, config util.Config) []interface{} {
+	if len(records) > 0 {
+		for _, record := range records {
+			record.(map[string]interface{})["time_extracted"] = time.Now().Format(time.RFC3339)
+		}
+	}
+	return records
 }
 
 func GenerateRecords(config util.Config) []interface{} {
@@ -83,39 +80,36 @@ func GenerateRecords(config util.Config) []interface{} {
 		switch *config.Response.PaginationStrategy {
 		case "next":
 			nextURL := util.GetValueAtPath(*config.Response.PaginationNextPath, responseMap)
-			if nextURL == nil {
+			if nextURL == nil || nextURL == "" {
 				generateSurrogateKey(records, config)
 				return records
+			} else {
+				*config.URL = nextURL.(string)
+				records = append(records, GenerateRecords(config)...)
 			}
-
-			nextConfig := config
-			*nextConfig.URL = nextURL.(string)
-			records = append(records, GenerateRecords(nextConfig)...)
 		}
 	}
 
 	generateSurrogateKey(records, config)
-
 	return records
 
 }
 
 func GenerateRecordMessages(records []interface{}, config util.Config) {
-	bookmark := readBookmarkValue(config)
-
 	//////////////////////////////////////
 	// RECORD DETECTION
 	/////////////////////////////////////
 	if *config.Records.Bookmark && reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
+		bookmark := readBookmarkValue(config).([]interface{})
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
 
-			if !detectionSetContains(bookmark.([]string), r["detection_key"].(string)) {
+			if !detectionSetContains(bookmark, r["surrogate_key"]) {
 				message := util.Message{
 					Type:          "RECORD",
 					Data:          r,
 					Stream:        util.GenerateStreamName(URLsParsed[0], config),
-					TimeExtracted: time.Now(),
+					TimeExtracted: time.Now().Format(time.RFC3339),
 				}
 
 				messageJson, err := json.Marshal(message)
@@ -128,18 +122,19 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 			}
 		}
 	} else if *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil {
+		bookmark := readBookmarkValue(config).(string)
 		//////////////////////////////////////
 		// USE BOOKMARK
 		/////////////////////////////////////
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
 
-			if util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark.(string) {
+			if util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark {
 				message := util.Message{
 					Type:          "RECORD",
 					Data:          r,
 					Stream:        util.GenerateStreamName(URLsParsed[0], config),
-					TimeExtracted: time.Now(),
+					TimeExtracted: time.Now().Format(time.RFC3339),
 				}
 
 				messageJson, err := json.Marshal(message)
@@ -162,7 +157,7 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 				Type:          "RECORD",
 				Data:          r,
 				Stream:        util.GenerateStreamName(URLsParsed[0], config),
-				TimeExtracted: time.Now(),
+				TimeExtracted: time.Now().Format(time.RFC3339),
 			}
 
 			messageJson, err := json.Marshal(message)

@@ -70,7 +70,7 @@ func GenerateSchemaMessage(records []interface{}, config util.Config) {
 	message := util.Message{
 		Type:               "SCHEMA",
 		Stream:             util.GenerateStreamName(URLsParsed[0], config),
-		TimeExtracted:      time.Now(),
+		TimeExtracted:      time.Now().Format(time.RFC3339),
 		Schema:             generateSchema(records),
 		KeyProperties:      []string{"surrogate_key"},
 		BookmarkProperties: bookmarkProperties,

@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"strings"
-	"time"
 )
 
 type Config struct {
@@ -76,7 +75,7 @@ type Message struct {
 	Type               string      `json:"type"`
 	Data               Record      `json:"record,omitempty"`
 	Stream             string      `json:"stream,omitempty"`
-	TimeExtracted      time.Time   `json:"time_extracted,omitempty"`
+	TimeExtracted      string      `json:"time_extracted,omitempty"`
 	Schema             interface{} `json:"schema,omitempty"`
 	Value              interface{} `json:"value,omitempty"`
 	KeyProperties      []string    `json:"key_properties,omitempty"`
