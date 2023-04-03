@@ -1,7 +1,6 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -34,40 +33,41 @@ type Config struct {
 	} `json:"records,omitempty"`
 }
 
-func ValidateConfig(cfg Config) error {
+func ValidateConfig(cfg Config) (bool, error) {
 	if cfg.URL == nil {
-		return errors.New("url is required")
+		return false, fmt.Errorf("url is required in config.json")
 	}
 	if cfg.Auth.Required == nil {
-		return errors.New("auth.required is required (true or false)'")
+		return false, fmt.Errorf("auth.required is required in config.json (true or false)'")
 	}
 	if *cfg.Auth.Required && *cfg.Auth.Strategy == "basic" && cfg.Auth.Basic == nil {
-		return errors.New("auth.basic is required required for basic authentication")
+		return false, fmt.Errorf("auth.basic is required in config.json required for basic authentication")
 	}
 	if *cfg.Auth.Required && *cfg.Auth.Strategy == "token" && cfg.Auth.Token == nil {
-		return errors.New("auth.token is required for token authentication")
+		return false, fmt.Errorf("auth.token is required in config.json for token authentication")
 	}
 	if cfg.Response.Pagination == nil {
-		return errors.New("response.pagination is required (true or false)")
+		return false, fmt.Errorf("response.pagination is required in config.json (true or false)")
 	}
 	if *cfg.Response.Pagination && cfg.Response.PaginationStrategy == nil {
-		return errors.New("response.pagination_strategy is required when auth.pagination is true (e.g. 'next')")
+		return false, fmt.Errorf("response.pagination_strategy is required in config.json when auth.pagination is true (e.g. 'next')")
 	}
 	if cfg.Records == nil {
-		return errors.New("records is required")
+		return false, fmt.Errorf("records is required in config.json")
 	}
 	if cfg.Records.UniqueKeyPath == nil {
-		return errors.New("unique_key_path is required")
+		return false, fmt.Errorf("records.unique_key_path is required in config.json")
 	}
 	if cfg.Records.Bookmark == nil {
-		return errors.New("bookmark is required (true or false)")
+		return false, fmt.Errorf("records.bookmark is required in config.json (true or false)")
 	}
 	if *cfg.Records.Bookmark {
 		if cfg.Records.PrimaryBookmarkPath == nil {
-			return errors.New("primary_bookmark_path is required when bookmark is true")
+			return false, fmt.Errorf("records.primary_bookmark_path is required in config.json when records.bookmark is true")
 		}
 	}
-	return nil
+
+	return true, nil
 }
 
 type Record map[string]interface{}
