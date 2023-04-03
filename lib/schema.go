@@ -63,8 +63,8 @@ func generateSchema(records []interface{}) map[string]interface{} {
 
 func GenerateSchemaMessage(records []interface{}, config util.Config) {
 	var bookmarkProperties []string
-	if config.PrimaryBookmarkPath != nil {
-		bookmarkProperties = *config.PrimaryBookmarkPath
+	if config.Records.PrimaryBookmarkPath != nil {
+		bookmarkProperties = *config.Records.PrimaryBookmarkPath
 	}
 
 	message := util.Message{

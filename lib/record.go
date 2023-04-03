@@ -5,41 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
-
-var URLsParsed []string
-
-// ///////////////////////////////////////////////////////////
-// PARSE RECORDS
-// ///////////////////////////////////////////////////////////
-func callAPI(config util.Config) ([]byte, error) {
-	req, _ := http.NewRequest("GET", *config.URL, nil)
-
-	if *config.Auth.Required {
-		if *config.Auth.Strategy == "basic" && config.Auth.Username != nil && config.Auth.Password != nil {
-			req.SetBasicAuth(*config.Auth.Username, *config.Auth.Username)
-		} else if *config.Auth.Strategy == "token" && config.Auth.Token != nil {
-			req.Header.Set("Authorization", "Bearer "+*config.Auth.Token)
-		}
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	URLsParsed = append(URLsParsed, *config.URL)
-
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
-}
 
 func generateSurrogateKey(records []interface{}, config util.Config) {
 	if len(records) > 0 {
@@ -48,11 +18,11 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 			keyComponent := ""
 
 			h := sha256.New()
-			if config.PrimaryBookmarkPath != nil {
-				keyComponent = util.ToString(util.GetValueAtPath(*config.PrimaryBookmarkPath, r))
+			if config.Records.PrimaryBookmarkPath != nil {
+				keyComponent = util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r))
 			}
 
-			h.Write([]byte(util.ToString(util.GetValueAtPath(*config.UniqueKeyPath, r)) + keyComponent))
+			h.Write([]byte(util.ToString(util.GetValueAtPath(*config.Records.UniqueKeyPath, r)) + keyComponent))
 
 			hashBytes := h.Sum(nil)
 
@@ -65,7 +35,7 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 func GenerateRecords(config util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
-	apiResponse, err := callAPI(config)
+	apiResponse, err := CallAPI(config)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
@@ -95,16 +65,19 @@ func GenerateRecords(config util.Config) []interface{} {
 	}
 
 	// PAGINATED, "next"
-	if *config.Response.Pagination && *config.Response.PaginationStrategy == "next" {
-		nextURL := util.GetValueAtPath(*config.Response.PaginationPath, responseMap)
-		if nextURL == nil {
-			generateSurrogateKey(records, config)
-			return records
-		}
+	if *config.Response.Pagination {
+		switch *config.Response.PaginationStrategy {
+		case "next":
+			nextURL := util.GetValueAtPath(*config.Response.PaginationNextPath, responseMap)
+			if nextURL == nil {
+				generateSurrogateKey(records, config)
+				return records
+			}
 
-		nextConfig := config
-		*nextConfig.URL = nextURL.(string)
-		records = append(records, GenerateRecords(nextConfig)...)
+			nextConfig := config
+			*nextConfig.URL = nextURL.(string)
+			records = append(records, GenerateRecords(nextConfig)...)
+		}
 	}
 
 	generateSurrogateKey(records, config)
@@ -114,12 +87,12 @@ func GenerateRecords(config util.Config) []interface{} {
 }
 
 func GenerateRecordMessages(records []interface{}, config util.Config) {
-	if *config.Bookmark && config.PrimaryBookmarkPath != nil {
+	if *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil {
 		bookmark := readBookmark(config)
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
 
-			if util.ToString(util.GetValueAtPath(*config.PrimaryBookmarkPath, r)) > bookmark {
+			if util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark {
 				message := util.Message{
 					Type:          "RECORD",
 					Data:          r,

@@ -145,23 +145,39 @@
             <pre style="border: 1px solid black;">
                 <code class="language-javascript">
 {
-    "url": string,
-    "auth": {
-        "required": boolean, 
-        "strategy": string,
-        "username": string,
-        "password" string,
-        "token": string,
-    },
-    "response": {
-        "records_path": [] // array of strings,
-        "pagination": boolean,
-        "pagination_strategy": string,
-        "pagination_next_path": [] // array of strings
-    },
-    "unique_key": string,
-    "bookmark": boolean,
-    "primary_bookmark_path": [] // array of strings
+  "url": "https://www.helloworld.com/route",
+  "auth": {
+      "required": true,
+      "strategy": "token",
+      "basic": {
+          "username": "u",
+          "password": "p"
+      },
+      "token": {
+          "header": "Authorization",
+          "header_value": "Bearer YOUR_API_TOKEN"
+      }
+  },
+  "response": {
+      "records_path": [
+          "results"
+      ],
+      "pagination": true,
+      "pagination_strategy": "next",
+      "pagination_next_path": [
+          "info",
+          "next"
+      ]
+  },
+  "records": {
+      "unique_key_path": [
+          "id"
+      ],
+      "bookmark": true,
+      "primary_bookmark_path": [
+          "updated_at"
+      ]
+  }
 }
                 </code>
             </pre>
@@ -228,18 +244,25 @@
                 <pre style="border: 1px solid black;">
                     <code class="language-javascript">
 {
-    "url": "https://rickandmortyapi.com/api/character",
-    "auth": {
-        "required": false
-    },
-    "response": {
-        "records_path": ["results"],
-        "pagination": true,
-        "pagination_strategy": "next",
-        "pagination_next_path": ["info", "next"]
-    },
-    "unique_key": "id",
-    "bookmark": false
+  "url": "https://rickandmortyapi.com/api/character",
+  "auth": {
+      "required": false
+  },
+  "response": {
+      "records_path": [
+          "results"
+      ],
+      "pagination": true,
+      "pagination_strategy": "next",
+      "pagination_next_path": [
+          "info",
+          "next"
+      ]
+  },
+  "records": {
+      "unique_key_path": ["id"],
+      "bookmark": false
+  }
 }
                     </code>
                 </pre>
@@ -292,18 +315,23 @@
                   <pre style="border: 1px solid black;">
                       <code class="language-javascript">
 {
-    "url": "https://api.github.com/repos/OWNER/REPO/commits",
-    "auth": {
-        "required": true,
-        "strategy": "token",
-        "token": "YOUR_GITHUB_API_TOKEN"
-    },
-    "response": {
-        "pagination": false
-    },
-    "unique_key": "sha",
-    "bookmark": true,
-    "primary_bookmark_path": ["commit", "author", "date"]
+  "url": "https://api.github.com/repos/5amCurfew/xtkt/commits",
+  "auth": {
+      "required": true,
+      "strategy": "token",
+      "token": {
+          "header": "Authorization",
+          "header_value": "Bearer YOUR_API_TOKEN"
+      }
+  },
+  "response": {
+      "pagination": false
+  },
+  "records": {
+      "unique_key_path": ["sha"],
+      "bookmark": true,
+      "primary_bookmark_path": ["commit", "author", "date"]
+  }
 }
                       </code>
                   </pre>

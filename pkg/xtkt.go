@@ -8,7 +8,7 @@ import (
 )
 
 func bookmarkSet(config util.Config) bool {
-	return *config.Bookmark && config.PrimaryBookmarkPath != nil
+	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
 }
 
 func ParseResponse(config util.Config) {

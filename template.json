@@ -1,0 +1,35 @@
+{
+    "url": "https://www.helloworld.com/route",
+    "auth": {
+        "required": true,
+        "strategy": "token",
+        "basic": {
+            "username": "u",
+            "password": "p"
+        },
+        "token": {
+            "header": "Authorization",
+            "header_value": "Bearer YOUR_API_TOKEN"
+        }
+    },
+    "response": {
+        "records_path": [
+            "results"
+        ],
+        "pagination": true,
+        "pagination_strategy": "next",
+        "pagination_next_path": [
+            "info",
+            "next"
+        ]
+    },
+    "records": {
+        "unique_key_path": [
+            "id"
+        ],
+        "bookmark": true,
+        "primary_bookmark_path": [
+            "updated_at"
+        ]
+    }
+}

@@ -9,22 +9,29 @@ import (
 
 type Config struct {
 	URL  *string `json:"url,omitempty"`
-	Auth struct {
+	Auth *struct {
 		Required *bool   `json:"required,omitempty"`
 		Strategy *string `json:"strategy,omitempty"`
-		Username *string `json:"username,omitempty"`
-		Password *string `json:"password,omitempty"`
-		Token    *string `json:"token,omitempty"`
+		Basic    *struct {
+			Username *string `json:"username,omitempty"`
+			Password *string `json:"password,omitempty"`
+		} `json:"basic,omitempty"`
+		Token *struct {
+			Header      *string `json:"header,omitempty"`
+			HeaderValue *string `json:"header_value,omitempty"`
+		} `json:"token,omitempty"`
 	} `json:"auth,omitempty"`
-	Response struct {
+	Response *struct {
 		RecordsPath        *[]string `json:"records_path,omitempty"`
 		Pagination         *bool     `json:"pagination,omitempty"`
 		PaginationStrategy *string   `json:"pagination_strategy,omitempty"`
-		PaginationPath     *[]string `json:"pagination_next_path,omitempty"`
+		PaginationNextPath *[]string `json:"pagination_next_path,omitempty"`
 	} `json:"response,omitempty"`
-	UniqueKeyPath       *[]string `json:"unique_key,omitempty"`
-	Bookmark            *bool     `json:"bookmark,omitempty"`
-	PrimaryBookmarkPath *[]string `json:"primary_bookmark_path,omitempty"`
+	Records *struct {
+		UniqueKeyPath       *[]string `json:"unique_key_path,omitempty"`
+		Bookmark            *bool     `json:"bookmark,omitempty"`
+		PrimaryBookmarkPath *[]string `json:"primary_bookmark_path,omitempty"`
+	} `json:"records,omitempty"`
 }
 
 func ValidateConfig(cfg Config) error {
@@ -34,8 +41,8 @@ func ValidateConfig(cfg Config) error {
 	if cfg.Auth.Required == nil {
 		return errors.New("auth.required is required (true or false)'")
 	}
-	if *cfg.Auth.Required && *cfg.Auth.Strategy == "basic" && (cfg.Auth.Username == nil || cfg.Auth.Password == nil) {
-		return errors.New("auth.username and auth.password are required for basic authentication")
+	if *cfg.Auth.Required && *cfg.Auth.Strategy == "basic" && cfg.Auth.Basic == nil {
+		return errors.New("auth.basic is required required for basic authentication")
 	}
 	if *cfg.Auth.Required && *cfg.Auth.Strategy == "token" && cfg.Auth.Token == nil {
 		return errors.New("auth.token is required for token authentication")
@@ -46,14 +53,17 @@ func ValidateConfig(cfg Config) error {
 	if *cfg.Response.Pagination && cfg.Response.PaginationStrategy == nil {
 		return errors.New("response.pagination_strategy is required when auth.pagination is true (e.g. 'next')")
 	}
-	if cfg.UniqueKeyPath == nil {
+	if cfg.Records == nil {
+		return errors.New("records is required")
+	}
+	if cfg.Records.UniqueKeyPath == nil {
 		return errors.New("unique_key_path is required")
 	}
-	if cfg.Bookmark == nil {
+	if cfg.Records.Bookmark == nil {
 		return errors.New("bookmark is required (true or false)")
 	}
-	if *cfg.Bookmark {
-		if cfg.PrimaryBookmarkPath == nil {
+	if *cfg.Records.Bookmark {
+		if cfg.Records.PrimaryBookmarkPath == nil {
 			return errors.New("primary_bookmark_path is required when bookmark is true")
 		}
 	}
