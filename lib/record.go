@@ -114,7 +114,6 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 		bookmark := readBookmarkValue(config).([]interface{})
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			r = removeNullFields(r)
 
 			if !detectionSetContains(bookmark, r["surrogate_key"]) {
 				message := util.Message{
@@ -140,7 +139,6 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 		/////////////////////////////////////
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			r = removeNullFields(r)
 
 			if util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark {
 				message := util.Message{
@@ -165,7 +163,7 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 		/////////////////////////////////////
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			r = removeNullFields(r)
+
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
