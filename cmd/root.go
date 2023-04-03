@@ -30,6 +30,7 @@ var rootCmd = &cobra.Command{
 			xtkt.ParseResponse(c)
 		} else {
 			fmt.Println(validationError)
+			panic("xtkt panicing")
 		}
 	},
 }
