@@ -22,8 +22,15 @@ var rootCmd = &cobra.Command{
 		var file = args[0]
 		var c util.Config
 
-		config, _ := os.ReadFile(file)
-		_ = json.Unmarshal(config, &c)
+		config, readConfigError := os.ReadFile(file)
+		if readConfigError != nil {
+			panic("xtkt panicing")
+		}
+
+		jsonError := json.Unmarshal(config, &c)
+		if jsonError != nil {
+			panic("xtkt panicing")
+		}
 
 		configValidated, validationError := util.ValidateConfig(c)
 		if configValidated {
