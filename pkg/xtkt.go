@@ -2,14 +2,11 @@ package xtkt
 
 import (
 	"os"
+	"reflect"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	util "github.com/5amCurfew/xtkt/util"
 )
-
-func bookmarkSet(config util.Config) bool {
-	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
-}
 
 func ParseResponse(config util.Config) {
 
@@ -21,7 +18,7 @@ func ParseResponse(config util.Config) {
 	/////////////////////////////////////////////////////////////
 	// GENERATE BOOKMARK (if required)
 	/////////////////////////////////////////////////////////////
-	if bookmarkSet(config) {
+	if lib.BookmarkSet(config) {
 		if _, err := os.Stat("state.json"); os.IsNotExist(err) {
 			lib.CreateBookmark(config)
 		}
@@ -40,8 +37,12 @@ func ParseResponse(config util.Config) {
 	/////////////////////////////////////////////////////////////
 	// GENERATE STATE Message (if required) given RECORDS
 	/////////////////////////////////////////////////////////////
-	if bookmarkSet(config) {
-		lib.UpdateBookmark(records, config)
+	if lib.BookmarkSet(config) {
+		if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
+			lib.UpdateDetectionBookmark(records, config)
+		} else {
+			lib.UpdateBookmark(records, config)
+		}
 		lib.GenerateStateMessage()
 	}
 
