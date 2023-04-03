@@ -12,17 +12,6 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-func removeNullFields(m map[string]interface{}) map[string]interface{} {
-	for k, v := range m {
-		if v == nil {
-			delete(m, k)
-		} else if nestedMap, ok := v.(map[string]interface{}); ok {
-			removeNullFields(nestedMap)
-		}
-	}
-	return m
-}
-
 func generateSurrogateKey(records []interface{}, config util.Config) {
 	h := sha256.New()
 
@@ -114,7 +103,6 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 		bookmark := readBookmarkValue(config).([]interface{})
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			r = removeNullFields(r)
 
 			if !detectionSetContains(bookmark, r["surrogate_key"]) {
 				message := util.Message{
@@ -140,7 +128,6 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 		/////////////////////////////////////
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			r = removeNullFields(r)
 
 			if util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark {
 				message := util.Message{
@@ -165,7 +152,6 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 		/////////////////////////////////////
 		for _, record := range records {
 			r, _ := record.(map[string]interface{})
-			r = removeNullFields(r)
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
