@@ -1,0 +1,8 @@
+{
+    "host": "localhost",
+    "port": 5432,
+    "user": "admin",
+    "password": "admin",
+    "dbname": "postgres",
+    "default_target_schema": "public"
+}

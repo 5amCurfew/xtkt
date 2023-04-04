@@ -23,3 +23,16 @@ TODO:
     * JSON Web Tokens (JWT): JWT is a self-contained token that contains user or application information, which can be used to authenticate API requests. JWTs are signed and encrypted, providing a secure method of authentication.
     * :white_check_mark: Basic Authentication: This involves using a username and password to authenticate API requests. The credentials are usually passed in the header of the request, encoded in Base64.
 
+3. Test with targets
+
+Install targets in `_targets/` in virtual environments:
+
+  1. python3 -m venv ./_targets/target-name
+  2. source ./_targets/target-name/bin/activate
+  3. python3 -m pip install target-name
+  4. deactivate
+
+Usage: `xtkt config.json | ./_targets/target-name/bin/target-name`
+
+  * Postgres: `docker pull postgres`, `docker run --name pg_dev -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -p 5432:5432 -d postgres`
+    * `xtkt config_token.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c pg_dev.json`
