@@ -12,17 +12,6 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-func removeNullFields(m map[string]interface{}) map[string]interface{} {
-	for k, v := range m {
-		if v == nil {
-			delete(m, k)
-		} else if nestedMap, ok := v.(map[string]interface{}); ok {
-			removeNullFields(nestedMap)
-		}
-	}
-	return m
-}
-
 func generateSurrogateKey(records []interface{}, config util.Config) {
 	h := sha256.New()
 
