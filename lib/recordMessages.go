@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -25,14 +24,16 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 
 		addMetadata(r)
 
-		if *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil {
-			func(r map[string]interface{}) {
-				bookmarkCondition = util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark.(string)
-			}(r)
-		} else if *config.Records.Bookmark && reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
-			func(r map[string]interface{}) {
-				bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), r["surrogate_key"])
-			}(r)
+		if IsBookmarkProvided(config) {
+			if IsRecordDetectionProvided(config) {
+				func(r map[string]interface{}) {
+					bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), r["surrogate_key"])
+				}(r)
+			} else {
+				func(r map[string]interface{}) {
+					bookmarkCondition = util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark.(string)
+				}(r)
+			}
 		} else {
 			func(r map[string]interface{}) {
 				bookmarkCondition = true

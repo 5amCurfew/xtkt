@@ -10,8 +10,12 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-func BookmarkSet(config util.Config) bool {
+func IsBookmarkProvided(config util.Config) bool {
 	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
+}
+
+func IsRecordDetectionProvided(config util.Config) bool {
+	return *config.Records.Bookmark && reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"})
 }
 
 func detectionSetContains(s []interface{}, str interface{}) bool {
