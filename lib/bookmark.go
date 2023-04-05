@@ -80,7 +80,7 @@ func UpdateBookmark(records []interface{}, config util.Config) {
 	// UPDATE
 	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["primary_bookmark"] = latestBookmark
 
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["bookmark_updated_at"] = time.Now().Format(time.RFC3339),
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["bookmark_updated_at"] = time.Now().Format(time.RFC3339)
 
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",
