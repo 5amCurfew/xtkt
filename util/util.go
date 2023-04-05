@@ -18,6 +18,9 @@ type Config struct {
 			Header      *string `json:"header,omitempty"`
 			HeaderValue *string `json:"header_value,omitempty"`
 		} `json:"token,omitempty"`
+		Oauth2 *struct {
+			Token *string `json:"token,omitempty"`
+		} `json:"oauth2,omitempty"`
 	} `json:"auth,omitempty"`
 	Response *struct {
 		RecordsPath        *[]string `json:"records_path,omitempty"`
