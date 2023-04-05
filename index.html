@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>CLI Documentation</title>
+    <title>xtkt.io</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -92,7 +92,27 @@
         a {
           color: #3EB489;
         }
-  
+
+        .tip {
+          background-color: #f5f5f5;
+          border-left: 5px solid #3EB489;
+          padding: 10px;
+          margin: 10px 10px;
+          border-radius: 3px;
+        }
+
+        .tip p {
+          margin: 0;
+          font-size: 16px;
+          color: #333;
+        }
+
+      .tip p {
+        margin: 0;
+        font-size: 16px;
+        color: #333;
+      }
+
         /* Footer */
         footer {
           background-color: #474747;
@@ -120,11 +140,14 @@
       </ul>
     </nav>
     <main>
-
       <section id="overview">
         <h2>Overview</h2>
         <p>
-            Introducing <span style="font-weight: bold; color: #3EB489;">xtkt</span>: a generic but opinionated data extraction tool that adheres to the Singer.io specification. At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing new and updated data as new rows using either new-record detection or an appropriate bookmark for any RESTful API. Streams are always handled independently. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
+            <span style="font-weight: bold; color: #3EB489;">xtkt</span> ("extract") is a generic but opinionated data extraction tool that adheres to the Singer.io specification. At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing new and updated data as new rows when a bookmark is provided using either new-record detection or an appropriate bookmark for any RESTful API. Streams are always handled independently and deletion at source is not detected. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
+
+            <div class="tip">
+              <p>&#x1f4a1 In the absence of a bookmark (referred to as FULL_TABLE replication), all records (new, updated and unchanged) will be inserted or updated per <span style="font-weight: bold; color: #3EB489;">unique_key</span> on each <span style="font-weight: bold; color: #3EB489;">xtkt</span> invocation. This may be appropriate when inferring deletion using the <span style="font-weight: bold; color: #3EB489;">time_extracted</span> field.</p>
+            </div>
         </p>
       </section>
 
@@ -145,6 +168,9 @@
       <section id="usage">
         <h2>Usage</h2>
         <p>&#62;&#62; <span style="font-weight: bold; color: #3EB489;">xtkt</span> &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target </p>
+        <div class="tip">
+          <p>&#x1f4a1 example: xtkt config.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c postgres.json</p>
+        </div>
         <br>
         
         <div style="display: flex; flex-direction: row; justify-content: space-between;">
@@ -176,6 +202,9 @@
       <br>
       <h4 style="font-weight: bold;">records</h4>
       <li><span style="font-weight: bold; color: #3EB489;">records.primary_bookmark_path</span>: <i>array</i> stating relative path within record for bookmark value (to use new/updated record detection use ["*"]</li>
+      <div class="tip">
+        <p>&#x1f4a1 record detection is not advised for large data sources</p>
+      </div>
 </div>
 
 <div style="flex: 1; margin-right: 5px">

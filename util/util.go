@@ -24,6 +24,11 @@ type Config struct {
 		Pagination         *bool     `json:"pagination,omitempty"`
 		PaginationStrategy *string   `json:"pagination_strategy,omitempty"`
 		PaginationNextPath *[]string `json:"pagination_next_path,omitempty"`
+		PaginationQuery    *struct {
+			QueryParameter *string `json:"query_parameter,omitempty"`
+			QueryValue     *int    `json:"query_value,omitempty"`
+			QueryIncrement *int    `json:"query_increment,omitempty"`
+		} `json:"pagination_query,omitempty"`
 	} `json:"response,omitempty"`
 	Records *struct {
 		UniqueKeyPath       *[]string `json:"unique_key_path,omitempty"`
@@ -50,6 +55,12 @@ func ValidateConfig(cfg Config) (bool, error) {
 	}
 	if *cfg.Response.Pagination && cfg.Response.PaginationStrategy == nil {
 		return false, fmt.Errorf("response.pagination_strategy is required in config.json when auth.pagination is true (e.g. 'next')")
+	}
+	if *cfg.Response.PaginationStrategy == "next" && cfg.Response.PaginationNextPath == nil {
+		return false, fmt.Errorf("response.pagination_next_path is required in config.json when auth.pagination_strategy is next")
+	}
+	if *cfg.Response.PaginationStrategy == "query" && cfg.Response.PaginationQuery == nil {
+		return false, fmt.Errorf("response.pagination_query is required in config.json when auth.pagination_strategy is query")
 	}
 	if cfg.Records == nil {
 		return false, fmt.Errorf("records is required in config.json")

@@ -23,8 +23,6 @@ TODO:
     * :white_check_mark: API Key: This involves providing a unique key to the user or application, which is used to authenticate API requests. This key is usually included in the header or query parameters of the request.
     * OAuth 2.0: This is a widely used authorization framework that allows users or applications to access protected resources on behalf of a user. OAuth 2.0 works by providing an access token that is used to authenticate API requests.
 
-3. `FULL` replication to consider implementing deletion detection?
-
 ### Test with targets
 
 Install targets (python) in `_targets/` in virtual environments:
@@ -41,3 +39,4 @@ Usage: `xtkt config.json | ./_targets/target-name/bin/target-name`
     * `docker run --name pg_dev -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -p 5432:5432 -d postgres`
     * `docker start pg_dev`
     * `xtkt config_token.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c pg_dev.json`
+    * `xtkt config_full.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c pg_dev.json`

@@ -21,7 +21,12 @@
         "pagination_next_path": [
             "info",
             "next"
-        ]
+        ],
+        "pagination_query": {
+            "query_parameter": "page",
+            "query_value": 1,
+            "query_increment": 1
+        }
     },
     "records": {
         "unique_key_path": [

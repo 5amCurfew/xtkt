@@ -5,19 +5,21 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
 
 func generateSurrogateKey(records []interface{}, config util.Config) {
-	h := sha256.New()
-
 	if len(records) > 0 {
 		for _, record := range records {
+			h := sha256.New()
 			r, _ := record.(map[string]interface{})
+
 			if config.Records.PrimaryBookmarkPath != nil {
 				if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
 					h.Write([]byte(util.ToString(r)))
@@ -75,9 +77,11 @@ func GenerateRecords(config util.Config) []interface{} {
 		os.Exit(1)
 	}
 
-	// PAGINATED, "next"
+	emptyRecords := len(records) == 0
+
 	if *config.Response.Pagination {
 		switch *config.Response.PaginationStrategy {
+		// PAGINATED, "next"
 		case "next":
 			nextURL := util.GetValueAtPath(*config.Response.PaginationNextPath, responseMap)
 			if nextURL == nil || nextURL == "" {
@@ -87,12 +91,26 @@ func GenerateRecords(config util.Config) []interface{} {
 				*config.URL = nextURL.(string)
 				records = append(records, GenerateRecords(config)...)
 			}
+		// PAGINATED, "query"
+		case "query":
+			if emptyRecords {
+				generateSurrogateKey(records, config)
+				return records
+			} else {
+				parsedURL, _ := url.Parse(*config.URL)
+				query := parsedURL.Query()
+				query.Set("page", strconv.Itoa(*config.Response.PaginationQuery.QueryValue))
+				parsedURL.RawQuery = query.Encode()
+
+				*config.URL = parsedURL.String()
+				*config.Response.PaginationQuery.QueryValue = *config.Response.PaginationQuery.QueryValue + *config.Response.PaginationQuery.QueryIncrement
+				records = append(records, GenerateRecords(config)...)
+			}
 		}
 	}
 
 	generateSurrogateKey(records, config)
 	return records
-
 }
 
 func GenerateRecordMessages(records []interface{}, config util.Config) {

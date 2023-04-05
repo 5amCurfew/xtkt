@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 
 		config, readConfigError := os.ReadFile(file)
 		if readConfigError != nil {
-			panic("xtkt panicing")
+			panic(fmt.Sprintf("Failed to read %s file", file))
 		}
 
 		jsonError := json.Unmarshal(config, &c)
