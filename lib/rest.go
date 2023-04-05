@@ -24,7 +24,7 @@ func CallAPI(config util.Config) ([]byte, error) {
 		case "token":
 			req.Header.Set(*config.Auth.Token.Header, *config.Auth.Token.HeaderValue)
 		case "oauth":
-			token := &oauth2.Token{AccessToken: *config.Auth.Oauth2.Token, RefreshToken: *config.Auth.Oauth2.RefreshToken}
+			token := &oauth2.Token{AccessToken: *config.Auth.Oauth2.Secret, RefreshToken: *config.Auth.Oauth2.RefreshToken}
 			oauthClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
 			resp, err := oauthClient.Do(req)
 			if err != nil {
