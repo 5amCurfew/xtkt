@@ -15,7 +15,7 @@ TODO:
     
     * :white_check_mark: `next` - APIs may use different field names, such as next, nextLink, nextPage, or others, to indicate the URL for the next page of results
     * `limit` - parameter specifying the number of items to return per page
-    * `offset`- parameter specifying the starting position of the data to return. For example, if offset=10, the API will skip the first 10 items and return the next set of items
+    * :white_check_mark: (using query pagination) `offset`- parameter specifying the starting position of the data to return. For example, if offset=10, the API will skip the first 10 items and return the next set of items
 
 2. Handle authorisation
 
