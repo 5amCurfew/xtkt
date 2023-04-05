@@ -215,36 +215,41 @@
 {
   "url": "https://www.helloworld.com/route",
   "auth": {
-    "required": true,
-    "strategy": "token",
-    "basic": {
-        "username": "u",
-        "password": "p"
-    },
-    "token": {
-        "header": "Authorization",
-        "header_value": "Bearer YOUR_API_TOKEN"
-    }
+      "required": true,
+      "strategy": "token",
+      "basic": {
+          "username": "u",
+          "password": "p"
+      },
+      "token": {
+          "header": "Authorization",
+          "header_value": "Bearer YOUR_API_TOKEN"
+      }
   },
   "response": {
-    "records_path": [
-        "results"
-    ],
-    "pagination": true,
-    "pagination_strategy": "next",
-    "pagination_next_path": [
-        "info",
-        "next"
-    ]
+      "records_path": [
+          "results"
+      ],
+      "pagination": true,
+      "pagination_strategy": "next",
+      "pagination_next_path": [
+          "info",
+          "next"
+      ],
+      "pagination_query": {
+          "query_parameter": "page",
+          "query_value": 1,
+          "query_increment": 1
+      }
   },
   "records": {
-    "unique_key_path": [
-        "id"
-    ],
-    "bookmark": true,
-    "primary_bookmark_path": [
-        "updated_at"
-    ]
+      "unique_key_path": [
+          "id"
+      ],
+      "bookmark": true,
+      "primary_bookmark_path": [
+          "updated_at"
+      ]
   }
 }
           </code>
@@ -388,11 +393,17 @@
       "strategy": "token",
       "token": {
           "header": "Authorization",
-          "header_value": "Bearer YOUR_API_TOKEN"
+          "header_value": "Bearer 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"
       }
   },
   "response": {
-      "pagination": false
+      "pagination": true,
+      "pagination_strategy": "query",
+      "pagination_query": {
+          "query_parameter": "page",
+          "query_value": 1,
+          "query_increment": 1
+      }
   },
   "records": {
       "unique_key_path": ["sha"],
