@@ -30,8 +30,9 @@ func CreateBookmark(config util.Config) {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
-	data["primary_bookmark"] = ""
+	data["bookmark_updated_at"] = ""
 	data["detection_bookmark"] = []string{}
+	data["primary_bookmark"] = ""
 
 	stream[util.GenerateStreamName(URLsParsed[0], config)] = data
 
@@ -79,6 +80,8 @@ func UpdateBookmark(records []interface{}, config util.Config) {
 	// UPDATE
 	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["primary_bookmark"] = latestBookmark
 
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["bookmark_updated_at"] = time.Now()
+
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",
 		"value": state["value"],
@@ -106,6 +109,8 @@ func UpdateDetectionBookmark(records []interface{}, config util.Config) {
 
 	// UPDATE
 	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["detection_bookmark"] = latestBookmark
+
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[util.GenerateStreamName(URLsParsed[0], config)].(map[string]interface{})["bookmark_updated_at"] = time.Now()
 
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",
