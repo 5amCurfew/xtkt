@@ -181,8 +181,8 @@
       <li><span style="font-weight: bold; color: #3EB489;">url</span>: <i>string</i> the Restful API address</li>
       <li><span style="font-weight: bold; color: #3EB489;">auth.required</span>: <i>boolean</i> stating if an authentication method is used</li>
       <li><span style="font-weight: bold; color: #3EB489;">response.pagination</span>: <i>boolean</i> stating if response pagination is used</li>
-      <li><span style="font-weight: bold; color: #3EB489;">records.unique_key_path</span>: <i>array</i> stating relative path within a response record for the unique identifier of a record</li>
       <li><span style="font-weight: bold; color: #3EB489;">records.bookmark</span>: <i>boolean</i> stating whether state should be tracked using a bookmark</li>
+      <li><span style="font-weight: bold; color: #3EB489;">records.unique_key_path</span>: <i>array</i> stating relative path within a response record for the unique identifier of a record</li>
       
       <br>
 
@@ -196,8 +196,17 @@
       <br>
       <h4 style="font-weight: bold;">response</h4>
       <li><span style="font-weight: bold; color: #3EB489;">response.records_path</span>: <i>array</i> stating relative path for records in response</li>
-      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_strategy</span>: <i>string</i> stating pagination strategy (accepted values are current "next")</li>
+      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_strategy</span>: <i>string</i> stating pagination strategy (accepted values are currently "next" or "query")</li>
+      <div class="tip">
+        <p>&#x1f4a1 for pagination using a query parameter, <span style="font-weight: bold; color: #3EB489;">xtkt</span> will stop when the records path is empty</p>
+      </div>
+
       <li><span style="font-weight: bold; color: #3EB489;">response.pagination_next_path</span>: <i>array</i> stating relative path within response for the next page address</li>
+      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_query</span>: <i>{object}</i> objecting containing request query parameter information for pagination {"query_parameter", "query_parameter_value", "query_parameter_increment"}</li>
+      <div class="tip">
+        <p>&#x1f4a1 pagination_query can also be used for APIs using offset by setting "query_parameter_value": 0 and "query_parameter_increment" to the offset value</p>
+      </div>
+
 
       <br>
       <h4 style="font-weight: bold;">records</h4>
@@ -304,9 +313,11 @@
         "url": "https://rickandmortyapi.com/api/character/1",
         "created": "2017-11-04T18:48:46.250Z"
         },
-        // ...
+        ...
+        ...
+        ...
     ]
-    }
+  }
                     </code>
                 </pre>
             </div>
@@ -378,6 +389,8 @@
         }
     }
     ...
+    ...
+    ...
 ]
                       </code>
                   </pre>
@@ -393,7 +406,7 @@
       "strategy": "token",
       "token": {
           "header": "Authorization",
-          "header_value": "Bearer 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"
+          "header_value": "Bearer YOUR_API_TOKEN"
       }
   },
   "response": {
