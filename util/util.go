@@ -19,7 +19,8 @@ type Config struct {
 			HeaderValue *string `json:"header_value,omitempty"`
 		} `json:"token,omitempty"`
 		Oauth2 *struct {
-			Token *string `json:"token,omitempty"`
+			Token        *string `json:"token,omitempty"`
+			RefreshToken *string `json:"refresh_token,omitempty"`
 		} `json:"oauth2,omitempty"`
 	} `json:"auth,omitempty"`
 	Response *struct {

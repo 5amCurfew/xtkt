@@ -12,7 +12,8 @@
             "header_value": "Bearer YOUR_API_TOKEN"
         },
         "oauth2": {
-            "token": "YOUR_OAUTH2_TOKEN"
+            "token": "YOUR_OAUTH2_TOKEN",
+            "refresh_token": "YOUR_OAUTH2_REFRESH_TOKEN"
         }
     },
     "response": {
