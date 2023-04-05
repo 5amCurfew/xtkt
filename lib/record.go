@@ -9,7 +9,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
@@ -34,15 +33,6 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 			r["surrogate_key"] = hex.EncodeToString(hashBytes)
 		}
 	}
-}
-
-func AddMetadata(records []interface{}, config util.Config) []interface{} {
-	if len(records) > 0 {
-		for _, record := range records {
-			record.(map[string]interface{})["time_extracted"] = time.Now().Format(time.RFC3339)
-		}
-	}
-	return records
 }
 
 func GenerateRecords(config util.Config) []interface{} {
@@ -111,80 +101,4 @@ func GenerateRecords(config util.Config) []interface{} {
 
 	generateSurrogateKey(records, config)
 	return records
-}
-
-func GenerateRecordMessages(records []interface{}, config util.Config) {
-	//////////////////////////////////////
-	// RECORD DETECTION
-	/////////////////////////////////////
-	if *config.Records.Bookmark && reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
-		bookmark := readBookmarkValue(config).([]interface{})
-		for _, record := range records {
-			r, _ := record.(map[string]interface{})
-
-			if !detectionSetContains(bookmark, r["surrogate_key"]) {
-				message := util.Message{
-					Type:          "RECORD",
-					Data:          r,
-					Stream:        util.GenerateStreamName(URLsParsed[0], config),
-					TimeExtracted: time.Now().Format(time.RFC3339),
-				}
-
-				messageJson, err := json.Marshal(message)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
-					os.Exit(1)
-				}
-
-				fmt.Println(string(messageJson))
-			}
-		}
-	} else if *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil {
-		bookmark := readBookmarkValue(config).(string)
-		//////////////////////////////////////
-		// USE BOOKMARK
-		/////////////////////////////////////
-		for _, record := range records {
-			r, _ := record.(map[string]interface{})
-
-			if util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) > bookmark {
-				message := util.Message{
-					Type:          "RECORD",
-					Data:          r,
-					Stream:        util.GenerateStreamName(URLsParsed[0], config),
-					TimeExtracted: time.Now().Format(time.RFC3339),
-				}
-
-				messageJson, err := json.Marshal(message)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
-					os.Exit(1)
-				}
-
-				fmt.Println(string(messageJson))
-			}
-		}
-	} else {
-		//////////////////////////////////////
-		// ALL
-		/////////////////////////////////////
-		for _, record := range records {
-			r, _ := record.(map[string]interface{})
-
-			message := util.Message{
-				Type:          "RECORD",
-				Data:          r,
-				Stream:        util.GenerateStreamName(URLsParsed[0], config),
-				TimeExtracted: time.Now().Format(time.RFC3339),
-			}
-
-			messageJson, err := json.Marshal(message)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
-				os.Exit(1)
-			}
-
-			fmt.Println(string(messageJson))
-		}
-	}
 }
