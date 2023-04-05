@@ -10,13 +10,8 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-func AddMetadata(records []interface{}, config util.Config) []interface{} {
-	if len(records) > 0 {
-		for _, record := range records {
-			record.(map[string]interface{})["time_extracted"] = time.Now().Format(time.RFC3339)
-		}
-	}
-	return records
+func addMetadata(record map[string]interface{}) {
+	record["time_extracted"] = time.Now().Format(time.RFC3339)
 }
 
 func GenerateRecordMessages(records []interface{}, config util.Config) {
@@ -27,6 +22,8 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 	for _, record := range records {
 
 		r, _ := record.(map[string]interface{})
+
+		addMetadata(r)
 
 		if *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil {
 			func(r map[string]interface{}) {
