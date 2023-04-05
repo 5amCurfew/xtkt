@@ -18,11 +18,12 @@ type Config struct {
 			Header      *string `json:"header,omitempty"`
 			HeaderValue *string `json:"header_value,omitempty"`
 		} `json:"token,omitempty"`
-		Oauth2 *struct {
+		Oauth *struct {
+			ClientID     *string `json:"client_id,omitempty"`
 			Token        *string `json:"token,omitempty"`
 			ClientSecret *string `json:"client_secret,omitempty"`
 			RefreshToken *string `json:"refresh_token,omitempty"`
-		} `json:"oauth2,omitempty"`
+		} `json:"oauth,omitempty"`
 	} `json:"auth,omitempty"`
 	Response *struct {
 		RecordsPath        *[]string `json:"records_path,omitempty"`

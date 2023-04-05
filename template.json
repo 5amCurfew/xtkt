@@ -11,7 +11,8 @@
             "header": "Authorization",
             "header_value": "Bearer YOUR_API_TOKEN"
         },
-        "oauth2": {
+        "oauth": {
+            "client_id": "YOUR_OAUTH2_CLIENT_ID",
             "token": "YOUR_OAUTH2_TOKEN",
             "client_secret": "YOUR_OAUTH2_CLIENT_SECRET",
             "refresh_token": "YOUR_OAUTH2_REFRESH_TOKEN"
