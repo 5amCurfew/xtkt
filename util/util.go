@@ -20,9 +20,8 @@ type Config struct {
 		} `json:"token,omitempty"`
 		Oauth *struct {
 			ClientID     *string `json:"client_id,omitempty"`
-			Token        *string `json:"token,omitempty"`
 			ClientSecret *string `json:"client_secret,omitempty"`
-			RefreshToken *string `json:"refresh_token,omitempty"`
+			TokenURL     *string `json:"token_url,omitempty"`
 		} `json:"oauth,omitempty"`
 	} `json:"auth,omitempty"`
 	Response *struct {
@@ -62,10 +61,10 @@ func ValidateConfig(cfg Config) (bool, error) {
 	if *cfg.Response.Pagination && cfg.Response.PaginationStrategy == nil {
 		return false, fmt.Errorf("response.pagination_strategy is required in config.json when auth.pagination is true (e.g. 'next')")
 	}
-	if *cfg.Response.PaginationStrategy == "next" && cfg.Response.PaginationNextPath == nil {
+	if *cfg.Response.Pagination && *cfg.Response.PaginationStrategy == "next" && cfg.Response.PaginationNextPath == nil {
 		return false, fmt.Errorf("response.pagination_next_path is required in config.json when auth.pagination_strategy is next")
 	}
-	if *cfg.Response.PaginationStrategy == "query" && cfg.Response.PaginationQuery == nil {
+	if *cfg.Response.Pagination && *cfg.Response.PaginationStrategy == "query" && cfg.Response.PaginationQuery == nil {
 		return false, fmt.Errorf("response.pagination_query is required in config.json when auth.pagination_strategy is query")
 	}
 	if cfg.Records == nil {

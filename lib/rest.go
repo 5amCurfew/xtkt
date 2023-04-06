@@ -1,12 +1,10 @@
 package lib
 
 import (
-	"context"
 	"io"
 	"net/http"
 
 	util "github.com/5amCurfew/xtkt/util"
-	oauth2 "golang.org/x/oauth2"
 )
 
 var URLsParsed []string
@@ -24,23 +22,7 @@ func CallAPI(config util.Config) ([]byte, error) {
 		case "token":
 			req.Header.Set(*config.Auth.Token.Header, *config.Auth.Token.HeaderValue)
 		case "oauth":
-			oauthConf := &oauth2.Config{
-				ClientID:     *config.Auth.Oauth.ClientID,
-				ClientSecret: *config.Auth.Oauth.ClientSecret,
-			}
-			token := &oauth2.Token{
-				AccessToken:  *config.Auth.Oauth.Token,
-				RefreshToken: *config.Auth.Oauth.RefreshToken,
-			}
-			oauthClient := oauthConf.Client(context.Background(), token)
-			resp, err := oauthClient.Do(req)
-			if err != nil {
-				return nil, err
-			}
-			URLsParsed = append(URLsParsed, *config.URL)
 
-			defer resp.Body.Close()
-			return io.ReadAll(resp.Body)
 		}
 	}
 
