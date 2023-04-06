@@ -22,6 +22,7 @@ type Config struct {
 			ClientID     *string `json:"client_id,omitempty"`
 			ClientSecret *string `json:"client_secret,omitempty"`
 			TokenURL     *string `json:"token_url,omitempty"`
+			RefreshToken *string `json:"refresh_token,omitempty"`
 		} `json:"oauth,omitempty"`
 	} `json:"auth,omitempty"`
 	Response *struct {
