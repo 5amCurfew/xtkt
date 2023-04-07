@@ -27,10 +27,34 @@ func detectionSetContains(s []interface{}, str interface{}) bool {
 	return false
 }
 
+func readState() map[string]interface{} {
+	stateFile, _ := os.ReadFile("state.json")
+	state := make(map[string]interface{})
+	_ = json.Unmarshal(stateFile, &state)
+	return state
+}
+
+func readDetectionBookmark(state map[string]interface{}, config util.Config) []interface{} {
+	bookmarks := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})
+	if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
+		return bookmarks["detection_bookmark"].([]interface{})
+	} else {
+		return []interface{}{bookmarks["primary_bookmark"]}
+	}
+}
+
+func writeState(state map[string]interface{}) {
+	result, _ := json.Marshal(map[string]interface{}{
+		"type":  "STATE",
+		"value": state["value"],
+	})
+	os.WriteFile("state.json", result, 0644)
+}
+
 // ///////////////////////////////////////////////////////////
 // GENERATE/UPDATE/READ STATE
 // ///////////////////////////////////////////////////////////
-func CreateBookmark(config util.Config) {
+func CreateBookmark(config util.Config) error {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
@@ -43,24 +67,37 @@ func CreateBookmark(config util.Config) {
 	values := make(map[string]interface{})
 	values["bookmarks"] = stream
 
-	result, _ := json.Marshal(map[string]interface{}{
+	result, err := json.Marshal(map[string]interface{}{
 		"type":  "STATE",
 		"value": values,
 	})
+	if err != nil {
+		return fmt.Errorf("error marshaling state JSON: %w", err)
+	}
 
-	os.WriteFile("state.json", result, 0644)
+	if err := os.WriteFile("state.json", result, 0644); err != nil {
+		return fmt.Errorf("error writing state file: %w", err)
+	}
+
+	return nil
 }
 
-func readBookmarkValue(config util.Config) interface{} {
-	stateFile, _ := os.ReadFile("state.json")
+func readBookmarkValue(config util.Config) (interface{}, error) {
+	stateFile, err := os.ReadFile("state.json")
+	if err != nil {
+		return nil, fmt.Errorf("error reading state file: %w", err)
+	}
 
 	state := make(map[string]interface{})
-	_ = json.Unmarshal(stateFile, &state)
+	if err := json.Unmarshal(stateFile, &state); err != nil {
+		return nil, fmt.Errorf("error unmarshaling state JSON: %w", err)
+	}
 
+	bookmarks := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})
 	if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
-		return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_bookmark"]
+		return bookmarks["detection_bookmark"], nil
 	} else {
-		return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["primary_bookmark"]
+		return bookmarks["primary_bookmark"], nil
 	}
 }
 
@@ -71,7 +108,7 @@ func UpdateBookmark(records []interface{}, config util.Config) {
 	_ = json.Unmarshal(stateFile, &state)
 
 	// CURRENT
-	latestBookmark := readBookmarkValue(config)
+	latestBookmark, _ := readBookmarkValue(config)
 
 	// FIND LATEST
 	for _, record := range records {
@@ -95,33 +132,28 @@ func UpdateBookmark(records []interface{}, config util.Config) {
 }
 
 func UpdateDetectionBookmark(records []interface{}, config util.Config) {
-	stateFile, _ := os.ReadFile("state.json")
+	state := readState()
 
-	state := make(map[string]interface{})
-	_ = json.Unmarshal(stateFile, &state)
+	// Current set
+	latestBookmark := readDetectionBookmark(state, config)
 
-	// CURRENT SET
-	latestBookmark := readBookmarkValue(config).([]interface{})
-
-	// FIND LATEST
+	// Find latest
 	for _, record := range records {
-		r, _ := record.(map[string]interface{})
+		r, ok := record.(map[string]interface{})
+		if !ok {
+			continue
+		}
 		if !detectionSetContains(latestBookmark, r["surrogate_key"]) {
 			latestBookmark = append(latestBookmark, r["surrogate_key"])
 		}
 	}
 
-	// UPDATE
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_bookmark"] = latestBookmark
+	// Update
+	bookmarks := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})
+	bookmarks["detection_bookmark"] = latestBookmark
+	bookmarks["bookmark_updated_at"] = time.Now().Format(time.RFC3339)
 
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["bookmark_updated_at"] = time.Now().Format(time.RFC3339)
-
-	result, _ := json.Marshal(map[string]interface{}{
-		"type":  "STATE",
-		"value": state["value"],
-	})
-
-	os.WriteFile("state.json", result, 0644)
+	writeState(state)
 }
 
 func GenerateStateMessage() {

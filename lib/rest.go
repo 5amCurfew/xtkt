@@ -3,7 +3,6 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -17,7 +16,12 @@ var URLsParsed []string
 // PARSE RECORDS
 // ///////////////////////////////////////////////////////////
 func CallAPI(config util.Config) ([]byte, error) {
-	req, _ := http.NewRequest("GET", *config.URL, nil)
+	client := http.DefaultClient
+
+	req, err := http.NewRequest("GET", *config.URL, nil)
+	if err != nil {
+		return nil, err
+	}
 
 	if *config.Auth.Required {
 		switch *config.Auth.Strategy {
@@ -26,8 +30,6 @@ func CallAPI(config util.Config) ([]byte, error) {
 		case "token":
 			req.Header.Add(*config.Auth.Token.Header, *config.Auth.Token.HeaderValue)
 		case "oauth":
-			url := *config.Auth.Oauth.TokenURL
-
 			payload := &bytes.Buffer{}
 			writer := multipart.NewWriter(payload)
 			_ = writer.WriteField("client_id", *config.Auth.Oauth.ClientID)
@@ -36,22 +38,32 @@ func CallAPI(config util.Config) ([]byte, error) {
 			_ = writer.WriteField("refresh_token", *config.Auth.Oauth.RefreshToken)
 			err := writer.Close()
 			if err != nil {
-				fmt.Println(err)
+				return nil, err
 			}
 
-			authReq, _ := http.NewRequest("POST", url, payload)
-
+			url := *config.Auth.Oauth.TokenURL
+			authReq, err := http.NewRequest("POST", url, payload)
+			if err != nil {
+				return nil, err
+			}
 			authReq.Header.Set("Content-Type", writer.FormDataContentType())
 
-			oauthTokenResp, _ := http.DefaultClient.Do(authReq)
-
+			oauthTokenResp, err := client.Do(authReq)
+			if err != nil {
+				return nil, err
+			}
 			defer oauthTokenResp.Body.Close()
 
 			var responseMap map[string]interface{}
-			oauthResp, _ := io.ReadAll(oauthTokenResp.Body)
+			oauthResp, err := io.ReadAll(oauthTokenResp.Body)
+			if err != nil {
+				return nil, err
+			}
 			output := string(oauthResp)
 
-			json.Unmarshal([]byte(output), &responseMap)
+			if err := json.Unmarshal([]byte(output), &responseMap); err != nil {
+				return nil, err
+			}
 			accesToken := util.GetValueAtPath([]string{"access_token"}, responseMap)
 
 			header := "Authorization"
@@ -71,12 +83,11 @@ func CallAPI(config util.Config) ([]byte, error) {
 		}
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	URLsParsed = append(URLsParsed, *config.URL)
-
 	defer resp.Body.Close()
+	URLsParsed = append(URLsParsed, *config.URL)
 	return io.ReadAll(resp.Body)
 }

@@ -12,48 +12,50 @@ import (
 // ///////////////////////////////////////////////////////////
 // GENERATE JSON SCHEMA
 // ///////////////////////////////////////////////////////////
-func generateSchema(records []interface{}) map[string]interface{} {
-
+func GenerateSchema(records []interface{}) map[string]interface{} {
 	schema := make(map[string]interface{})
 	properties := make(map[string]interface{})
 
-	if len(records) > 0 {
-		for _, record := range records {
-			r, _ := record.(map[string]interface{})
-			for key, value := range r {
-				if _, exists := properties[key]; !exists {
-					properties[key] = make(map[string]interface{})
-					switch value.(type) {
-					case bool:
-						properties[key].(map[string]interface{})["type"] = []string{"boolean", "null"}
-					case int:
-						properties[key].(map[string]interface{})["type"] = []string{"integer", "null"}
-					case float64:
-						properties[key].(map[string]interface{})["type"] = []string{"number", "null"}
-					case map[string]interface{}:
-						subProps := generateSchema([]interface{}{value})
-						properties[key].(map[string]interface{})["type"] = []string{"object", "null"}
-						properties[key].(map[string]interface{})["properties"] = subProps["properties"]
-					case []interface{}:
-						properties[key].(map[string]interface{})["type"] = []string{"array", "null"}
-					case nil:
-						properties[key].(map[string]interface{})["type"] = []string{"null", "null"}
-					case string:
-						if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
-							properties[key].(map[string]interface{})["format"] = "date-time"
-							break
-						} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
-							properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
-							properties[key].(map[string]interface{})["format"] = "date"
-							break
-						} else {
-							properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
-						}
-					default:
-						properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
-					}
+	for _, record := range records {
+		r, ok := record.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		for key, value := range r {
+			prop, exists := properties[key]
+			if !exists {
+				prop = make(map[string]interface{})
+				properties[key] = prop
+			}
+
+			switch value.(type) {
+			case bool:
+				prop.(map[string]interface{})["type"] = []string{"boolean", "null"}
+			case int:
+				prop.(map[string]interface{})["type"] = []string{"integer", "null"}
+			case float64:
+				prop.(map[string]interface{})["type"] = []string{"number", "null"}
+			case map[string]interface{}:
+				subProps := GenerateSchema([]interface{}{value})
+				prop.(map[string]interface{})["type"] = []string{"object", "null"}
+				prop.(map[string]interface{})["properties"] = subProps["properties"]
+			case []interface{}:
+				prop.(map[string]interface{})["type"] = []string{"array", "null"}
+			case nil:
+				prop.(map[string]interface{})["type"] = []string{"null", "null"}
+			case string:
+				if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
+					prop.(map[string]interface{})["type"] = []string{"string", "null"}
+					prop.(map[string]interface{})["format"] = "date-time"
+				} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
+					prop.(map[string]interface{})["type"] = []string{"string", "null"}
+					prop.(map[string]interface{})["format"] = "date"
+				} else {
+					prop.(map[string]interface{})["type"] = []string{"string", "null"}
 				}
+			default:
+				prop.(map[string]interface{})["type"] = []string{"string", "null"}
 			}
 		}
 	}
@@ -63,12 +65,12 @@ func generateSchema(records []interface{}) map[string]interface{} {
 	return schema
 }
 
-func GenerateSchemaMessage(records []interface{}, config util.Config) {
+func GenerateSchemaMessage(schema map[string]interface{}, config util.Config) {
 	message := util.Message{
 		Type:          "SCHEMA",
 		Stream:        *config.StreamName,
 		TimeExtracted: time.Now().Format(time.RFC3339),
-		Schema:        generateSchema(records),
+		Schema:        schema,
 		KeyProperties: []string{"surrogate_key"},
 	}
 

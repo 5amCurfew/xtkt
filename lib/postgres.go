@@ -52,17 +52,17 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 	return result, nil
 }
 
-func GenerateDatabaseRecords(config util.Config) []interface{} {
-
+func GenerateDatabaseRecords(config util.Config) ([]interface{}, error) {
 	db, err := sql.Open("postgres", *config.URL)
 	if err != nil {
-		fmt.Println("error opening db:", err.Error())
+		return nil, fmt.Errorf("error opening db: %w", err)
 	}
 	defer db.Close()
 
-	// Call the RowsToJSON function with the table name
-	records, _ := readDatabaseRows(db, *config.Database.Table)
+	records, err := readDatabaseRows(db, *config.Database.Table)
+	if err != nil {
+		return nil, fmt.Errorf("error reading database rows: %w", err)
+	}
 
-	return records
-
+	return records, nil
 }
