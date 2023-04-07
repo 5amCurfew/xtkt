@@ -7,21 +7,7 @@
                                   
 ```
 
-`xtkt` is a command line interface to extract data from a REST API using the Singer.io Specification
-
-TODO:
-
-1. Handle Pagination
-    
-    * :white_check_mark: `next` - APIs may use different field names, such as next, nextLink, nextPage, or others, to indicate the URL for the next page of results
-    * `limit` - parameter specifying the number of items to return per page
-    * :white_check_mark: (using query pagination) `offset`- parameter specifying the starting position of the data to return. For example, if offset=10, the API will skip the first 10 items and return the next set of items
-
-2. Handle authorisation
-
-    * :white_check_mark: Basic Authentication: This involves using a username and password to authenticate API requests. The credentials are usually passed in the header of the request, encoded in Base64.
-    * :white_check_mark: API Key: This involves providing a unique key to the user or application, which is used to authenticate API requests. This key is usually included in the header or query parameters of the request.
-    * :white_check_mark: (v0.1 working) OAuth 2.0: This is a widely used authorization framework that allows users or applications to access protected resources on behalf of a user. OAuth 2.0 works by providing an access token that is used to authenticate API requests.
+`xtkt` ("extract") is a generic but opinionated data extraction tool that adheres to the Singer.io specification. At its core, `xtkt` takes an opinionated approach to data extraction (ELT for OLAP) importing new and updated data as new rows when a bookmark is provided using either new-record detection or an appropriate bookmark for any RESTful API or database. Streams are always handled independently and deletion at source is not detected. `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
 
 ### Test with targets
 
@@ -38,5 +24,62 @@ Usage: `xtkt config.json | ./_targets/target-name/bin/target-name`
     * `docker pull postgres`
     * `docker run --name pg_dev -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -p 5432:5432 -d postgres`
     * `docker start pg_dev`
-    * `xtkt config_token.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c pg_dev.json`
-    * `xtkt config_full.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c pg_dev.json`
+    * `xtkt config_token.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c config_target_pg.json`
+    * `xtkt config_full.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c config_target_pg.json`
+
+
+### config.json
+
+```json
+{
+    "stream_name": "name_of_this_datastream",
+    "source_type": "rest",
+    "url": "https://www.helloworld.com/route",
+    "database": {
+        "table": "my_table"
+    },
+    "auth": {
+        "required": true,
+        "strategy": "token",
+        "basic": {
+            "username": "u",
+            "password": "p"
+        },
+        "token": {
+            "header": "Authorization",
+            "header_value": "Bearer YOUR_API_TOKEN"
+        },
+        "oauth": {
+            "client_id": "YOUR_OAUTH_CLIENT_ID",
+            "client_secret": "YOUR_OAUTH_CLIENT_SECRET",
+            "refresh_token": "YOUR_OAUTH_REFRESH_TOKEN",
+            "token_url": "OAUTH_TOKEN_URL"
+        }
+    },
+    "response": {
+        "records_path": [
+            "results"
+        ],
+        "pagination": true,
+        "pagination_strategy": "next",
+        "pagination_next_path": [
+            "info",
+            "next"
+        ],
+        "pagination_query": {
+            "query_parameter": "page",
+            "query_value": 1,
+            "query_increment": 1
+        }
+    },
+    "records": {
+        "unique_key_path": [
+            "id"
+        ],
+        "bookmark": true,
+        "primary_bookmark_path": [
+            "updated_at"
+        ]
+    }
+}
+```

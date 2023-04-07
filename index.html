@@ -1,226 +1,207 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>xtkt.io</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Reset Styles */
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-          font-family: "Monaco", monospace;
-        }
-  
-        /* Global Styles */
-        body {
-          font-family: 'Roboto', sans-serif;
-          font-size: 16px;
-          line-height: 1.5;
-          color: #333;
-          background-color: #f9f9f9;
-        }
-  
-        /* Header */
-        header {
-          background-color: #474747;
-          color: #f9f9f9;
-          padding: 20px;
-          text-align: center;
-        }
-  
-        header h1 {
-          font-size: 32px;
-          margin-bottom: 10px;
-        }
-  
-        /* Navigation */
-        nav {
-          background-color: #f9f9f9;
-          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-          padding: 10px;
-        }
-  
-        nav ul {
-          list-style: none;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-  
-        nav li {
-          margin: 0 2%;
-        }
-  
-        nav a {
-          text-decoration: none;
-          color: #333;
-          font-weight: bold;
-          transition: all 0.3s ease-in-out;
-        }
-  
-        nav a:hover {
-          color: #3EB489;
-        }
-  
-        /* Main Content */
-        main {
-          max-width: 80%;
-          margin: 0 auto;
-          padding: 20px;
-        }
-  
-        /* Sections */
-        section {
-          margin-bottom: 30px;
-        }
-  
-        section h2 {
-          font-size: 24px;
-          margin-bottom: 5px;
-        }
-
-        section a{
-            font-size: 20px;
-        }
-  
-        section p {
-          line-height: 1.5;
-        }
-
-        a {
-          color: #3EB489;
-        }
-
-        .tip {
-          background-color: #f5f5f5;
-          border-left: 5px solid #3EB489;
-          padding: 10px;
-          margin: 10px 10px;
-          border-radius: 3px;
-        }
-
-        .tip p {
-          margin: 0;
-          font-size: 16px;
-          color: #333;
-        }
-
-      .tip p {
-        margin: 0;
-        font-size: 16px;
-        color: #333;
-      }
-
-        /* Footer */
-        footer {
-          background-color: #474747;
-          color: #f9f9f9;
-          padding: 10px;
-          text-align: center;
-        }
-  
-        footer p {
-          font-size: 14px;
-        }
+   <head>
+      <title>xtkt.io</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+         /* Reset Styles */
+         * {
+         margin: 0;
+         padding: 0;
+         box-sizing: border-box;
+         font-family: "Monaco", monospace;
+         }
+         /* Global Styles */
+         body {
+         font-family: 'Roboto', sans-serif;
+         font-size: 16px;
+         line-height: 1.5;
+         color: #333;
+         background-color: #f9f9f9;
+         }
+         /* Header */
+         header {
+         background-color: #474747;
+         color: #f9f9f9;
+         padding: 20px;
+         text-align: center;
+         }
+         header h1 {
+         font-size: 32px;
+         margin-bottom: 10px;
+         }
+         /* Navigation */
+         nav {
+         background-color: #f9f9f9;
+         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+         padding: 10px;
+         }
+         nav ul {
+         list-style: none;
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         }
+         nav li {
+         margin: 0 2%;
+         }
+         nav a {
+         text-decoration: none;
+         color: #333;
+         font-weight: bold;
+         transition: all 0.3s ease-in-out;
+         }
+         nav a:hover {
+         color: #3EB489;
+         }
+         /* Main Content */
+         main {
+         max-width: 90%;
+         margin: 0 auto;
+         padding: 20px;
+         }
+         /* Sections */
+         section {
+         margin-bottom: 30px;
+         }
+         section h2 {
+         font-size: 24px;
+         margin-bottom: 5px;
+         }
+         section a{
+         font-size: 20px;
+         }
+         section p {
+         line-height: 1.5;
+         }
+         a {
+         color: #3EB489;
+         }
+         .tip {
+         background-color: #f5f5f5;
+         border-left: 5px solid #3EB489;
+         padding: 10px;
+         margin: 10px 10px;
+         border-radius: 3px;
+         }
+         .tip p {
+         margin: 0;
+         font-size: 16px;
+         color: #333;
+         }
+         .tip p {
+         margin: 0;
+         font-size: 16px;
+         color: #333;
+         }
+         /* Footer */
+         footer {
+         background-color: #474747;
+         color: #f9f9f9;
+         padding: 10px;
+         text-align: center;
+         }
+         footer p {
+         font-size: 14px;
+         }
       </style>
-  </head>
-  <body>
-    <header>
-      <h1>> <span style="font-weight: bold; color: #3EB489;">xtkt</span> config.json</h1>
-    </header>
-    <nav>
-      <ul>
-        <li><a href="#overview">Overview</a></li>
-        <li><a href="#installation">Installation</a></li>
-        <li><a href="#Metadata">Metadata</a></li>
-        <li><a href="#usage">Usage</a></li>
-        <li><a href="#examples">Examples</a></li>
-      </ul>
-    </nav>
-    <main>
-      <section id="overview">
-        <h2>Overview</h2>
-        <p>
-            <span style="font-weight: bold; color: #3EB489;">xtkt</span> ("extract") is a generic but opinionated data extraction tool that adheres to the Singer.io specification. At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing new and updated data as new rows when a bookmark is provided using either new-record detection or an appropriate bookmark for any RESTful API. Streams are always handled independently and deletion at source is not detected. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
-
+   </head>
+   <body>
+      <header>
+         <h1>> <span style="font-weight: bold; color: #3EB489;">xtkt</span> config.json</h1>
+      </header>
+      <nav>
+         <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#installation">Installation</a></li>
+            <li><a href="#Metadata">Metadata</a></li>
+            <li><a href="#usage">Usage</a></li>
+            <li><a href="#examples">Examples</a></li>
+         </ul>
+      </nav>
+      <main>
+         <section id="overview">
+            <h2>Overview</h2>
+            <p>
+               <span style="font-weight: bold; color: #3EB489;">xtkt</span> ("extract") is a generic but opinionated data extraction tool that adheres to the Singer.io specification. At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing new and updated data as new rows when a bookmark is provided using either new-record detection or an appropriate bookmark for any RESTful API or database. Streams are always handled independently and deletion at source is not detected. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
             <div class="tip">
-              <p>&#x1f4a1 In the absence of a bookmark (referred to as FULL_TABLE replication), all records (new, updated and unchanged) will be inserted or updated per <span style="font-weight: bold; color: #3EB489;">unique_key</span> on each <span style="font-weight: bold; color: #3EB489;">xtkt</span> invocation. This may be appropriate when inferring deletion using the <span style="font-weight: bold; color: #3EB489;">time_extracted</span> field.</p>
+               <p>&#x1f4a1 In the absence of a bookmark (referred to as FULL_TABLE replication), all records (new, updated and unchanged) will be inserted or updated per <span style="font-weight: bold; color: #3EB489;">unique_key</span> on each <span style="font-weight: bold; color: #3EB489;">xtkt</span> invocation. This may be appropriate when inferring deletion using the <span style="font-weight: bold; color: #3EB489;">time_extracted</span> field.</p>
             </div>
-        </p>
-      </section>
+            </p>
+         </section>
+         <section id="installation">
+            <h2>Installation</h2>
+            <p>Installation</p>
+         </section>
+         <section id="Metadata">
+            <h2>Metadata</h2>
+            <p><span style="font-weight: bold; color: #3EB489;">xtkt</span> adds the following metadata to records</p>
+            <br>
+            <li><span style="font-weight: bold; color: #3EB489;">surrogate_key</span>: an identifier of a record (SHA256) generated using the unique_key and bookmark (if provided). If record detection is used, this is generated using the entire record object</li>
+            <br>
+            <li><span style="font-weight: bold; color: #3EB489;">time_extracted</span>: a timestamp (R3339) at the time of the data extraction</li>
+         </section>
+         <section id="usage">
+            <h2>Usage</h2>
+            <p>&#62;&#62; <span style="font-weight: bold; color: #3EB489;">xtkt</span> &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target </p>
+            <div class="tip">
+               <p>&#x1f4a1 example: xtkt config.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c postgres.json</p>
+            </div>
+            <br>
+            <div style="display: flex; flex-direction: row; justify-content: space-between;">
+               <div style="flex: 1; text-align: left; margin-left: 5px">
+                  <h3 style="font-weight: bold;">config.json</h3>
+                  <br>
+                  <li><span style="font-weight: bold; color: #3EB489;">stream_name</span>: <i>string</i></li>
+                  <li><span style="font-weight: bold; color: #3EB489;">url</span>: <i>string</i> Rest-API or Database address</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">auth.required</span>: <i>boolean</i> stating if an authentication method is used</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">response.pagination</span>: <i>boolean</i> stating if response requires pagination</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">records.bookmark</span>: <i>boolean</i> stating whether state should be tracked using a bookmark</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">records.unique_key_path</span>: <i>array</i> stating relative path within a response record for the unique identifier of a record</li>
+                  <br>
 
-      <section id="installation">
-        <h2>Installation</h2>
-        <p>Installation</p>
-      </section>
+                  <h3 style="font-weight: bold;">Optional</h3>
+                  <br>
 
-      <section id="Metadata">
-        <h2>Metadata</h2>
-        <p><span style="font-weight: bold; color: #3EB489;">xtkt</span> adds the following metadata to records</p>
-        <br>
-        <li><span style="font-weight: bold; color: #3EB489;">surrogate_key</span>: an identifier of a record (SHA256) generated using the unique_key and bookmark (if provided). If record detection is used, this is generated using the entire record object</li>
-        <br>
-        <li><span style="font-weight: bold; color: #3EB489;">time_extracted</span>: a timestamp (R3339) at the time of the data extraction</li>
-      </section>
-      
-      <section id="usage">
-        <h2>Usage</h2>
-        <p>&#62;&#62; <span style="font-weight: bold; color: #3EB489;">xtkt</span> &#60;RELATIVE_PATH_TO_CONFIG_JSON&#62; | your-target </p>
-        <div class="tip">
-          <p>&#x1f4a1 example: xtkt config.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c postgres.json</p>
-        </div>
-        <br>
-        
-        <div style="display: flex; flex-direction: row; justify-content: space-between;">
+                  <h4 style="font-weight: bold;">auth</h4>
+                  <li><span style="font-weight: bold; color: #3EB489;">strategy</span>: <i>string</i> stating authorisation strategy (accepted values are currently "basic", "token" or "oauth")</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">basic</span>: <i>{object}</i> objecting containing credentials for basic authorisation {"username", "password"}</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">token</span>: <i>{object}</i> objecting containing request Header information for token authorisation {"header", "header_value"}</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">oauth</span>: <i>{object}</i> objecting containing oauth authorisation credentials {"client_id", "client_secret", "refresh_token", "token_url"}</li>
+                  <br>
 
-<div style="flex: 1; text-align: left; margin-left: 5px">  
-      <h3 style="font-weight: bold;">config.json</h3>
-      <br>
-      <li><span style="font-weight: bold; color: #3EB489;">url</span>: <i>string</i> the Restful API address</li>
-      <li><span style="font-weight: bold; color: #3EB489;">auth.required</span>: <i>boolean</i> stating if an authentication method is used</li>
-      <li><span style="font-weight: bold; color: #3EB489;">response.pagination</span>: <i>boolean</i> stating if response pagination is used</li>
-      <li><span style="font-weight: bold; color: #3EB489;">records.bookmark</span>: <i>boolean</i> stating whether state should be tracked using a bookmark</li>
-      <li><span style="font-weight: bold; color: #3EB489;">records.unique_key_path</span>: <i>array</i> stating relative path within a response record for the unique identifier of a record</li>
-      
-      <br>
+                  <h4 style="font-weight: bold;">database</h4>
+                  <li><span style="font-weight: bold; color: #3EB489;">table</span>: <i>string</i> the table name in the database</li>
+                  <br>
 
-      <h3 style="font-weight: bold;">Optional</h3>
-      <br>
-      <h4 style="font-weight: bold;">auth</h4>
-      <li><span style="font-weight: bold; color: #3EB489;">auth.strategy</span>: <i>string</i> stating authorisation strategy (accepted values are currently "basic", "token" or "oauth")</li>
-      <li><span style="font-weight: bold; color: #3EB489;">auth.basic</span>: <i>{object}</i> objecting containing credentials for basic authorisation {"username", "password"}</li>
-      <li><span style="font-weight: bold; color: #3EB489;">auth.token</span>: <i>{object}</i> objecting containing request Header information for token authorisation {"header", "header_value"}</li>
-      <li><span style="font-weight: bold; color: #3EB489;">auth.oauth</span>: <i>{object}</i> objecting containing oauth authorisation credentials {"client_id", "client_secret", "refresh_token", "token_url"}</li>
-
-      <br>
-      <h4 style="font-weight: bold;">response</h4>
-      <li><span style="font-weight: bold; color: #3EB489;">response.records_path</span>: <i>array</i> stating relative path for records in response</li>
-      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_strategy</span>: <i>string</i> stating pagination strategy (accepted values are currently "next" or "query")</li>
-
-      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_next_path</span>: <i>array</i> stating relative path within response for the next page address</li>
-      <li><span style="font-weight: bold; color: #3EB489;">response.pagination_query</span>: <i>{object}</i> objecting containing request query parameter information for pagination {"query_parameter", "query_parameter_value", "query_parameter_increment"}</li>
-      <div class="tip">
-        <p>&#x1f4a1 pagination_query can also be used for APIs using offset by setting "query_parameter_value": 0 and "query_parameter_increment" to the offset value</p>
-      </div>
-
-
-      <br>
-      <h4 style="font-weight: bold;">records</h4>
-      <li><span style="font-weight: bold; color: #3EB489;">records.primary_bookmark_path</span>: <i>array</i> stating relative path within record for bookmark value (to use new/updated record detection use ["*"]</li>
-      <div class="tip">
-        <p>&#x1f4a1 record detection is not advised for large data sources</p>
-      </div>
-</div>
-
-<div style="flex: 1; margin-right: 5px">
-  <p>
-      <p style="font-weight: bold; color: #3EB489;">example</p>
-      <pre style="border: 1px solid black;">
+                  <h4 style="font-weight: bold;">response</h4>
+                  <li><span style="font-weight: bold; color: #3EB489;">records_path</span>: <i>array</i> stating relative path for records in response</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">pagination_strategy</span>: <i>string</i> stating pagination strategy (accepted values are currently "next" or "query")</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">pagination_next_path</span>: <i>array</i> stating relative path within response for the next page address</li>
+                  <li><span style="font-weight: bold; color: #3EB489;">pagination_query</span>: <i>{object}</i> objecting containing request query parameter information for pagination {"query_parameter", "query_parameter_value", "query_parameter_increment"}</li>
+                  <div class="tip">
+                     <p>&#x1f4a1 pagination_query can also be used for APIs using offset by setting "query_parameter_value": 0 and "query_parameter_increment" to the offset value</p>
+                  </div>
+                  <br>
+                  <h4 style="font-weight: bold;">records</h4>
+                  <li><span style="font-weight: bold; color: #3EB489;">primary_bookmark_path</span>: <i>array</i> stating relative path within record for bookmark value (to use new/updated record detection use ["*"]</li>
+                  <div class="tip">
+                     <p>&#x1f4a1 record detection is not advised for large data sources</p>
+                  </div>
+               </div>
+               <div style="flex: 1; margin-right: 5px">
+                  <p>
+                  <p style="font-weight: bold; color: #3EB489;">example</p>
+                  <pre style="border: 1px solid black;">
           <code class="language-javascript">
 {
+  "stream_name": "name_of_this_datastream",
+  "source_type": "rest",
   "url": "https://www.helloworld.com/route",
+  "database": {
+      "table": "my_table"
+  },
   "auth": {
       "required": true,
       "strategy": "token",
@@ -267,23 +248,20 @@
 }
           </code>
       </pre>
-  </p>
-</div>
-</div>
-
-      </section>
-
-      <section id="examples">
-        <h2>Examples</h2>
-        <a href="https://rickandmortyapi.com/">Rick & Morty API</a>
-        <p>https://rickandmortyapi.com/api/character</p>
-        <p>No authentication required, records found in the response "results" array, paginated using "next", new/updated record detection used</p>
-        <br>
-        <div style="display: flex; flex-direction: row; justify-content: space-between;">
-            
-            <div style="flex: 1; margin-right: 5px">
-                <p style="font-weight: bold; color: #3EB489;">Response</p>
-                <pre style="border: 1px solid black;">
+                  </p>
+               </div>
+            </div>
+         </section>
+         <section id="examples">
+            <h2>Examples</h2>
+            <a href="https://rickandmortyapi.com/">Rick & Morty API</a>
+            <p>https://rickandmortyapi.com/api/character</p>
+            <p>No authentication required, records found in the response "results" array, paginated using "next", new/updated record detection used</p>
+            <br>
+            <div style="display: flex; flex-direction: row; justify-content: space-between;">
+               <div style="flex: 1; margin-right: 5px">
+                  <p style="font-weight: bold; color: #3EB489;">Response</p>
+                  <pre style="border: 1px solid black;">
                     <code class="language-javascript">
 {
     "info": {
@@ -324,10 +302,10 @@
   }
                     </code>
                 </pre>
-            </div>
-            <div style="flex: 1; text-align: left; margin-left: 5px">
-                <p style="font-weight: bold; color: #3EB489;">example config.json</p>
-                <pre style="border: 1px solid black;">
+               </div>
+               <div style="flex: 1; text-align: left; margin-left: 5px">
+                  <p style="font-weight: bold; color: #3EB489;">example config.json</p>
+                  <pre style="border: 1px solid black;">
                     <code class="language-javascript">
 {
   "url": "https://rickandmortyapi.com/api/character",
@@ -353,21 +331,16 @@
 }
                     </code>
                 </pre>
+               </div>
             </div>
-          </div>
-
-          <br>
-          <br>
-
-          <a href="https://docs.github.com/en/rest">Github API</a>
-          <p>https://api.github.com/repos/OWNER/REPO/commits</p>
-          <p>Token authentication required, records returned immediately as an array, pagination using query parameter, bookmark'd using "commit.author.date" </p>
-
-          <br>
-
-          <div style="display: flex; flex-direction: row; justify-content: space-between;">
-              
-              <div style="flex: 1; margin: 5px">
+            <br>
+            <br>
+            <a href="https://docs.github.com/en/rest">Github API</a>
+            <p>https://api.github.com/repos/OWNER/REPO/commits</p>
+            <p>Token authentication required, records returned immediately as an array, pagination using query parameter, bookmark'd using "commit.author.date" </p>
+            <br>
+            <div style="display: flex; flex-direction: row; justify-content: space-between;">
+               <div style="flex: 1; margin: 5px">
                   <p style="font-weight: bold; color: #3EB489;">Response</p>
                   <pre style="border: 1px solid black;">
                       <code class="language-javascript">
@@ -398,8 +371,8 @@
 ]
                       </code>
                   </pre>
-              </div>
-              <div style="flex: 1; text-align: left; margin: 5px">
+               </div>
+               <div style="flex: 1; text-align: left; margin: 5px">
                   <p style="font-weight: bold; color: #3EB489;">example config.json</p>
                   <pre style="border: 1px solid black;">
                       <code class="language-javascript">
@@ -430,21 +403,18 @@
 }
                       </code>
                   </pre>
-              </div>
+               </div>
             </div>
-
-      <br>
-      <br>
-
-      <a href="https://developers.strava.com/docs/reference/">Strava API</a>
-      <p>https://www.strava.com/api/v3/athlete/activitiesr</p>
-      <p>Oauth authentication required, records returned immediately in an array, paginated using query parameter, bookmark'd using "start_date"</p>
-      <br>
-      <div style="display: flex; flex-direction: row; justify-content: space-between;">
-          
-          <div style="flex: 1; margin-right: 5px">
-              <p style="font-weight: bold; color: #3EB489;">Response</p>
-              <pre style="border: 1px solid black;">
+            <br>
+            <br>
+            <a href="https://developers.strava.com/docs/reference/">Strava API</a>
+            <p>https://www.strava.com/api/v3/athlete/activitiesr</p>
+            <p>Oauth authentication required, records returned immediately in an array, paginated using query parameter, bookmark'd using "start_date"</p>
+            <br>
+            <div style="display: flex; flex-direction: row; justify-content: space-between;">
+               <div style="flex: 1; margin-right: 5px">
+                  <p style="font-weight: bold; color: #3EB489;">Response</p>
+                  <pre style="border: 1px solid black;">
                   <code class="language-javascript">
 [ 
   {
@@ -481,10 +451,10 @@
 ]
                   </code>
               </pre>
-          </div>
-          <div style="flex: 1; text-align: left; margin-left: 5px">
-              <p style="font-weight: bold; color: #3EB489;">example config.json</p>
-              <pre style="border: 1px solid black;">
+               </div>
+               <div style="flex: 1; text-align: left; margin-left: 5px">
+                  <p style="font-weight: bold; color: #3EB489;">example config.json</p>
+                  <pre style="border: 1px solid black;">
                   <code class="language-javascript">
 {
   "url": "https://www.strava.com/api/v3/athlete/activities",
@@ -515,16 +485,14 @@
 }
                   </code>
               </pre>
-          </div>
-        </div>
-
-        <br>
-        <br>
-      </section>
-
-    </main>
-    <footer>
-      <p>Made by <a href="https://github.com/5amCurfew">5am</a></p>
-    </footer>
-  </body>
+               </div>
+            </div>
+            <br>
+            <br>
+         </section>
+      </main>
+      <footer>
+         <p>Made by <a href="https://github.com/5amCurfew">5am</a></p>
+      </footer>
+   </body>
 </html>
