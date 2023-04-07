@@ -24,7 +24,7 @@ func CallAPI(config util.Config) ([]byte, error) {
 		case "basic":
 			req.SetBasicAuth(*config.Auth.Basic.Username, *config.Auth.Basic.Password)
 		case "token":
-			req.Header.Set(*config.Auth.Token.Header, *config.Auth.Token.HeaderValue)
+			req.Header.Add(*config.Auth.Token.Header, *config.Auth.Token.HeaderValue)
 		case "oauth":
 			url := *config.Auth.Oauth.TokenURL
 
@@ -43,11 +43,12 @@ func CallAPI(config util.Config) ([]byte, error) {
 
 			authReq.Header.Set("Content-Type", writer.FormDataContentType())
 
-			oauthToken, _ := http.DefaultClient.Do(authReq)
-			defer oauthToken.Body.Close()
+			oauthTokenResp, _ := http.DefaultClient.Do(authReq)
+
+			defer oauthTokenResp.Body.Close()
 
 			var responseMap map[string]interface{}
-			oauthResp, _ := io.ReadAll(oauthToken.Body)
+			oauthResp, _ := io.ReadAll(oauthTokenResp.Body)
 			output := string(oauthResp)
 
 			json.Unmarshal([]byte(output), &responseMap)
@@ -65,7 +66,8 @@ func CallAPI(config util.Config) ([]byte, error) {
 				config.Auth.Token.HeaderValue = &t
 			}
 
-			CallAPI(config)
+			*config.Auth.Strategy = "token"
+			return CallAPI(config)
 		}
 	}
 
