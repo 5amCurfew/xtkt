@@ -16,29 +16,25 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 	}
 	defer rows.Close()
 
-	cols, err := rows.Columns()
+	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
 
-	var result []interface{}
+	result := make([]interface{}, 0)
 	for rows.Next() {
-		values := make([]interface{}, len(cols))
-		valuePtrs := make([]interface{}, len(cols))
-		for i := range cols {
-			valuePtrs[i] = &values[i]
+		values := make([]interface{}, len(columns))
+		for i := range columns {
+			values[i] = new(interface{})
 		}
-		err := rows.Scan(valuePtrs...)
-		if err != nil {
+		if err := rows.Scan(values...); err != nil {
 			return nil, err
 		}
 
 		row := make(map[string]interface{})
-		for i, col := range cols {
-			val := values[i]
+		for i, col := range columns {
+			val := *(values[i].(*interface{}))
 			if b, ok := val.([]byte); ok {
-				// If the value is a byte slice, try to parse it as JSON.
-				// If parsing fails, fall back to treating it as a string.
 				var v interface{}
 				if err := json.Unmarshal(b, &v); err == nil {
 					row[col] = v
