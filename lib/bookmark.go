@@ -155,23 +155,3 @@ func UpdateDetectionBookmark(records []interface{}, config util.Config) {
 
 	writeState(state)
 }
-
-func GenerateStateMessage() {
-	stateFile, _ := os.ReadFile("state.json")
-	state := make(map[string]interface{})
-	_ = json.Unmarshal(stateFile, &state)
-
-	message := util.Message{
-		Type:          "STATE",
-		Value:         state["value"],
-		TimeExtracted: time.Now().Format(time.RFC3339),
-	}
-
-	messageJson, err := json.Marshal(message)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(messageJson))
-}

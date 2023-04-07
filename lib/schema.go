@@ -1,12 +1,7 @@
 package lib
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
 	"time"
-
-	util "github.com/5amCurfew/xtkt/util"
 )
 
 // ///////////////////////////////////////////////////////////
@@ -63,22 +58,4 @@ func GenerateSchema(records []interface{}) map[string]interface{} {
 	schema["properties"] = properties
 	schema["type"] = "object"
 	return schema
-}
-
-func GenerateSchemaMessage(schema map[string]interface{}, config util.Config) {
-	message := util.Message{
-		Type:          "SCHEMA",
-		Stream:        *config.StreamName,
-		TimeExtracted: time.Now().Format(time.RFC3339),
-		Schema:        schema,
-		KeyProperties: []string{"surrogate_key"},
-	}
-
-	messageJson, err := json.Marshal(message)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating SCHEMA message: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(string(messageJson))
 }
