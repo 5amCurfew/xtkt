@@ -2,67 +2,58 @@ package lib
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"reflect"
 
 	util "github.com/5amCurfew/xtkt/util"
 	_ "github.com/lib/pq"
 )
 
 func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
-	// Prepare the query
-	query := fmt.Sprintf("SELECT * FROM %s", tableName)
-
-	// Execute the query
-	rows, err := db.Query(query)
+	rows, err := db.Query("SELECT * FROM " + tableName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	// Get the column names and types
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-	columnTypes, err := rows.ColumnTypes()
+	cols, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
 
-	// Build a slice of maps to hold the rows
-	rowsData := make([]interface{}, 0)
+	var result []interface{}
 	for rows.Next() {
-		// Create a map to hold the row data
-		row := make(map[string]interface{})
-
-		// Create a slice of interface{} to hold the values for this row
-		values := make([]interface{}, len(columns))
-		for i := range values {
-			values[i] = new(interface{})
+		values := make([]interface{}, len(cols))
+		valuePtrs := make([]interface{}, len(cols))
+		for i := range cols {
+			valuePtrs[i] = &values[i]
 		}
-
-		// Scan the row into the slice of interface{}
-		if err := rows.Scan(values...); err != nil {
+		err := rows.Scan(valuePtrs...)
+		if err != nil {
 			return nil, err
 		}
 
-		// Iterate over the values and column names/types to populate the map
-		for i, value := range values {
-			columnName := columns[i]
-			columnType := columnTypes[i].ScanType()
-			if columnType == nil {
-				continue
+		row := make(map[string]interface{})
+		for i, col := range cols {
+			val := values[i]
+			if b, ok := val.([]byte); ok {
+				// If the value is a byte slice, try to parse it as JSON.
+				// If parsing fails, fall back to treating it as a string.
+				var v interface{}
+				if err := json.Unmarshal(b, &v); err == nil {
+					row[col] = v
+				} else {
+					row[col] = string(b)
+				}
+			} else {
+				row[col] = val
 			}
-			columnValue := reflect.ValueOf(value).Elem().Interface()
-			row[columnName] = columnValue
 		}
 
-		// Append the row to the slice of maps
-		rowsData = append(rowsData, row)
+		result = append(result, row)
 	}
 
-	return rowsData, nil
+	return result, nil
 }
 
 func GenerateDatabaseRecords(config util.Config) []interface{} {
