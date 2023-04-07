@@ -9,22 +9,16 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-func addMetadata(record map[string]interface{}) {
-	record["time_extracted"] = time.Now().Format(time.RFC3339)
-}
-
 func GenerateRecordMessages(records []interface{}, config util.Config) {
 
-	bookmark := readBookmarkValue(config)
 	bookmarkCondition := false
 
 	for _, record := range records {
 
 		r, _ := record.(map[string]interface{})
 
-		addMetadata(r)
-
 		if IsBookmarkProvided(config) {
+			bookmark := readBookmarkValue(config)
 			if IsRecordDetectionProvided(config) {
 				func(r map[string]interface{}) {
 					bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), r["surrogate_key"])
@@ -44,7 +38,7 @@ func GenerateRecordMessages(records []interface{}, config util.Config) {
 			message := util.Message{
 				Type:          "RECORD",
 				Data:          r,
-				Stream:        util.GenerateStreamName(URLsParsed[0], config),
+				Stream:        *config.StreamName,
 				TimeExtracted: time.Now().Format(time.RFC3339),
 			}
 

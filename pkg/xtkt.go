@@ -11,7 +11,15 @@ func ParseResponse(config util.Config) {
 	/////////////////////////////////////////////////////////////
 	// GENERATE RECORDS
 	/////////////////////////////////////////////////////////////
-	records := lib.GenerateRecords(config)
+	var records []interface{}
+
+	if *config.SourceType == "rest" {
+		records = lib.GenerateRestRecords(config)
+	} else if *config.SourceType == "database" {
+		records = lib.GenerateDatabaseRecords(config)
+	}
+
+	lib.AddMetadata(records)
 
 	/////////////////////////////////////////////////////////////
 	// GENERATE BOOKMARK (if required)

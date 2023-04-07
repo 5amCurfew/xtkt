@@ -50,6 +50,8 @@ func generateSchema(records []interface{}) map[string]interface{} {
 						} else {
 							properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
 						}
+					default:
+						properties[key].(map[string]interface{})["type"] = []string{"string", "null"}
 					}
 				}
 			}
@@ -64,7 +66,7 @@ func generateSchema(records []interface{}) map[string]interface{} {
 func GenerateSchemaMessage(records []interface{}, config util.Config) {
 	message := util.Message{
 		Type:          "SCHEMA",
-		Stream:        util.GenerateStreamName(URLsParsed[0], config),
+		Stream:        *config.StreamName,
 		TimeExtracted: time.Now().Format(time.RFC3339),
 		Schema:        generateSchema(records),
 		KeyProperties: []string{"surrogate_key"},

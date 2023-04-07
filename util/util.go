@@ -6,8 +6,10 @@ import (
 )
 
 type Config struct {
-	URL  *string `json:"url,omitempty"`
-	Auth *struct {
+	StreamName *string `json:"stream_name,omitempty"`
+	SourceType *string `json:"source_type,omitempty"`
+	URL        *string `json:"url,omitempty"`
+	Auth       *struct {
 		Required *bool   `json:"required,omitempty"`
 		Strategy *string `json:"strategy,omitempty"`
 		Basic    *struct {
@@ -25,6 +27,14 @@ type Config struct {
 			RefreshToken *string `json:"refresh_token,omitempty"`
 		} `json:"oauth,omitempty"`
 	} `json:"auth,omitempty"`
+	Database *struct {
+		Table *string `json:"table,omitempty"`
+	} `json:"database,omitempty"`
+	Records *struct {
+		UniqueKeyPath       *[]string `json:"unique_key_path,omitempty"`
+		Bookmark            *bool     `json:"bookmark,omitempty"`
+		PrimaryBookmarkPath *[]string `json:"primary_bookmark_path,omitempty"`
+	} `json:"records,omitempty"`
 	Response *struct {
 		RecordsPath        *[]string `json:"records_path,omitempty"`
 		Pagination         *bool     `json:"pagination,omitempty"`
@@ -36,11 +46,6 @@ type Config struct {
 			QueryIncrement *int    `json:"query_increment,omitempty"`
 		} `json:"pagination_query,omitempty"`
 	} `json:"response,omitempty"`
-	Records *struct {
-		UniqueKeyPath       *[]string `json:"unique_key_path,omitempty"`
-		Bookmark            *bool     `json:"bookmark,omitempty"`
-		PrimaryBookmarkPath *[]string `json:"primary_bookmark_path,omitempty"`
-	} `json:"records,omitempty"`
 }
 
 func ValidateConfig(cfg Config) (bool, error) {

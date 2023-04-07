@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
@@ -35,7 +36,14 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 	}
 }
 
-func GenerateRecords(config util.Config) []interface{} {
+func AddMetadata(records []interface{}) {
+	for _, record := range records {
+		r, _ := record.(map[string]interface{})
+		r["time_extracted"] = time.Now().Format(time.RFC3339)
+	}
+}
+
+func GenerateRestRecords(config util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
 	apiResponse, err := CallAPI(config)
@@ -79,7 +87,7 @@ func GenerateRecords(config util.Config) []interface{} {
 				return records
 			} else {
 				*config.URL = nextURL.(string)
-				records = append(records, GenerateRecords(config)...)
+				records = append(records, GenerateRestRecords(config)...)
 			}
 		// PAGINATED, "query"
 		case "query":
@@ -94,7 +102,7 @@ func GenerateRecords(config util.Config) []interface{} {
 
 				*config.URL = parsedURL.String()
 				*config.Response.PaginationQuery.QueryValue = *config.Response.PaginationQuery.QueryValue + *config.Response.PaginationQuery.QueryIncrement
-				records = append(records, GenerateRecords(config)...)
+				records = append(records, GenerateRestRecords(config)...)
 			}
 		}
 	}

@@ -1,5 +1,10 @@
 {
+    "stream_name": "name_of_this_datastream",
+    "source_type": "rest",
     "url": "https://www.helloworld.com/route",
+    "database": {
+        "table": "my_table"
+    },
     "auth": {
         "required": true,
         "strategy": "token",
