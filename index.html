@@ -189,9 +189,10 @@
       <h3 style="font-weight: bold;">Optional</h3>
       <br>
       <h4 style="font-weight: bold;">auth</h4>
-      <li><span style="font-weight: bold; color: #3EB489;">auth.strategy</span>: <i>string</i> stating authorisation strategy (accepted values are currently "basic" or "token")</li>
+      <li><span style="font-weight: bold; color: #3EB489;">auth.strategy</span>: <i>string</i> stating authorisation strategy (accepted values are currently "basic", "token" or "oauth")</li>
       <li><span style="font-weight: bold; color: #3EB489;">auth.basic</span>: <i>{object}</i> objecting containing credentials for basic authorisation {"username", "password"}</li>
       <li><span style="font-weight: bold; color: #3EB489;">auth.token</span>: <i>{object}</i> objecting containing request Header information for token authorisation {"header", "header_value"}</li>
+      <li><span style="font-weight: bold; color: #3EB489;">auth.oauth</span>: <i>{object}</i> objecting containing oauth authorisation credentials {"client_id", "client_secret", "refresh_token", "token_url"}</li>
 
       <br>
       <h4 style="font-weight: bold;">response</h4>
@@ -230,6 +231,12 @@
       "token": {
           "header": "Authorization",
           "header_value": "Bearer YOUR_API_TOKEN"
+      },
+      "oauth": {
+          "client_id": "YOUR_OAUTH_CLIENT_ID",
+          "client_secret": "YOUR_OAUTH_CLIENT_SECRET",
+          "refresh_token": "YOUR_OAUTH_REFRESH_TOKEN",
+          "token_url": "OAUTH_TOKEN_URL"
       }
   },
   "response": {
@@ -270,7 +277,7 @@
         <h2>Examples</h2>
         <a href="https://rickandmortyapi.com/">Rick & Morty API</a>
         <p>https://rickandmortyapi.com/api/character</p>
-        <p>No authorisation required, records found in the response "results" array, paginated using "next", new/updated record detection used</p>
+        <p>No authentication required, records found in the response "results" array, paginated using "next", new/updated record detection used</p>
         <br>
         <div style="display: flex; flex-direction: row; justify-content: space-between;">
             
@@ -354,7 +361,7 @@
 
           <a href="https://docs.github.com/en/rest">Github API</a>
           <p>https://api.github.com/repos/OWNER/REPO/commits</p>
-          <p>API authorisation required using API token, records returned as an array, no pagination, bookmark'd using "commit.author.date" </p>
+          <p>Token authentication required, records returned immediately as an array, pagination using query parameter, bookmark'd using "commit.author.date" </p>
 
           <br>
 
@@ -425,7 +432,96 @@
                   </pre>
               </div>
             </div>
+
+      <br>
+      <br>
+
+      <a href="https://developers.strava.com/docs/reference/">Strava API</a>
+      <p>https://www.strava.com/api/v3/athlete/activitiesr</p>
+      <p>Oauth authentication required, records returned immediately in an array, paginated using query parameter, bookmark'd using "start_date"</p>
+      <br>
+      <div style="display: flex; flex-direction: row; justify-content: space-between;">
+          
+          <div style="flex: 1; margin-right: 5px">
+              <p style="font-weight: bold; color: #3EB489;">Response</p>
+              <pre style="border: 1px solid black;">
+                  <code class="language-javascript">
+[ 
+  {
+    "resource_state" : 2,
+    "athlete" : {
+      "id" : 134815,
+      "resource_state" : 1
+    },
+    "name" : "Happy Friday",
+    "distance" : 24931.4,
+    "moving_time" : 4500,
+    "elapsed_time" : 4500,
+    "total_elevation_gain" : 0,
+    "type" : "Ride",
+    "sport_type" : "MountainBikeRide",
+    "workout_type" : null,
+    "id" : 154504250376823,
+    ...
+    "start_date" : "2018-05-02T12:15:09Z",
+    ...
+    "comment_count" : 1,
+    "athlete_count" : 1,
+    "photo_count" : 0,
+    "map" : {
+      "id" : "a12345678987654321",
+      "summary_polyline" : null,
+      "resource_state" : 2
+    },
+    ...
+  },
+  ...
+  ...
+  ...
+]
+                  </code>
+              </pre>
+          </div>
+          <div style="flex: 1; text-align: left; margin-left: 5px">
+              <p style="font-weight: bold; color: #3EB489;">example config.json</p>
+              <pre style="border: 1px solid black;">
+                  <code class="language-javascript">
+{
+  "url": "https://www.strava.com/api/v3/athlete/activities",
+  "auth": {
+      "required": true,
+      "strategy": "oauth",
+      "oauth": {
+          "client_id": "YOUR_OAUTH_CLIENT_ID",
+          "client_secret": "YOUR_OAUTH_CLIENT_SECRET",
+          "refresh_token": "YOUR_OAUTH_REFRESH_TOKEN",
+          "token_url": "https://www.strava.com/oauth/token"
+      }
+  },
+  "response": {
+      "pagination": true,
+      "pagination_strategy": "query",
+      "pagination_query": {
+          "query_parameter": "page",
+          "query_value": 1,
+          "query_increment": 1
+      }
+  },
+  "records": {
+      "unique_key_path": ["id"],
+      "bookmark": true,
+      "primary_bookmark_path": ["start_date"]
+  }
+}
+                  </code>
+              </pre>
+          </div>
+        </div>
+
+        <br>
+        <br>
       </section>
+
     </main>
     <footer>
       <p>Made by <a href="https://github.com/5amCurfew">5am</a></p>
