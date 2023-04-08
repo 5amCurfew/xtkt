@@ -3,18 +3,19 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
+	"os"
+	"strconv"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
 
 var URLsParsed []string
 
-// ///////////////////////////////////////////////////////////
-// PARSE RECORDS
-// ///////////////////////////////////////////////////////////
 func CallAPI(config util.Config) ([]byte, error) {
 	client := http.DefaultClient
 
@@ -90,4 +91,72 @@ func CallAPI(config util.Config) ([]byte, error) {
 	defer resp.Body.Close()
 	URLsParsed = append(URLsParsed, *config.URL)
 	return io.ReadAll(resp.Body)
+}
+
+func GenerateRestRecords(config util.Config) []interface{} {
+	var responseMap map[string]interface{}
+
+	apiResponse, err := CallAPI(config)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
+		os.Exit(1)
+	}
+
+	output := string(apiResponse)
+
+	var responseMapRecordsPath []string
+	if config.Response.RecordsPath == nil {
+		responseMapRecordsPath = []string{"results"}
+		if output[0:1] == "{" {
+			output = "{\"results\":[" + output + "]}"
+		} else {
+			output = "{\"results\":" + output + "}"
+		}
+	} else {
+		responseMapRecordsPath = *config.Response.RecordsPath
+	}
+
+	json.Unmarshal([]byte(output), &responseMap)
+
+	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+	if !ok {
+		fmt.Fprint(os.Stderr, "Error: records is not an array\n")
+		os.Exit(1)
+	}
+
+	emptyRecords := len(records) == 0
+
+	if *config.Response.Pagination {
+		switch *config.Response.PaginationStrategy {
+		// PAGINATED, "next"
+		case "next":
+			nextURL := util.GetValueAtPath(*config.Response.PaginationNextPath, responseMap)
+			if nextURL == nil || nextURL == "" {
+				generateSurrogateKey(records, config)
+				return records
+			} else {
+				*config.URL = nextURL.(string)
+				records = append(records, GenerateRestRecords(config)...)
+			}
+		// PAGINATED, "query"
+		case "query":
+			if emptyRecords {
+				generateSurrogateKey(records, config)
+				return records
+			} else {
+				parsedURL, _ := url.Parse(*config.URL)
+				query := parsedURL.Query()
+				query.Set("page", strconv.Itoa(*config.Response.PaginationQuery.QueryValue))
+				parsedURL.RawQuery = query.Encode()
+
+				*config.URL = parsedURL.String()
+				*config.Response.PaginationQuery.QueryValue = *config.Response.PaginationQuery.QueryValue + *config.Response.PaginationQuery.QueryIncrement
+				records = append(records, GenerateRestRecords(config)...)
+			}
+		}
+	}
+
+	generateSurrogateKey(records, config)
+	return records
 }

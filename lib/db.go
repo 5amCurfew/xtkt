@@ -93,5 +93,6 @@ func GenerateDatabaseRecords(config util.Config) ([]interface{}, error) {
 		return nil, fmt.Errorf("error reading database rows: %w", err)
 	}
 
+	generateSurrogateKey(records, config)
 	return records, nil
 }
