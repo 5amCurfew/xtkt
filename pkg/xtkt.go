@@ -16,7 +16,7 @@ func ParseResponse(config util.Config) {
 	case "database":
 		records, _ = lib.GenerateDatabaseRecords(config)
 	}
-	lib.AddMetadata(records)
+	lib.AddMetadata(records, config)
 
 	// STATE.JSON (if required)
 	if lib.IsBookmarkProvided(config) {

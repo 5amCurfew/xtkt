@@ -124,9 +124,9 @@
          <section id="overview">
             <h2>Overview</h2>
             <p>
-               <span style="font-weight: bold; color: #3EB489;">xtkt</span> ("extract") is a generic but opinionated data extraction tool that adheres to the Singer.io specification. At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to data extraction (ELT for OLAP) importing new and updated data as new rows when a bookmark is provided using either new-record detection or an appropriate bookmark for any RESTful API or database. Streams are always handled independently and deletion at source is not detected. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
+                <span style="font-weight: bold; color: #3EB489;">xtkt</span> ("extract") is a generic data extraction tool that adheres to the Singer.io specification. At its core, <span style="font-weight: bold; color: #3EB489;">xtkt</span> takes an opinionated approach to ELT for OLAP importing updated data as a new record when a bookmark is provided (using either the bookmark or record-detection) for any RESTful API or database. Streams are always handled independently and deletion at source is not detected. <span style="font-weight: bold; color: #3EB489;">xtkt</span> can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
             <div class="tip">
-               <p>&#x1f4a1 In the absence of a bookmark (referred to as FULL_TABLE replication), all records (new, updated and unchanged) will be inserted or updated per <span style="font-weight: bold; color: #3EB489;">unique_key</span> on each <span style="font-weight: bold; color: #3EB489;">xtkt</span> invocation. This may be appropriate when inferring deletion using the <span style="font-weight: bold; color: #3EB489;">time_extracted</span> field.</p>
+               <p>&#x1f4a1 In the absence of a bookmark (referred to as FULL replication), all records (new, updated and unchanged) will be inserted or updated per <span style="font-weight: bold; color: #3EB489;">unique_key</span> on each <span style="font-weight: bold; color: #3EB489;">xtkt</span> invocation. This may be appropriate when inferring deletion using the <span style="font-weight: bold; color: #3EB489;">time_extracted</span> field.</p>
             </div>
             </p>
          </section>
@@ -138,7 +138,9 @@
             <h2>Metadata</h2>
             <p><span style="font-weight: bold; color: #3EB489;">xtkt</span> adds the following metadata to records</p>
             <br>
-            <li><span style="font-weight: bold; color: #3EB489;">surrogate_key</span>: an identifier of a record (SHA256) generated using the unique_key and bookmark (if provided). If record detection is used, this is generated using the entire record object</li>
+            <li><span style="font-weight: bold; color: #3EB489;">natural_key</span>: the unique identifier of the record using the unique_key_path</li>
+            <br>
+            <li><span style="font-weight: bold; color: #3EB489;">surrogate_key</span>: an identifier of a record (SHA256) generated using the unique_key and, if provided, bookmark. If record detection is used, this is generated using the entire record</li>
             <br>
             <li><span style="font-weight: bold; color: #3EB489;">time_extracted</span>: a timestamp (R3339) at the time of the data extraction</li>
          </section>
@@ -308,6 +310,7 @@
                   <pre style="border: 1px solid black;">
                     <code class="language-javascript">
 {
+  "stream_name": "rick_and_morty_characters",
   "url": "https://rickandmortyapi.com/api/character",
   "auth": {
       "required": false
@@ -377,6 +380,7 @@
                   <pre style="border: 1px solid black;">
                       <code class="language-javascript">
 {
+  "stream_name": "xtkt_commits",
   "url": "https://api.github.com/repos/5amCurfew/xtkt/commits",
   "auth": {
       "required": true,
@@ -457,6 +461,7 @@
                   <pre style="border: 1px solid black;">
                   <code class="language-javascript">
 {
+  "stream_name": "my_strava_activities",
   "url": "https://www.strava.com/api/v3/athlete/activities",
   "auth": {
       "required": true,

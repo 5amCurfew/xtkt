@@ -21,6 +21,8 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 			continue
 		}
 
+		r["natural_key"] = util.GetValueAtPath(*config.Records.UniqueKeyPath, r)
+
 		h := sha256.New()
 		if keyPath := config.Records.UniqueKeyPath; keyPath != nil {
 			keyValue := util.GetValueAtPath(*keyPath, r)
@@ -43,7 +45,7 @@ func generateSurrogateKey(records []interface{}, config util.Config) {
 	}
 }
 
-func AddMetadata(records []interface{}) {
+func AddMetadata(records []interface{}, config util.Config) {
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
 		r["time_extracted"] = time.Now().Format(time.RFC3339)
