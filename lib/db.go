@@ -32,10 +32,11 @@ func extractDbTypeFromUrl(url string) (string, error) {
 }
 
 func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
-	rows, err := db.Query("SELECT * FROM " + tableName)
+	rows, err := db.Query("SELECT * FROM " + tableName + ";")
 	if err != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 
 	columns, err := rows.Columns()
@@ -75,8 +76,13 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 }
 
 func GenerateDatabaseRecords(config util.Config) ([]interface{}, error) {
+	address := *config.URL
 	dbType, _ := extractDbTypeFromUrl(*config.URL)
-	db, err := sql.Open(dbType, *config.URL)
+	if dbType == "sqlite3" {
+		address = strings.Split(*config.URL, ":///")[1]
+	}
+
+	db, err := sql.Open(dbType, address)
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %w", err)
 	}
