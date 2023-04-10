@@ -16,7 +16,7 @@ import (
 
 var URLsParsed []string
 
-func CallAPI(config util.Config) ([]byte, error) {
+func callAPI(config util.Config) ([]byte, error) {
 	client := http.DefaultClient
 
 	req, err := http.NewRequest("GET", *config.URL, nil)
@@ -78,7 +78,7 @@ func CallAPI(config util.Config) ([]byte, error) {
 			}
 
 			*config.Auth.Strategy = "token"
-			return CallAPI(config)
+			return callAPI(config)
 		}
 	}
 
@@ -94,7 +94,7 @@ func CallAPI(config util.Config) ([]byte, error) {
 func GenerateRestRecords(config util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
-	response, err := CallAPI(config)
+	response, err := callAPI(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
 		os.Exit(1)
