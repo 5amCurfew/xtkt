@@ -74,9 +74,7 @@ func CallAPI(config util.Config) ([]byte, error) {
 				config.Auth.Token = &struct {
 					Header      *string `json:"header,omitempty"`
 					HeaderValue *string `json:"header_value,omitempty"`
-				}{}
-				config.Auth.Token.Header = &header
-				config.Auth.Token.HeaderValue = &t
+				}{Header: &header, HeaderValue: &t}
 			}
 
 			*config.Auth.Strategy = "token"
@@ -96,46 +94,40 @@ func CallAPI(config util.Config) ([]byte, error) {
 func GenerateRestRecords(config util.Config) []interface{} {
 	var responseMap map[string]interface{}
 
-	apiResponse, err := CallAPI(config)
-
+	response, err := CallAPI(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error calling API: %v\n", err)
 		os.Exit(1)
 	}
 
-	output := string(apiResponse)
-
 	var responseMapRecordsPath []string
+
 	if config.Response.RecordsPath == nil {
 		responseMapRecordsPath = []string{"results"}
 
 		var data interface{}
-		if err := json.Unmarshal([]byte(output), &data); err != nil {
+		if err := json.Unmarshal([]byte(response), &data); err != nil {
 			// error parsing the JSON, return the original output
 			return nil
 		}
 
 		switch d := data.(type) {
 		case []interface{}:
-			// the response is an array, wrap it in an object
-			outputBytes, _ := json.Marshal(map[string]interface{}{
+			response, _ = json.Marshal(map[string]interface{}{
 				"results": d,
 			})
-			output = string(outputBytes)
 		case map[string]interface{}:
-			// the response is an object, add a "results" key and place in array
-			outputBytes, _ := json.Marshal(map[string]interface{}{
+			response, _ = json.Marshal(map[string]interface{}{
 				"results": []interface{}{d},
 			})
-			output = string(outputBytes)
 		default:
-			// the response is neither an array nor an object, return the original output
+			// the response is neither an array nor an object, but empty records_path provided
 		}
 	} else {
 		responseMapRecordsPath = *config.Response.RecordsPath
 	}
 
-	json.Unmarshal([]byte(output), &responseMap)
+	json.Unmarshal([]byte(response), &responseMap)
 
 	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
@@ -143,10 +135,9 @@ func GenerateRestRecords(config util.Config) []interface{} {
 		os.Exit(1)
 	}
 
-	emptyRecords := len(records) == 0
-
 	if *config.Response.Pagination {
 		switch *config.Response.PaginationStrategy {
+
 		// PAGINATED, "next"
 		case "next":
 			nextURL := util.GetValueAtPath(*config.Response.PaginationNextPath, responseMap)
@@ -157,9 +148,10 @@ func GenerateRestRecords(config util.Config) []interface{} {
 				*config.URL = nextURL.(string)
 				records = append(records, GenerateRestRecords(config)...)
 			}
+
 		// PAGINATED, "query"
 		case "query":
-			if emptyRecords {
+			if len(records) == 0 {
 				generateSurrogateKey(records, config)
 				return records
 			} else {
