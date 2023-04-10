@@ -4,3 +4,4 @@ config*
 output.jsonl
 state.json
 xtkt
+target*
