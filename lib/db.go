@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	util "github.com/5amCurfew/xtkt/util"
+	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -25,6 +26,8 @@ func extractDbTypeFromUrl(url string) (string, error) {
 		return "mysql", nil
 	case "sqlite", "file":
 		return "sqlite3", nil
+	case "sqlserver":
+		return "mssql", nil
 	// add cases for other database types here...
 	default:
 		return "", fmt.Errorf("unsupported database type: %s", dbType)
@@ -36,7 +39,6 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	columns, err := rows.Columns()
@@ -57,15 +59,18 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 		row := make(map[string]interface{})
 		for i, col := range columns {
 			val := *(values[i].(*interface{}))
-			if b, ok := val.([]byte); ok {
-				var v interface{}
-				if err := json.Unmarshal(b, &v); err == nil {
-					row[col] = v
+			switch v := val.(type) {
+			case []byte:
+				var r interface{}
+				if err := json.Unmarshal(v, &r); err == nil {
+					row[col] = r
 				} else {
-					row[col] = string(b)
+					row[col] = string(v)
 				}
-			} else {
-				row[col] = val
+			case nil:
+				row[col] = nil
+			default:
+				row[col] = v
 			}
 		}
 

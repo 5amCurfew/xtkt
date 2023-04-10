@@ -38,7 +38,7 @@ func GenerateSchema(records []interface{}) map[string]interface{} {
 			case []interface{}:
 				prop.(map[string]interface{})["type"] = []string{"array", "null"}
 			case nil:
-				prop.(map[string]interface{})["type"] = []string{"null", "null"}
+				continue // wait for first non-null value for field
 			case string:
 				if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
 					prop.(map[string]interface{})["type"] = []string{"string", "null"}

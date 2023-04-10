@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"strings"
 )
 
 type Config struct {
@@ -106,16 +105,6 @@ type Message struct {
 
 func ToString(v interface{}) string {
 	return fmt.Sprintf("%v", v)
-}
-
-func GenerateStreamName(url string, config Config) string {
-	var path []string
-	if config.Response.RecordsPath == nil {
-		path = []string{"results"}
-	} else {
-		path = *config.Response.RecordsPath
-	}
-	return strings.Replace(strings.Replace(url+"__"+strings.Join(path, "__"), "/", "_", -1), "https:__", "", -1)
 }
 
 func GetValueAtPath(path []string, input map[string]interface{}) interface{} {
