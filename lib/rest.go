@@ -115,17 +115,18 @@ func GenerateRestRecords(config util.Config) []interface{} {
 			return nil
 		}
 
-		switch data.(type) {
+		switch d := data.(type) {
 		case []interface{}:
 			// the response is an array, wrap it in an object
 			outputBytes, _ := json.Marshal(map[string]interface{}{
-				"results": data,
+				"results": d,
 			})
 			output = string(outputBytes)
 		case map[string]interface{}:
-			// the response is an object, add a "results" key
-			data.(map[string]interface{})["results"] = data
-			outputBytes, _ := json.Marshal(data)
+			// the response is an object, add a "results" key and place in array
+			outputBytes, _ := json.Marshal(map[string]interface{}{
+				"results": []interface{}{d},
+			})
 			output = string(outputBytes)
 		default:
 			// the response is neither an array nor an object, return the original output
