@@ -108,10 +108,27 @@ func GenerateRestRecords(config util.Config) []interface{} {
 	var responseMapRecordsPath []string
 	if config.Response.RecordsPath == nil {
 		responseMapRecordsPath = []string{"results"}
-		if output[0:1] == "{" {
-			output = "{\"results\":[" + output + "]}"
-		} else {
-			output = "{\"results\":" + output + "}"
+
+		var data interface{}
+		if err := json.Unmarshal([]byte(output), &data); err != nil {
+			// error parsing the JSON, return the original output
+			return nil
+		}
+
+		switch data.(type) {
+		case []interface{}:
+			// the response is an array, wrap it in an object
+			outputBytes, _ := json.Marshal(map[string]interface{}{
+				"results": data,
+			})
+			output = string(outputBytes)
+		case map[string]interface{}:
+			// the response is an object, add a "results" key
+			data.(map[string]interface{})["results"] = data
+			outputBytes, _ := json.Marshal(data)
+			output = string(outputBytes)
+		default:
+			// the response is neither an array nor an object, return the original output
 		}
 	} else {
 		responseMapRecordsPath = *config.Response.RecordsPath
