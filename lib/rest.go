@@ -131,7 +131,7 @@ func GenerateRestRecords(config util.Config) []interface{} {
 
 	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
-		fmt.Fprint(os.Stderr, "Error: records is not an array\n")
+		fmt.Fprint(os.Stderr, "Error: confirm your config.json is aligned with the API reponse")
 		os.Exit(1)
 	}
 
