@@ -13,7 +13,8 @@
   * [Rick & Morty API](#rick-&-morty-api)
   * [Github API](#github-api)
   * [Strava API](#strava-api)
-  * [Local Postgres](#local-postgres)
+  * [Postgres](#postgres)
+  * [SQLite](#sqlite)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 - [config.json template](#configjson-template)
 
@@ -154,7 +155,7 @@ Oauth authentication required, records returned immediately in an array, paginat
 }
 ```
 
-#### Local Postgres
+#### Postgres
 ```json
 {
     "stream_name": "rick_and_morty_characters_from_postgres",
@@ -168,6 +169,27 @@ Oauth authentication required, records returned immediately in an array, paginat
             "id"
         ],
         "bookmark": false
+    }
+}
+```
+
+#### SQLite
+```json
+{
+    "stream_name": "sqlite_customers",
+    "source_type": "database",
+    "url": "sqlite:///example.db",
+    "records": {
+        "unique_key_path": [
+            "id"
+        ],
+        "bookmark": true,
+        "primary_bookmark_path": [
+            "updated_at"
+        ]
+    },
+    "database": {
+        "table": "customers"
     }
 }
 ```
