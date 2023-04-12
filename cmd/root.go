@@ -32,13 +32,7 @@ var rootCmd = &cobra.Command{
 			panic("xtkt panicing")
 		}
 
-		configValidated, validationError := util.ValidateConfig(c)
-		if configValidated {
-			xtkt.ParseResponse(c)
-		} else {
-			fmt.Println(validationError)
-			panic("xtkt panicing")
-		}
+		xtkt.ParseResponse(c)
 	},
 }
 

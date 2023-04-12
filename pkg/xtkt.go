@@ -15,6 +15,8 @@ func ParseResponse(config util.Config) {
 		records = lib.GenerateRestRecords(config)
 	case "database":
 		records, _ = lib.GenerateDatabaseRecords(config)
+	case "html":
+		records = lib.GenerateHtmlRecords(config)
 	}
 	lib.AddMetadata(records, config)
 
