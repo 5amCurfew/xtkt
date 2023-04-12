@@ -13,21 +13,12 @@
 
 Install targets (python) in `_targets/` in virtual environments:
 
-  1. python3 -m venv ./_targets/target-name
-  2. source ./_targets/target-name/bin/activate
-  3. python3 -m pip install target-name
-  4. deactivate
+  1. `python3 -m venv ./_targets/target-name`
+  2. `source ./_targets/target-name/bin/activate`
+  3. `python3 -m pip install target-name`
+  4. `deactivate`
 
 Usage: `xtkt config.json | ./_targets/target-name/bin/target-name`
-
-  * Postgres: 
-    * `docker pull postgres`
-    * `docker run --name pg_dev -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=admin -p 5432:5432 -d postgres`
-    * `docker start pg_dev`
-
-* `xtkt config_full.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c config_target_postgres.json`
-* `xtkt config_full.json | ./_targets/target-sqlite/bin/target-sqlite -c config_target_sqlite.json`
-
 
 ### config.json template
 
