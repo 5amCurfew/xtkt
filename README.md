@@ -18,7 +18,7 @@
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 - [config.json template](#configjson-template)
 
-`xtkt` ("extract") is a data extraction tool that adheres to the Singer.io specification. At its core, `xtkt` takes an opinionated approach to ELT for OLAP importing updated data as a new record when a bookmark is provided (using either the bookmark or new-record-detection) for any RESTful API, database or web page. Streams are always handled independently and deletion at source is not detected. `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as Postgres and BigQuery.
+`xtkt` ("extract") is a data extraction tool that adheres to the Singer.io specification. At its core, `xtkt` takes an opinionated approach to ELT for OLAP importing updated data as a new record when a bookmark is provided (using either the bookmark or new-record-detection) for any RESTful API, database or web page. Sensitive data fields can be hashed before ingestion using the `records.sensitive_fields` field in your config file. Streams are always handled independently and deletion at source is not detected. `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery.
 
 ### Installation
 
@@ -26,7 +26,7 @@ TODO
 
 ### Using with Singer.io Targets
 
-Install targets (python) in `_targets/` in virtual environments:
+Install targets (Python) in `_targets/` in virtual environments:
 
   1. `python3 -m venv ./_targets/target-name`
   2. `source ./_targets/target-name/bin/activate`
@@ -90,6 +90,10 @@ Token authentication required, records returned immediately as an array, paginat
             "commit",
             "author",
             "date"
+        ],
+        "sensitive_paths": [
+            ["commit", "author", "email"],
+            ["commit", "committer", "email"]
         ]
     },
     "rest": {
@@ -98,7 +102,7 @@ Token authentication required, records returned immediately as an array, paginat
             "strategy": "token",
             "token": {
                 "header": "Authorization",
-                "header_value": "Bearer YOUR_GITHUB_TOKEN"
+                "header_value": "Bearer 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"
             }
         },
         "response": {

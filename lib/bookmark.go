@@ -6,15 +6,13 @@ import (
 	"os"
 	"reflect"
 	"time"
-
-	util "github.com/5amCurfew/xtkt/util"
 )
 
-func IsBookmarkProvided(config util.Config) bool {
+func IsBookmarkProvided(config Config) bool {
 	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
 }
 
-func IsRecordDetectionProvided(config util.Config) bool {
+func IsRecordDetectionProvided(config Config) bool {
 	return *config.Records.Bookmark && reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"})
 }
 
@@ -34,7 +32,7 @@ func readState() map[string]interface{} {
 	return state
 }
 
-func readDetectionBookmark(state map[string]interface{}, config util.Config) []interface{} {
+func readDetectionBookmark(state map[string]interface{}, config Config) []interface{} {
 	bookmarks := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})
 	if reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"}) {
 		return bookmarks["detection_bookmark"].([]interface{})
@@ -54,7 +52,7 @@ func writeState(state map[string]interface{}) {
 // ///////////////////////////////////////////////////////////
 // GENERATE/UPDATE/READ STATE
 // ///////////////////////////////////////////////////////////
-func CreateBookmark(config util.Config) error {
+func CreateBookmark(config Config) error {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
@@ -82,7 +80,7 @@ func CreateBookmark(config util.Config) error {
 	return nil
 }
 
-func readBookmarkValue(config util.Config) (interface{}, error) {
+func readBookmarkValue(config Config) (interface{}, error) {
 	stateFile, err := os.ReadFile("state.json")
 	if err != nil {
 		return nil, fmt.Errorf("error reading state file: %w", err)
@@ -101,7 +99,7 @@ func readBookmarkValue(config util.Config) (interface{}, error) {
 	}
 }
 
-func UpdateBookmark(records []interface{}, config util.Config) {
+func UpdateBookmark(records []interface{}, config Config) {
 	stateFile, _ := os.ReadFile("state.json")
 
 	state := make(map[string]interface{})
@@ -113,8 +111,8 @@ func UpdateBookmark(records []interface{}, config util.Config) {
 	// FIND LATEST
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
-		if util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark.(string) {
-			latestBookmark = util.ToString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r))
+		if toString(GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark.(string) {
+			latestBookmark = toString(GetValueAtPath(*config.Records.PrimaryBookmarkPath, r))
 		}
 	}
 
@@ -131,7 +129,7 @@ func UpdateBookmark(records []interface{}, config util.Config) {
 	os.WriteFile("state.json", result, 0644)
 }
 
-func UpdateDetectionBookmark(records []interface{}, config util.Config) {
+func UpdateDetectionBookmark(records []interface{}, config Config) {
 	state := readState()
 
 	// Current set

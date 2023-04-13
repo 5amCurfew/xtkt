@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	util "github.com/5amCurfew/xtkt/util"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -80,7 +79,7 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 	return result, nil
 }
 
-func GenerateDatabaseRecords(config util.Config) ([]interface{}, error) {
+func GenerateDatabaseRecords(config Config) ([]interface{}, error) {
 	address := *config.URL
 	dbType, _ := extractDbTypeFromUrl(*config.URL)
 	if dbType == "sqlite3" {

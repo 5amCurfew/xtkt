@@ -10,13 +10,11 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-
-	util "github.com/5amCurfew/xtkt/util"
 )
 
 var URLsParsed []string
 
-func callAPI(config util.Config) ([]byte, error) {
+func callAPI(config Config) ([]byte, error) {
 	client := http.DefaultClient
 
 	req, err := http.NewRequest("GET", *config.URL, nil)
@@ -65,7 +63,7 @@ func callAPI(config util.Config) ([]byte, error) {
 			if err := json.Unmarshal([]byte(output), &responseMap); err != nil {
 				return nil, err
 			}
-			accesToken := util.GetValueAtPath([]string{"access_token"}, responseMap)
+			accesToken := GetValueAtPath([]string{"access_token"}, responseMap)
 
 			header := "Authorization"
 			t := "Bearer " + accesToken.(string)
@@ -91,7 +89,7 @@ func callAPI(config util.Config) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func GenerateRestRecords(config util.Config) []interface{} {
+func GenerateRestRecords(config Config) []interface{} {
 	var responseMap map[string]interface{}
 
 	response, err := callAPI(config)
@@ -129,7 +127,7 @@ func GenerateRestRecords(config util.Config) []interface{} {
 
 	json.Unmarshal([]byte(response), &responseMap)
 
-	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+	records, ok := GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
 		fmt.Fprint(os.Stderr, "Error: confirm your config.json is aligned with the API reponse")
 		os.Exit(1)
@@ -140,7 +138,7 @@ func GenerateRestRecords(config util.Config) []interface{} {
 
 		// PAGINATED, "next"
 		case "next":
-			nextURL := util.GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
+			nextURL := GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
 			if nextURL == nil || nextURL == "" {
 				generateSurrogateKey(records, config)
 				return records

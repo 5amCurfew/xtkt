@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/5amCurfew/xtkt/lib"
 	xtkt "github.com/5amCurfew/xtkt/pkg"
-	util "github.com/5amCurfew/xtkt/util"
 	"github.com/spf13/cobra"
 )
 
@@ -15,12 +15,12 @@ var version = "0.0.1"
 var rootCmd = &cobra.Command{
 	Use:     "xtkt <PATH_TO_CONFIG_JSON>",
 	Version: version,
-	Short:   "xtkt - REST API data extraction CLI",
-	Long:    `xtkt is a command line interface to extract data from a REST API using the Singer.io Specification`,
+	Short:   "xtkt - data extraction CLI",
+	Long:    `xtkt is a command line interface to extract data from a RESTful API or database to pipe to any target that meets the Singer.io specification`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var file = args[0]
-		var c util.Config
+		var c lib.Config
 
 		config, readConfigError := os.ReadFile(file)
 		if readConfigError != nil {
@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 
 		jsonError := json.Unmarshal(config, &c)
 		if jsonError != nil {
-			panic("xtkt panicing")
+			panic(fmt.Sprintf("Failed to read %s file as json", file))
 		}
 
 		xtkt.ParseResponse(c)

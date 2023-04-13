@@ -4,16 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
-
-	util "github.com/5amCurfew/xtkt/util"
 )
 
-func GenerateSchemaMessage(schema map[string]interface{}, config util.Config) {
-	message := util.Message{
+type Message struct {
+	Type               string                 `json:"type"`
+	Data               map[string]interface{} `json:"record,omitempty"`
+	Stream             string                 `json:"stream,omitempty"`
+	TimeExtracted      string                 `json:"time_extracted,omitempty"`
+	Schema             interface{}            `json:"schema,omitempty"`
+	Value              interface{}            `json:"value,omitempty"`
+	KeyProperties      []string               `json:"key_properties,omitempty"`
+	BookmarkProperties []string               `json:"bookmark_properties,omitempty"`
+}
+
+func GenerateSchemaMessage(schema map[string]interface{}, config Config) {
+	message := Message{
 		Type:          "SCHEMA",
 		Stream:        *config.StreamName,
-		TimeExtracted: time.Now().Format(time.RFC3339),
 		Schema:        schema,
 		KeyProperties: []string{"surrogate_key"},
 	}
@@ -27,7 +34,7 @@ func GenerateSchemaMessage(schema map[string]interface{}, config util.Config) {
 	fmt.Println(string(messageJson))
 }
 
-func GenerateRecordMessage(record map[string]interface{}, config util.Config) {
+func GenerateRecordMessage(record map[string]interface{}, config Config) {
 
 	bookmarkCondition := false
 
@@ -37,19 +44,18 @@ func GenerateRecordMessage(record map[string]interface{}, config util.Config) {
 		if IsRecordDetectionProvided(config) {
 			bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), record["surrogate_key"])
 		} else {
-			primaryBookmarkValue := util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, record)
-			bookmarkCondition = util.ToString(primaryBookmarkValue) > bookmark.(string)
+			primaryBookmarkValue := GetValueAtPath(*config.Records.PrimaryBookmarkPath, record)
+			bookmarkCondition = toString(primaryBookmarkValue) > bookmark.(string)
 		}
 	} else {
 		bookmarkCondition = true
 	}
 
 	if bookmarkCondition {
-		message := util.Message{
-			Type:          "RECORD",
-			Data:          record,
-			Stream:        *config.StreamName,
-			TimeExtracted: time.Now().Format(time.RFC3339),
+		message := Message{
+			Type:   "RECORD",
+			Data:   record,
+			Stream: *config.StreamName,
 		}
 
 		messageJson, err := json.Marshal(message)
@@ -67,10 +73,9 @@ func GenerateStateMessage() {
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
 
-	message := util.Message{
-		Type:          "STATE",
-		Value:         state["value"],
-		TimeExtracted: time.Now().Format(time.RFC3339),
+	message := Message{
+		Type:  "STATE",
+		Value: state["value"],
 	}
 
 	messageJson, err := json.Marshal(message)

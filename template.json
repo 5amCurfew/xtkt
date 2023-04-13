@@ -9,6 +9,9 @@
         "bookmark": true,
         "primary_bookmark_path": [
             "updated_at"
+        ],
+        "sensitive_paths": [
+            ["commit", "author", "email"]
         ]
     },
     "database": {

@@ -4,10 +4,9 @@ import (
 	"os"
 
 	lib "github.com/5amCurfew/xtkt/lib"
-	util "github.com/5amCurfew/xtkt/util"
 )
 
-func ParseResponse(config util.Config) {
+func ParseResponse(config lib.Config) {
 	// RECORDS
 	var records []interface{}
 	switch *config.SourceType {
@@ -18,7 +17,11 @@ func ParseResponse(config util.Config) {
 	case "html":
 		records = lib.GenerateHtmlRecords(config)
 	}
+
 	lib.AddMetadata(records, config)
+	if config.Records.SensitivePaths != nil {
+		lib.HashRecordsFields(records, config)
+	}
 
 	// STATE.JSON (if required)
 	if lib.IsBookmarkProvided(config) {
