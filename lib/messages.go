@@ -22,7 +22,7 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) {
 		Type:          "SCHEMA",
 		Stream:        *config.StreamName,
 		Schema:        schema,
-		KeyProperties: []string{"_xtkt_surrogate_key"},
+		KeyProperties: []string{"_sdc_surrogate_key"},
 	}
 
 	messageJson, err := json.Marshal(message)
@@ -42,7 +42,7 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) {
 
 	if IsBookmarkProvided(config) {
 		if IsRecordDetectionProvided(config) {
-			bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), record["_xtkt_surrogate_key"])
+			bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), record["_sdc_surrogate_key"])
 		} else {
 			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
 			bookmarkCondition = toString(primaryBookmarkValue) > bookmark.(string)
