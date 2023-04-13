@@ -9,6 +9,7 @@
 
 - [Installation](#Installation)
 - [Using with Singer.io Targets](#using-with-singerio-targets)
+- [Metadata](#metadata)
 - [Examples](#examples)
   * [Rick & Morty API](#rick-&-morty-api)
   * [Github API](#github-api)
@@ -34,6 +35,14 @@ Install targets (Python) in `_targets/` in virtual environments:
   4. `deactivate`
 
 `xtkt config.json | ./_targets/target-name/bin/target-name`
+
+### Metadata
+
+`xtkt` adds the following metadata to records
+
+* `surrogate_key`: an identifier of a record (SHA256) generated using the unique_key and, if provided, bookmark. If record detection is used, this is generated using the entire record object
+* `natural_key`: the unique key identifier of the source data (set in the `records.unique_key_path` in `config.json`)
+* `time_extracted`: a timestamp (R3339) at the time of the data extraction
 
 ### Examples
 
