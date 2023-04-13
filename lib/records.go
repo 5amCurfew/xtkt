@@ -51,7 +51,7 @@ func generateSurrogateKey(records []interface{}, config Config) {
 			continue
 		}
 
-		r["natural_key"] = getValueAtPath(*config.Records.UniqueKeyPath, r)
+		r["_xtkt_natural_key"] = getValueAtPath(*config.Records.UniqueKeyPath, r)
 
 		h := sha256.New()
 		if keyPath := config.Records.UniqueKeyPath; keyPath != nil {
@@ -71,14 +71,14 @@ func generateSurrogateKey(records []interface{}, config Config) {
 				}
 			}
 		}
-		r["surrogate_key"] = hex.EncodeToString(h.Sum(nil))
+		r["_xtkt_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
 	}
 }
 
 func AddMetadata(records []interface{}, config Config) {
 	for _, record := range records {
 		r, _ := record.(map[string]interface{})
-		r["time_extracted"] = time.Now().Format(time.RFC3339)
+		r["_xtkt_time_extracted"] = time.Now().Format(time.RFC3339)
 	}
 }
 

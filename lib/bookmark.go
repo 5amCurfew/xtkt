@@ -141,8 +141,8 @@ func UpdateDetectionBookmark(records []interface{}, config Config) {
 		if !ok {
 			continue
 		}
-		if !detectionSetContains(latestBookmark, r["surrogate_key"]) {
-			latestBookmark = append(latestBookmark, r["surrogate_key"])
+		if !detectionSetContains(latestBookmark, r["_xtkt_surrogate_key"]) {
+			latestBookmark = append(latestBookmark, r["_xtkt_surrogate_key"])
 		}
 	}
 
