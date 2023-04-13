@@ -102,7 +102,7 @@ Token authentication required, records returned immediately as an array, paginat
             "strategy": "token",
             "token": {
                 "header": "Authorization",
-                "header_value": "Bearer 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"
+                "header_value": "Bearer YOUR_GITHUB_API_TOKEN"
             }
         },
         "response": {
