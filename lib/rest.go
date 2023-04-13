@@ -63,7 +63,7 @@ func callAPI(config Config) ([]byte, error) {
 			if err := json.Unmarshal([]byte(output), &responseMap); err != nil {
 				return nil, err
 			}
-			accesToken := GetValueAtPath([]string{"access_token"}, responseMap)
+			accesToken := getValueAtPath([]string{"access_token"}, responseMap)
 
 			header := "Authorization"
 			t := "Bearer " + accesToken.(string)
@@ -127,7 +127,7 @@ func GenerateRestRecords(config Config) []interface{} {
 
 	json.Unmarshal([]byte(response), &responseMap)
 
-	records, ok := GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+	records, ok := getValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
 		fmt.Fprint(os.Stderr, "Error: confirm your config.json is aligned with the API reponse")
 		os.Exit(1)
@@ -138,7 +138,7 @@ func GenerateRestRecords(config Config) []interface{} {
 
 		// PAGINATED, "next"
 		case "next":
-			nextURL := GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
+			nextURL := getValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
 			if nextURL == nil || nextURL == "" {
 				generateSurrogateKey(records, config)
 				return records

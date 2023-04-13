@@ -44,7 +44,7 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) {
 		if IsRecordDetectionProvided(config) {
 			bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), record["surrogate_key"])
 		} else {
-			primaryBookmarkValue := GetValueAtPath(*config.Records.PrimaryBookmarkPath, record)
+			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
 			bookmarkCondition = toString(primaryBookmarkValue) > bookmark.(string)
 		}
 	} else {
