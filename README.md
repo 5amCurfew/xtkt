@@ -238,6 +238,9 @@ Scrape team "overall" rating found within HTML table
         "bookmark": true,
         "primary_bookmark_path": [
             "updated_at"
+        ],
+        "sensitive_paths": [
+            ["commit", "author", "email"]
         ]
     },
     "database": {
@@ -285,6 +288,14 @@ Scrape team "overall" rating found within HTML table
             {
                 "name": "name",
                 "path": "td[data-title='Name'] > a.link-team"
+            },
+            {
+                "name": "league",
+                "path": "td[data-title='League'] > a.link-league"
+            },
+            {
+                "name": "overall",
+                "path": "td[data-title='OVR'] > span.rating:nth-child(1)"
             }
         ]
     }
