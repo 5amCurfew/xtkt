@@ -4,7 +4,7 @@ import (
 	"github.com/gocolly/colly"
 )
 
-func GenerateHtmlRecords(config Config) []interface{} {
+func GenerateHtmlRecords(config Config) ([]interface{}, error) {
 	records := make([]interface{}, 0)
 
 	collector := colly.NewCollector()
@@ -23,5 +23,5 @@ func GenerateHtmlRecords(config Config) []interface{} {
 	collector.Visit(*config.URL)
 
 	generateSurrogateKey(records, config)
-	return records
+	return records, nil
 }

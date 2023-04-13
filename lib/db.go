@@ -36,13 +36,13 @@ func extractDbTypeFromUrl(url string) (string, error) {
 func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 	rows, err := db.Query("SELECT * FROM " + tableName + ";")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing SELECT: %w", err)
 	}
 	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing COLUMNS: %w", err)
 	}
 
 	result := make([]interface{}, 0)
@@ -52,7 +52,7 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 			values[i] = new(interface{})
 		}
 		if err := rows.Scan(values...); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error ROWS SCAN: %w", err)
 		}
 
 		row := make(map[string]interface{})
@@ -88,7 +88,7 @@ func GenerateDatabaseRecords(config Config) ([]interface{}, error) {
 
 	db, err := sql.Open(dbType, address)
 	if err != nil {
-		return nil, fmt.Errorf("error opening db: %w", err)
+		return nil, fmt.Errorf("error opening database: %w", err)
 	}
 	defer db.Close()
 

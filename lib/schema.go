@@ -1,20 +1,21 @@
 package lib
 
 import (
+	"fmt"
 	"time"
 )
 
 // ///////////////////////////////////////////////////////////
 // GENERATE JSON SCHEMA
 // ///////////////////////////////////////////////////////////
-func GenerateSchema(records []interface{}) map[string]interface{} {
+func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
 	schema := make(map[string]interface{})
 	properties := make(map[string]interface{})
 
 	for _, record := range records {
-		r, ok := record.(map[string]interface{})
-		if !ok {
-			continue
+		r, err := record.(map[string]interface{})
+		if !err {
+			return nil, fmt.Errorf("error SCHEMA CREATION FROM RECORD")
 		}
 
 		for key, value := range r {
@@ -32,9 +33,12 @@ func GenerateSchema(records []interface{}) map[string]interface{} {
 			case float64:
 				prop.(map[string]interface{})["type"] = []string{"number", "null"}
 			case map[string]interface{}:
-				subProps := GenerateSchema([]interface{}{value})
-				prop.(map[string]interface{})["type"] = []string{"object", "null"}
-				prop.(map[string]interface{})["properties"] = subProps["properties"]
+				if subProps, err := GenerateSchema([]interface{}{value}); err == nil {
+					prop.(map[string]interface{})["type"] = []string{"object", "null"}
+					prop.(map[string]interface{})["properties"] = subProps["properties"]
+				} else {
+					return nil, fmt.Errorf("error SCHEMA RECURSION: %w", err)
+				}
 			case []interface{}:
 				prop.(map[string]interface{})["type"] = []string{"array", "null"}
 			case nil:
@@ -57,5 +61,5 @@ func GenerateSchema(records []interface{}) map[string]interface{} {
 
 	schema["properties"] = properties
 	schema["type"] = "object"
-	return schema
+	return schema, nil
 }

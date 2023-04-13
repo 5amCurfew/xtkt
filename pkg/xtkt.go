@@ -11,11 +11,11 @@ func ParseResponse(config lib.Config) {
 	var records []interface{}
 	switch *config.SourceType {
 	case "rest":
-		records = lib.GenerateRestRecords(config)
+		records, _ = lib.GenerateRestRecords(config)
 	case "database":
 		records, _ = lib.GenerateDatabaseRecords(config)
 	case "html":
-		records = lib.GenerateHtmlRecords(config)
+		records, _ = lib.GenerateHtmlRecords(config)
 	}
 
 	lib.AddMetadata(records, config)
@@ -31,7 +31,7 @@ func ParseResponse(config lib.Config) {
 	}
 
 	// SCHEMA message
-	schema := lib.GenerateSchema(records)
+	schema, _ := lib.GenerateSchema(records)
 	lib.GenerateSchemaMessage(schema, config)
 
 	// RECORD messages
