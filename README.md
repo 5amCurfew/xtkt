@@ -174,14 +174,14 @@ Oauth authentication required, records returned immediately in an array, paginat
     "stream_name": "rick_and_morty_characters_from_postgres",
     "source_type": "database",
     "url": "postgres://admin:admin@localhost:5432/postgres?sslmode=disable",
-    "database": {
-        "table": "rick_and_morty_characters"
-    },
     "records": {
         "unique_key_path": [
             "id"
         ],
         "bookmark": false
+    },
+    "database": {
+        "table": "rick_and_morty_characters"
     }
 }
 ```
