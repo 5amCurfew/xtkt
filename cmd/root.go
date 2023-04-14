@@ -19,19 +19,18 @@ var rootCmd = &cobra.Command{
 	Long:    `xtkt is a command line interface to extract data from a RESTful API or database to pipe to any target that meets the Singer.io specification`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var file = args[0]
 		var c lib.Config
 
-		config, readConfigError := os.ReadFile(file)
+		config, readConfigError := os.ReadFile(args[0])
 		if readConfigError != nil {
-			panic(fmt.Sprintf("Failed to read %s file", file))
+			panic(fmt.Sprintf("Failed to read %s file", args[0]))
 		}
 
 		configError := xtkt.ValidateJSONConfig(config)
 		if configError == nil {
 			jsonError := json.Unmarshal(config, &c)
 			if jsonError != nil {
-				panic(fmt.Sprintf("Failed to read %s file as json", file))
+				panic(fmt.Sprintf("Failed to read %s file as json", args[0]))
 			}
 		} else {
 			panic(fmt.Sprintf("Config validation failed: %e", configError))
