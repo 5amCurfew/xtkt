@@ -27,9 +27,14 @@ var rootCmd = &cobra.Command{
 			panic(fmt.Sprintf("Failed to read %s file", file))
 		}
 
-		jsonError := json.Unmarshal(config, &c)
-		if jsonError != nil {
-			panic(fmt.Sprintf("Failed to read %s file as json", file))
+		configError := xtkt.ValidateJSONConfig(config)
+		if configError == nil {
+			jsonError := json.Unmarshal(config, &c)
+			if jsonError != nil {
+				panic(fmt.Sprintf("Failed to read %s file as json", file))
+			}
+		} else {
+			panic(fmt.Sprintf("Config validation failed: %e", configError))
 		}
 
 		xtkt.ParseResponse(c)
