@@ -31,4 +31,4 @@ jobs:
           version: ${{ env.GITHUB_REF_NAME }}
           args: release --rm-dist
         env:
-          GITHUB_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.goreleaser }}
