@@ -1,5 +1,5 @@
 builds:
-  - binary: xpln
+  - binary: xtkt
     goos:
       - darwin
       - linux
