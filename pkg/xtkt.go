@@ -8,16 +8,20 @@ import (
 	lib "github.com/5amCurfew/xtkt/lib"
 )
 
-func ParseResponse(config lib.Config) {
+func ParseResponse(config lib.Config) error {
 	// RECORDS
 	var records []interface{}
+	var err error
 	switch *config.SourceType {
 	case "rest":
-		records, _ = lib.GenerateRestRecords(config)
+		records, err = lib.GenerateRestRecords(config)
 	case "database":
-		records, _ = lib.GenerateDatabaseRecords(config)
+		records, err = lib.GenerateDatabaseRecords(config)
 	case "html":
-		records, _ = lib.GenerateHtmlRecords(config)
+		records, err = lib.GenerateHtmlRecords(config)
+	}
+	if err != nil {
+		return fmt.Errorf("error creating RECORDS: %s", err)
 	}
 
 	lib.AddMetadata(records, config)
@@ -33,7 +37,11 @@ func ParseResponse(config lib.Config) {
 	}
 
 	// SCHEMA message
-	schema, _ := lib.GenerateSchema(records)
+	schema, err := lib.GenerateSchema(records)
+	if err != nil {
+		return fmt.Errorf("error creating SCHEMA: %s", err)
+	}
+
 	lib.GenerateSchemaMessage(schema, config)
 
 	// RECORD messages
@@ -50,6 +58,8 @@ func ParseResponse(config lib.Config) {
 		}
 		lib.GenerateStateMessage()
 	}
+
+	return nil
 }
 
 func ValidateJSONConfig(jsonBytes []byte) error {
@@ -84,7 +94,7 @@ func ValidateJSONConfig(jsonBytes []byte) error {
 		}
 	}
 
-	if *cfg.SourceType == "database" && (cfg.Database != nil || cfg.Database.Table == nil) {
+	if *cfg.SourceType == "database" && (cfg.Database == nil || cfg.Database.Table == nil) {
 		return fmt.Errorf("missing required field: Database.Table string")
 	}
 

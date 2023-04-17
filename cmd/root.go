@@ -7,6 +7,7 @@ import (
 
 	"github.com/5amCurfew/xtkt/lib"
 	xtkt "github.com/5amCurfew/xtkt/pkg"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -19,24 +20,44 @@ var rootCmd = &cobra.Command{
 	Long:    `xtkt is a command line interface to extract data from a RESTful API or database to pipe to any target that meets the Singer.io specification`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		var c lib.Config
+		log.SetFormatter(&log.JSONFormatter{})
+		var cfg lib.Config
 
 		config, readConfigError := os.ReadFile(args[0])
 		if readConfigError != nil {
-			panic(fmt.Sprintf("Failed to read %s file", args[0]))
+			log.WithFields(
+				log.Fields{
+					"Error": readConfigError,
+				},
+			).Fatalln("Failed to READ CONFIG JSON FILE")
 		}
 
 		configError := xtkt.ValidateJSONConfig(config)
-		if configError == nil {
-			jsonError := json.Unmarshal(config, &c)
-			if jsonError != nil {
-				panic(fmt.Sprintf("Failed to read %s file as json", args[0]))
-			}
+		if configError != nil {
+			log.WithFields(
+				log.Fields{
+					"Error": configError,
+				},
+			).Fatalln("Failed to VALIDATE CONFIG")
 		} else {
-			panic(fmt.Sprintf("Config validation failed: %e", configError))
+			jsonError := json.Unmarshal(config, &cfg)
+			if jsonError != nil {
+				log.WithFields(
+					log.Fields{
+						"Error": jsonError,
+					},
+				).Fatalln("Failed to PARSE JSON")
+			}
 		}
 
-		xtkt.ParseResponse(c)
+		parseError := xtkt.ParseResponse(cfg)
+		if parseError != nil {
+			log.WithFields(
+				log.Fields{
+					"Error": parseError,
+				},
+			).Fatalln("Failed PARSING RECORDS")
+		}
 	},
 }
 
