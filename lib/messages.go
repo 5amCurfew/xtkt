@@ -31,7 +31,7 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) {
 		os.Exit(1)
 	}
 
-	fmt.Println(string(messageJson))
+	os.Stdout.Write(messageJson)
 }
 
 func GenerateRecordMessage(record map[string]interface{}, config Config) {
@@ -64,7 +64,7 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) {
 			os.Exit(1)
 		}
 
-		fmt.Println(string(messageJson))
+		os.Stdout.Write(messageJson)
 	}
 }
 
@@ -84,5 +84,5 @@ func GenerateStateMessage() {
 		os.Exit(1)
 	}
 
-	fmt.Println(string(messageJson))
+	os.Stdout.Write(messageJson)
 }
