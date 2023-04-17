@@ -23,7 +23,9 @@
 
 ### Installation
 
-TODO
+Locally: `git clone git@github.com:5amCurfew/xpln.git`; `go build`
+
+via Homebrew: `brew tap 5amCurfew/5amCurfew; brew install 5amCurfew/5amCurfew/xtkt`
 
 ### Using with Singer.io Targets
 
