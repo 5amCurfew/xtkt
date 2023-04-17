@@ -19,7 +19,7 @@ universal_binaries:
 
 brews:
   -
-    name: xpln
+    name: xtkt
     homepage: "https://github.com/5amCurfew/xtkt"
     tap:
       owner: 5amCurfew
