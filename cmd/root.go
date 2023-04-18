@@ -29,7 +29,7 @@ var rootCmd = &cobra.Command{
 				log.Fields{
 					"Error": fmt.Sprintf("%e", readConfigError),
 				},
-			).Fatalln("Failed to READ CONFIG JSON FILE")
+			).Fatalln("Failed to READ CONFIG.JSON")
 		}
 
 		configError := xtkt.ValidateJSONConfig(config)
@@ -38,7 +38,7 @@ var rootCmd = &cobra.Command{
 				log.Fields{
 					"Error": fmt.Sprintf("%e", configError),
 				},
-			).Fatalln("Failed to VALIDATE CONFIG")
+			).Fatalln("Failed to VALIDATE CONFIG.JSON")
 		} else {
 			jsonError := json.Unmarshal(config, &cfg)
 			if jsonError != nil {
@@ -46,7 +46,7 @@ var rootCmd = &cobra.Command{
 					log.Fields{
 						"Error": fmt.Sprintf("%e", jsonError),
 					},
-				).Fatalln("Failed to PARSE JSON")
+				).Fatalln("Failed to PARSE CONFIG.JSON")
 			}
 		}
 
@@ -56,7 +56,7 @@ var rootCmd = &cobra.Command{
 				log.Fields{
 					"Error": fmt.Sprintf("%e", parseError),
 				},
-			).Fatalln("Failed PARSING RECORDS")
+			).Fatalln("Failed to PARSE RECORDS")
 		}
 	},
 }
