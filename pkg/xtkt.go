@@ -21,7 +21,7 @@ func ParseResponse(config lib.Config) error {
 		records, err = lib.GenerateHtmlRecords(config)
 	}
 	if err != nil {
-		return fmt.Errorf("error creating RECORDS: %s", err)
+		return fmt.Errorf("error CREATING RECORDS: %w", err)
 	}
 
 	lib.AddMetadata(records, config)
@@ -32,31 +32,49 @@ func ParseResponse(config lib.Config) error {
 	// STATE.JSON (if required)
 	if lib.IsBookmarkProvided(config) {
 		if _, err := os.Stat("state.json"); err != nil {
-			lib.CreateBookmark(config)
+			createBookmarkError := lib.CreateBookmark(config)
+			if createBookmarkError != nil {
+				return fmt.Errorf("error CREATING BOOKMARK: %w", createBookmarkError)
+			}
 		}
 	}
 
 	// SCHEMA message
-	schema, err := lib.GenerateSchema(records)
-	if err != nil {
-		return fmt.Errorf("error creating SCHEMA: %s", err)
+	schema, schemaError := lib.GenerateSchema(records)
+	if schemaError != nil {
+		return fmt.Errorf("error CREATING SCHEMA: %w", schemaError)
 	}
 
-	lib.GenerateSchemaMessage(schema, config)
+	schemaMessageError := lib.GenerateSchemaMessage(schema, config)
+	if schemaMessageError != nil {
+		return fmt.Errorf("error GENERATING SCHEMA MESSAGE (bookmark): %w", schemaMessageError)
+	}
 
 	// RECORD messages
 	for _, record := range records {
-		lib.GenerateRecordMessage(record.(map[string]interface{}), config)
+		recordMessagesError := lib.GenerateRecordMessage(record.(map[string]interface{}), config)
+		if recordMessagesError != nil {
+			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", recordMessagesError)
+		}
 	}
 
 	// STATE message (if required)
 	if lib.IsBookmarkProvided(config) {
 		if lib.IsRecordDetectionProvided(config) {
-			lib.UpdateDetectionBookmark(records, config)
+			updateBookmarkError := lib.UpdateDetectionBookmark(records, config)
+			if updateBookmarkError != nil {
+				return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", updateBookmarkError)
+			}
 		} else {
-			lib.UpdateBookmark(records, config)
+			updateBookmarkError := lib.UpdateBookmark(records, config)
+			if updateBookmarkError != nil {
+				return fmt.Errorf("error UPDATING BOOKMARK (bookmark): %w", updateBookmarkError)
+			}
 		}
-		lib.GenerateStateMessage()
+		stateMessageError := lib.GenerateStateMessage()
+		if stateMessageError != nil {
+			return fmt.Errorf("error GENERATING STATE MESSAGE (bookmark): %w", stateMessageError)
+		}
 	}
 
 	return nil

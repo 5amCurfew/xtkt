@@ -17,7 +17,7 @@ type Message struct {
 	BookmarkProperties []string               `json:"bookmark_properties,omitempty"`
 }
 
-func GenerateSchemaMessage(schema map[string]interface{}, config Config) {
+func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 	message := Message{
 		Type:          "SCHEMA",
 		Stream:        *config.StreamName,
@@ -27,18 +27,22 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) {
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating SCHEMA message: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error creating Schema message: %w", err)
+
 	}
 
 	os.Stdout.Write(messageJson)
+	return nil
 }
 
-func GenerateRecordMessage(record map[string]interface{}, config Config) {
+func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 	bookmarkCondition := false
 
-	bookmark, _ := readBookmarkValue(config)
+	bookmark, err := readBookmarkValue(config)
+	if err != nil {
+		return fmt.Errorf("error PARSING STATE WHEN GENERATING RECORDS: %w", err)
+	}
 
 	if IsBookmarkProvided(config) {
 		if IsRecordDetectionProvided(config) {
@@ -60,15 +64,15 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) {
 
 		messageJson, err := json.Marshal(message)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating RECORD message: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("error creating RECORD message: %w", err)
 		}
 
 		os.Stdout.Write(messageJson)
 	}
+	return nil
 }
 
-func GenerateStateMessage() {
+func GenerateStateMessage() error {
 	stateFile, _ := os.ReadFile("state.json")
 	state := make(map[string]interface{})
 	_ = json.Unmarshal(stateFile, &state)
@@ -80,9 +84,10 @@ func GenerateStateMessage() {
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating STATE message: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("error creating STATE message: %w", err)
+
 	}
 
 	os.Stdout.Write(messageJson)
+	return nil
 }

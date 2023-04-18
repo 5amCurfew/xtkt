@@ -27,7 +27,7 @@ var rootCmd = &cobra.Command{
 		if readConfigError != nil {
 			log.WithFields(
 				log.Fields{
-					"Error": readConfigError,
+					"Error": fmt.Sprintf("%e", readConfigError),
 				},
 			).Fatalln("Failed to READ CONFIG JSON FILE")
 		}
@@ -36,7 +36,7 @@ var rootCmd = &cobra.Command{
 		if configError != nil {
 			log.WithFields(
 				log.Fields{
-					"Error": configError,
+					"Error": fmt.Sprintf("%e", configError),
 				},
 			).Fatalln("Failed to VALIDATE CONFIG")
 		} else {
@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 			if jsonError != nil {
 				log.WithFields(
 					log.Fields{
-						"Error": jsonError,
+						"Error": fmt.Sprintf("%e", jsonError),
 					},
 				).Fatalln("Failed to PARSE JSON")
 			}
@@ -54,7 +54,7 @@ var rootCmd = &cobra.Command{
 		if parseError != nil {
 			log.WithFields(
 				log.Fields{
-					"Error": parseError,
+					"Error": fmt.Sprintf("%e", parseError),
 				},
 			).Fatalln("Failed PARSING RECORDS")
 		}
