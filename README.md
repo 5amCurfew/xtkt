@@ -21,6 +21,8 @@
 
 `xtkt` ("extract") is a data extraction tool that adheres to the Singer.io specification. At its core, `xtkt` takes an opinionated approach to ELT for OLAP importing updated data as a new record when a bookmark is provided (using either the bookmark or new-record-detection) for any RESTful API, database or web page. Sensitive data fields can be hashed before ingestion using the `records.sensitive_fields` field in your config file. Streams are always handled independently and deletion at source is not detected. `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery.
 
+`xtkt` is still in development (currently v0.0.3) and isn't advised for production at this time
+
 ### Installation
 
 Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `go build`
