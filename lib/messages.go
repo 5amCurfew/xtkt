@@ -27,7 +27,7 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("error creating Schema message: %w", err)
+		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
 
 	}
 
@@ -63,7 +63,7 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 		messageJson, err := json.Marshal(message)
 		if err != nil {
-			return fmt.Errorf("error creating RECORD message: %w", err)
+			return fmt.Errorf("error CREATING RECORD MESSAGE: %w", err)
 		}
 
 		os.Stdout.Write(messageJson)
@@ -83,7 +83,7 @@ func GenerateStateMessage() error {
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("error creating STATE message: %w", err)
+		return fmt.Errorf("error CREATING STATE MESSAGE: %w", err)
 
 	}
 
