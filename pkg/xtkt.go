@@ -29,13 +29,11 @@ func ParseResponse(config lib.Config) error {
 		lib.HashRecordsFields(records, config)
 	}
 
-	// STATE.JSON (if required)
-	if lib.IsBookmarkProvided(config) {
-		if _, err := os.Stat("state.json"); err != nil {
-			createBookmarkError := lib.CreateBookmark(config)
-			if createBookmarkError != nil {
-				return fmt.Errorf("error CREATING BOOKMARK: %w", createBookmarkError)
-			}
+	// ALWAYS GENERATE STATE.JSON (if required)
+	if _, err := os.Stat("state.json"); err != nil {
+		createBookmarkError := lib.CreateBookmark(config)
+		if createBookmarkError != nil {
+			return fmt.Errorf("error CREATING BOOKMARK: %w", createBookmarkError)
 		}
 	}
 

@@ -39,12 +39,11 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 	bookmarkCondition := false
 
-	bookmark, err := readBookmarkValue(config)
-	if err != nil {
-		return fmt.Errorf("error PARSING STATE WHEN GENERATING RECORDS: %w", err)
-	}
-
 	if IsBookmarkProvided(config) {
+		bookmark, err := readBookmarkValue(config)
+		if err != nil {
+			return fmt.Errorf("error PARSING STATE WHEN GENERATING RECORD MESSAGES: %w", err)
+		}
 		if IsRecordDetectionProvided(config) {
 			bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), record["_sdc_surrogate_key"])
 		} else {
