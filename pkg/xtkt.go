@@ -29,7 +29,7 @@ func ParseResponse(config lib.Config) error {
 		lib.HashRecordsFields(records, config)
 	}
 
-	// ALWAYS GENERATE STATE.JSON (if required)
+	// ALWAYS GENERATE STATE.JSON
 	if _, err := os.Stat("state.json"); err != nil {
 		createBookmarkError := lib.CreateBookmark(config)
 		if createBookmarkError != nil {
