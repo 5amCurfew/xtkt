@@ -23,6 +23,8 @@
 
 `xtkt` is still in development (currently v0.0.5) and isn't advised for production at this time
 
+Databases currently focussed on during development are Postgres, SQLite, MySQL & Microsoft-SQL-Server.
+
 ### Installation
 
 Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `go build`
