@@ -100,7 +100,7 @@ func UpdateBookmarkPrimary(records []interface{}, config Config) error {
 	// CURRENT
 	latestBookmark := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["primary_bookmark"].(string)
 	if err != nil {
-		fmt.Errorf("error READING STATE.JSON BOOKMARK FOR UPDATE %w", err)
+		return fmt.Errorf("error READING STATE.JSON BOOKMARK FOR UPDATE %w", err)
 	}
 
 	// FIND LATEST
