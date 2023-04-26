@@ -12,10 +12,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func extractDbTypeFromUrl(url string) (string, error) {
-	splitUrl := strings.Split(url, "://")
+func extractDbTypeFromUrl(config Config) (string, error) {
+	splitUrl := strings.Split(*config.URL, "://")
 	if len(splitUrl) != 2 {
-		return "", fmt.Errorf("invalid database URL: %s", url)
+		return "", fmt.Errorf("invalid database URL: %s", *config.URL)
 	}
 	dbType := splitUrl[0]
 	switch dbType {
@@ -33,8 +33,42 @@ func extractDbTypeFromUrl(url string) (string, error) {
 	}
 }
 
-func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
-	rows, err := db.Query("SELECT * FROM " + tableName + ";")
+func generateQuery(config Config) (string, error) {
+
+	dbType, _ := extractDbTypeFromUrl(config)
+	value, err := readBookmark(config)
+	if err != nil {
+		return "", fmt.Errorf("error generating query with bookmark value: %w", err)
+	}
+
+	var query strings.Builder
+	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *config.Database.Table))
+
+	// Add fields to SELECT statement
+	if config.Records.PrimaryBookmarkPath != nil && value["primary_bookmark"] != "" {
+		field := *config.Records.PrimaryBookmarkPath
+		switch dbType {
+		case "postgres", "postgresql", "sqlite":
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value["primary_bookmark"]))
+		case "mysql":
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], value["primary_bookmark"]))
+		case "sqlserver":
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], value["primary_bookmark"]))
+		default:
+			return "", fmt.Errorf("unsupported database type: %s", dbType)
+		}
+	}
+	query.WriteString(";")
+	return query.String(), nil
+}
+
+func readDatabaseRows(db *sql.DB, config Config) ([]interface{}, error) {
+	qry, err := generateQuery(config)
+	if err != nil {
+		return nil, fmt.Errorf("error generating QUERY: %w", err)
+	}
+
+	rows, err := db.Query(qry)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing SELECT: %w", err)
 	}
@@ -81,7 +115,7 @@ func readDatabaseRows(db *sql.DB, tableName string) ([]interface{}, error) {
 
 func GenerateDatabaseRecords(config Config) ([]interface{}, error) {
 	address := *config.URL
-	dbType, _ := extractDbTypeFromUrl(*config.URL)
+	dbType, _ := extractDbTypeFromUrl(config)
 	if dbType == "sqlite3" {
 		address = strings.Split(*config.URL, ":///")[1]
 	}
@@ -92,7 +126,7 @@ func GenerateDatabaseRecords(config Config) ([]interface{}, error) {
 	}
 	defer db.Close()
 
-	records, err := readDatabaseRows(db, *config.Database.Table)
+	records, err := readDatabaseRows(db, config)
 	if err != nil {
 		return nil, fmt.Errorf("error reading database rows: %w", err)
 	}

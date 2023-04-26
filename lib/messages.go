@@ -10,7 +10,6 @@ type Message struct {
 	Type               string                 `json:"type"`
 	Data               map[string]interface{} `json:"record,omitempty"`
 	Stream             string                 `json:"stream,omitempty"`
-	TimeExtracted      string                 `json:"time_extracted,omitempty"`
 	Schema             interface{}            `json:"schema,omitempty"`
 	Value              interface{}            `json:"value,omitempty"`
 	KeyProperties      []string               `json:"key_properties,omitempty"`
@@ -39,16 +38,16 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 	bookmarkCondition := false
 
-	if IsBookmarkProvided(config) {
-		bookmark, err := readBookmarkValue(config)
+	if IsBookmarked(config) {
+		bookmark, err := readBookmark(config)
 		if err != nil {
 			return fmt.Errorf("error PARSING STATE WHEN GENERATING RECORD MESSAGES: %w", err)
 		}
-		if IsRecordDetectionProvided(config) {
-			bookmarkCondition = !detectionSetContains(bookmark.([]interface{}), record["_sdc_surrogate_key"])
+		if IsBookmarkRecordDetection(config) {
+			bookmarkCondition = !detectionSetContains(bookmark["detection_set"].([]interface{}), record["_sdc_surrogate_key"])
 		} else {
 			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
-			bookmarkCondition = toString(primaryBookmarkValue) > bookmark.(string)
+			bookmarkCondition = toString(primaryBookmarkValue) > bookmark["primary_bookmark"].(string)
 		}
 	} else {
 		bookmarkCondition = true

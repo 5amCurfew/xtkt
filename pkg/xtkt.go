@@ -9,6 +9,14 @@ import (
 )
 
 func ParseResponse(config lib.Config) error {
+	// GENERATE STATE.JSON
+	if _, err := os.Stat("state.json"); err != nil {
+		createBookmarkError := lib.CreateBookmark(config)
+		if createBookmarkError != nil {
+			return fmt.Errorf("error CREATING BOOKMARK: %w", createBookmarkError)
+		}
+	}
+
 	// RECORDS
 	var records []interface{}
 	var err error
@@ -29,15 +37,7 @@ func ParseResponse(config lib.Config) error {
 		lib.HashRecordsFields(records, config)
 	}
 
-	// ALWAYS GENERATE STATE.JSON
-	if _, err := os.Stat("state.json"); err != nil {
-		createBookmarkError := lib.CreateBookmark(config)
-		if createBookmarkError != nil {
-			return fmt.Errorf("error CREATING BOOKMARK: %w", createBookmarkError)
-		}
-	}
-
-	// SCHEMA message
+	// SCHEMA MESSAGE
 	schema, schemaError := lib.GenerateSchema(records)
 	if schemaError != nil {
 		return fmt.Errorf("error CREATING SCHEMA: %w", schemaError)
@@ -48,7 +48,7 @@ func ParseResponse(config lib.Config) error {
 		return fmt.Errorf("error GENERATING SCHEMA MESSAGE (bookmark): %w", schemaMessageError)
 	}
 
-	// RECORD messages
+	// RECORD MESSAGE(S)
 	for _, record := range records {
 		recordMessagesError := lib.GenerateRecordMessage(record.(map[string]interface{}), config)
 		if recordMessagesError != nil {
@@ -56,23 +56,23 @@ func ParseResponse(config lib.Config) error {
 		}
 	}
 
-	// STATE message (if required)
-	if lib.IsBookmarkProvided(config) {
-		if lib.IsRecordDetectionProvided(config) {
-			updateBookmarkError := lib.UpdateDetectionBookmark(records, config)
-			if updateBookmarkError != nil {
-				return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", updateBookmarkError)
-			}
-		} else {
-			updateBookmarkError := lib.UpdateBookmark(records, config)
-			if updateBookmarkError != nil {
-				return fmt.Errorf("error UPDATING BOOKMARK (bookmark): %w", updateBookmarkError)
-			}
+	// UPDATE STATE.JSON
+	if lib.IsBookmarkRecordDetection(config) {
+		UpdateBookmarkPrimaryError := lib.UpdateBookmarkDetectionSet(records, config)
+		if UpdateBookmarkPrimaryError != nil {
+			return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", UpdateBookmarkPrimaryError)
 		}
-		stateMessageError := lib.GenerateStateMessage()
-		if stateMessageError != nil {
-			return fmt.Errorf("error GENERATING STATE MESSAGE (bookmark): %w", stateMessageError)
+	} else if lib.IsBookmarked(config) {
+		UpdateBookmarkPrimaryError := lib.UpdateBookmarkPrimary(records, config)
+		if UpdateBookmarkPrimaryError != nil {
+			return fmt.Errorf("error UPDATING BOOKMARK (bookmark): %w", UpdateBookmarkPrimaryError)
 		}
+	}
+
+	// STATE MESSAGE
+	stateMessageError := lib.GenerateStateMessage()
+	if stateMessageError != nil {
+		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", stateMessageError)
 	}
 
 	return nil
