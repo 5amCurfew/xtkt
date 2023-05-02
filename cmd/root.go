@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.0.5"
+var version = "0.0.7"
 
 var rootCmd = &cobra.Command{
 	Use:     "xtkt <PATH_TO_CONFIG_JSON>",

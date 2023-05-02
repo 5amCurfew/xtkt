@@ -4,16 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 	"time"
 )
 
-func IsBookmarked(config Config) bool {
+func UsingBookmark(config Config) bool {
 	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
-}
-
-func IsBookmarkRecordDetection(config Config) bool {
-	return *config.Records.Bookmark && reflect.DeepEqual(*config.Records.PrimaryBookmarkPath, []string{"*"})
 }
 
 func detectionSetContains(s []interface{}, str interface{}) bool {
@@ -136,7 +131,6 @@ func UpdateBookmarkDetectionSet(records []interface{}, config Config) error {
 		return fmt.Errorf("error stream %s DOES NOT EXIST in this STATE.JSON", *config.StreamName)
 	}
 
-	// Current set
 	// CURRENT
 	latestDetectionSet := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_set"].([]interface{})
 
@@ -151,7 +145,6 @@ func UpdateBookmarkDetectionSet(records []interface{}, config Config) error {
 		}
 	}
 
-	// Update
 	// UPDATE
 	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_set"] = latestDetectionSet
 

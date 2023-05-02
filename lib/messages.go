@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 )
 
 type Message struct {
@@ -38,14 +39,15 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 	bookmarkCondition := false
 
-	if IsBookmarked(config) {
+	if UsingBookmark(config) {
 		bookmark, err := readBookmark(config)
 		if err != nil {
 			return fmt.Errorf("error PARSING STATE WHEN GENERATING RECORD MESSAGES: %w", err)
 		}
-		if IsBookmarkRecordDetection(config) {
+		switch path := *config.Records.PrimaryBookmarkPath; {
+		case reflect.DeepEqual(path, []string{"*"}):
 			bookmarkCondition = !detectionSetContains(bookmark["detection_set"].([]interface{}), record["_sdc_surrogate_key"])
-		} else {
+		default:
 			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
 			bookmarkCondition = toString(primaryBookmarkValue) > bookmark["primary_bookmark"].(string)
 		}
@@ -73,7 +75,9 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 func GenerateStateMessage() error {
 	stateFile, _ := os.ReadFile("state.json")
 	state := make(map[string]interface{})
-	_ = json.Unmarshal(stateFile, &state)
+	if err := json.Unmarshal(stateFile, &state); err != nil {
+		return fmt.Errorf("error unmarshaling state JSON: %w", err)
+	}
 
 	message := Message{
 		Type:  "STATE",
@@ -83,7 +87,6 @@ func GenerateStateMessage() error {
 	messageJson, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("error CREATING STATE MESSAGE: %w", err)
-
 	}
 
 	os.Stdout.Write(messageJson)

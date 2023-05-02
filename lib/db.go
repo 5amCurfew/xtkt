@@ -115,7 +115,11 @@ func readDatabaseRows(db *sql.DB, config Config) ([]interface{}, error) {
 
 func GenerateDatabaseRecords(config Config) ([]interface{}, error) {
 	address := *config.URL
-	dbType, _ := extractDbTypeFromUrl(config)
+	dbType, err := extractDbTypeFromUrl(config)
+	if err != nil {
+		return nil, fmt.Errorf("unsupported database URL: %w", err)
+	}
+
 	if dbType == "sqlite3" {
 		address = strings.Split(*config.URL, ":///")[1]
 	}

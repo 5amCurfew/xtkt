@@ -46,10 +46,7 @@ func setValueAtPath(path []string, input map[string]interface{}, value interface
 
 func generateSurrogateKey(records []interface{}, config Config) {
 	for _, record := range records {
-		r, ok := record.(map[string]interface{})
-		if !ok {
-			continue
-		}
+		r, _ := record.(map[string]interface{})
 
 		r["_sdc_natural_key"] = getValueAtPath(*config.Records.UniqueKeyPath, r)
 

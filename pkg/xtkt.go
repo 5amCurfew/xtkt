@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 )
@@ -57,15 +58,18 @@ func ParseResponse(config lib.Config) error {
 	}
 
 	// UPDATE STATE.JSON
-	if lib.IsBookmarkRecordDetection(config) {
-		UpdateBookmarkPrimaryError := lib.UpdateBookmarkDetectionSet(records, config)
-		if UpdateBookmarkPrimaryError != nil {
-			return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", UpdateBookmarkPrimaryError)
-		}
-	} else if lib.IsBookmarked(config) {
-		UpdateBookmarkPrimaryError := lib.UpdateBookmarkPrimary(records, config)
-		if UpdateBookmarkPrimaryError != nil {
-			return fmt.Errorf("error UPDATING BOOKMARK (bookmark): %w", UpdateBookmarkPrimaryError)
+	if lib.UsingBookmark(config) {
+		switch path := *config.Records.PrimaryBookmarkPath; {
+		case reflect.DeepEqual(path, []string{"*"}):
+			UpdateBookmarkPrimaryError := lib.UpdateBookmarkDetectionSet(records, config)
+			if UpdateBookmarkPrimaryError != nil {
+				return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", UpdateBookmarkPrimaryError)
+			}
+		default:
+			UpdateBookmarkPrimaryError := lib.UpdateBookmarkPrimary(records, config)
+			if UpdateBookmarkPrimaryError != nil {
+				return fmt.Errorf("error UPDATING BOOKMARK (bookmark): %w", UpdateBookmarkPrimaryError)
+			}
 		}
 	}
 
