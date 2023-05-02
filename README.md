@@ -19,9 +19,9 @@
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 - [config.json template](#configjson-template)
 
-`xtkt` ("extract") is a data extraction tool that adheres to the Singer.io specification. At its core, `xtkt` takes an opinionated approach to ELT for OLAP importing updated data as a new record when a bookmark is provided (using either the bookmark or new-record-detection) for any RESTful API, database or web page. Sensitive data fields can be hashed before ingestion using the `records.sensitive_fields` field in your config file. Streams are always handled independently and deletion at source is not detected. `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery.
+`xtkt` ("extract") is a data extraction tool that adheres to the Singer.io specification. At its core, `xtkt` takes an opinionated approach to ELT for OLAP importing updated data as a new record when a bookmark is provided (using either the bookmark or new-record-detection) for RESTful APIs, databases or web-pages. Sensitive data fields can be hashed before ingestion using the `records.sensitive_fields` field in your config json file. Streams are always handled independently and deletion at source is not detected. `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery.
 
-`xtkt` is still in development (currently v0.0.5) and isn't advised for production at this time
+`xtkt` is still in development (currently v0.0.7) and isn't advised for production at this time
 
 Databases currently focussed on during development are Postgres, SQLite, MySQL & Microsoft-SQL-Server.
 
