@@ -39,8 +39,7 @@ func callAPI(config Config) ([]byte, error) {
 				return nil, fmt.Errorf("error writer.Close(): %w", err)
 			}
 
-			url := *config.Rest.Auth.Oauth.TokenURL
-			authReq, err := http.NewRequest("POST", url, payload)
+			authReq, err := http.NewRequest("POST", *config.Rest.Auth.Oauth.TokenURL, payload)
 			if err != nil {
 				return nil, fmt.Errorf("error POST REQUEST creation: %w", err)
 			}
