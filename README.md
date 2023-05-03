@@ -31,6 +31,18 @@ Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `go build`
 
 via Homebrew: `brew tap 5amCurfew/5amCurfew; brew install 5amCurfew/5amCurfew/xtkt`
 
+```bash
+$ xtkt --help
+xtkt is a command line interface to extract data from a RESTful API or database to pipe to any target that meets the Singer.io specification
+
+Usage:
+  xtkt <PATH_TO_CONFIG_JSON> [flags]
+
+Flags:
+  -h, --help      help for xtkt
+  -v, --version   version for xtkt
+```
+
 ### Using with Singer.io Targets
 
 Install targets (Python) in `_targets/` in virtual environments:
@@ -41,6 +53,15 @@ Install targets (Python) in `_targets/` in virtual environments:
   4. `deactivate`
 
 `xtkt config.json | ./_targets/target-name/bin/target-name`
+
+I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages in development. For example:
+```bash
+$ xtkt config_github.json | jq .
+```
+
+When there is not an appropriate bookmark but you want to only write updates to your target you can use new-record-detection (not advisable for large data sets) by setting the `records.primary_bookmark_path: ["*"]` in your `config.json`. See examples below
+
+You can also hash fields (e.g. sensitive data) by setting the `records.sensitive_paths` field in your `config.json`. See examples below
 
 ### Metadata
 
