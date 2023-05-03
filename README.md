@@ -63,6 +63,8 @@ When there is not an appropriate bookmark but you want to only write updates to 
 
 You can also hash fields (e.g. sensitive data) by setting the `records.sensitive_paths` field in your `config.json`. See examples below
 
+When a bookmark is not provided (i.e. `records.bookmark: false`) full-table replication is invoked. For more information on replication methods see @transferwise's [Pipelinewise](https://github.com/transferwise/pipelinewise) documentation [here](https://transferwise.github.io/pipelinewise/concept/replication_methods.html)
+
 ### Metadata
 
 `xtkt` adds the following metadata to records
