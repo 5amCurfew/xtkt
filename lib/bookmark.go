@@ -20,7 +20,7 @@ func detectionSetContains(s []interface{}, str interface{}) bool {
 	return false
 }
 
-func writeState(state map[string]interface{}) {
+func writeStateJSON(state map[string]interface{}) {
 	result, _ := json.Marshal(map[string]interface{}{
 		"type":  "STATE",
 		"value": state["value"],
@@ -29,9 +29,9 @@ func writeState(state map[string]interface{}) {
 }
 
 // ///////////////////////////////////////////////////////////
-// GENERATE/UPDATE/READ STATE
+// CREATE
 // ///////////////////////////////////////////////////////////
-func CreateBookmark(config Config) error {
+func CreateStateJSON(config Config) error {
 	stream := make(map[string]interface{})
 	data := make(map[string]interface{})
 
@@ -59,7 +59,10 @@ func CreateBookmark(config Config) error {
 	return nil
 }
 
-func readBookmark(config Config) (map[string]interface{}, error) {
+// ///////////////////////////////////////////////////////////
+// PARSE STATE.JSON
+// ///////////////////////////////////////////////////////////
+func parseStateJSON(config Config) (map[string]interface{}, error) {
 	stateFile, err := os.ReadFile("state.json")
 	if err != nil {
 		return nil, fmt.Errorf("error reading state file: %w", err)
@@ -74,29 +77,20 @@ func readBookmark(config Config) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("error stream %s DOES NOT EXIST in this STATE.JSON", *config.StreamName)
 	}
 
-	return state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{}), nil
+	return state, nil
 }
 
+// ///////////////////////////////////////////////////////////
+// UPDATE
+// ///////////////////////////////////////////////////////////
 func UpdateBookmarkPrimary(records []interface{}, config Config) error {
-	stateFile, err := os.ReadFile("state.json")
+	state, err := parseStateJSON(config)
 	if err != nil {
-		return fmt.Errorf("error READING STATE.JSON for stream %s", *config.StreamName)
-	}
-
-	state := make(map[string]interface{})
-	if err := json.Unmarshal(stateFile, &state); err != nil {
-		return fmt.Errorf("error PARSING STATE.JSON for stream %s: %v", *config.StreamName, err)
-	}
-
-	if state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName] == nil {
-		return fmt.Errorf("error stream %s DOES NOT EXIST in this STATE.JSON", *config.StreamName)
+		return fmt.Errorf("error parsing state parseStateJSON() %w", err)
 	}
 
 	// CURRENT
 	latestBookmark := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["primary_bookmark"].(string)
-	if err != nil {
-		return fmt.Errorf("error READING STATE.JSON BOOKMARK FOR UPDATE %w", err)
-	}
 
 	// FIND LATEST
 	for _, record := range records {
@@ -108,33 +102,25 @@ func UpdateBookmarkPrimary(records []interface{}, config Config) error {
 		}
 	}
 
-	// UPDATE
+	// UPDATE PRIMARY BOOKMARK
 	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["primary_bookmark"] = latestBookmark
 
 	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["bookmark_updated_at"] = time.Now().Format(time.RFC3339)
 
-	writeState(state)
+	writeStateJSON(state)
 	return nil
 }
 
-func UpdateBookmarkDetectionSet(records []interface{}, config Config) error {
-	stateFile, err := os.ReadFile("state.json")
+func UpdateBookmarkDetection(records []interface{}, config Config) error {
+	state, err := parseStateJSON(config)
 	if err != nil {
-		return fmt.Errorf("error READING STATE.JSON for stream %s (UpdateBookmarkDetectionSet)", *config.StreamName)
-	}
-	state := make(map[string]interface{})
-	if err := json.Unmarshal(stateFile, &state); err != nil {
-		return fmt.Errorf("error PARSING STATE.JSON for stream %s: %v (UpdateBookmarkDetectionSet)", *config.StreamName, err)
-	}
-
-	if state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName] == nil {
-		return fmt.Errorf("error stream %s DOES NOT EXIST in this STATE.JSON", *config.StreamName)
+		return fmt.Errorf("error parsing state parseStateJSON() %w", err)
 	}
 
 	// CURRENT
-	latestDetectionSet := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_set"].([]interface{})
+	latestDetectionSet := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_bookmark"].([]interface{})
 
-	// Find latest
+	// UPDATE DETECTION SET
 	for _, record := range records {
 		r, ok := record.(map[string]interface{})
 		if !ok {
@@ -146,10 +132,10 @@ func UpdateBookmarkDetectionSet(records []interface{}, config Config) error {
 	}
 
 	// UPDATE
-	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_set"] = latestDetectionSet
+	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_bookmark"] = latestDetectionSet
 
 	state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["bookmark_updated_at"] = time.Now().Format(time.RFC3339)
 
-	writeState(state)
+	writeStateJSON(state)
 	return nil
 }

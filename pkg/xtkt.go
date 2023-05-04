@@ -9,12 +9,12 @@ import (
 	lib "github.com/5amCurfew/xtkt/lib"
 )
 
-func ParseResponse(config lib.Config) error {
+func Extract(config lib.Config) error {
 	// GENERATE STATE.JSON
 	if _, err := os.Stat("state.json"); err != nil {
-		createBookmarkError := lib.CreateBookmark(config)
-		if createBookmarkError != nil {
-			return fmt.Errorf("error CREATING BOOKMARK: %w", createBookmarkError)
+		CreateStateJSONError := lib.CreateStateJSON(config)
+		if CreateStateJSONError != nil {
+			return fmt.Errorf("error CREATING BOOKMARK: %w", CreateStateJSONError)
 		}
 	}
 
@@ -24,7 +24,7 @@ func ParseResponse(config lib.Config) error {
 	switch *config.SourceType {
 	case "rest":
 		records, err = lib.GenerateRestRecords(config)
-	case "database":
+	case "db":
 		records, err = lib.GenerateDatabaseRecords(config)
 	case "html":
 		records, err = lib.GenerateHtmlRecords(config)
@@ -61,7 +61,7 @@ func ParseResponse(config lib.Config) error {
 	if lib.UsingBookmark(config) {
 		switch path := *config.Records.PrimaryBookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
-			UpdateBookmarkPrimaryError := lib.UpdateBookmarkDetectionSet(records, config)
+			UpdateBookmarkPrimaryError := lib.UpdateBookmarkDetection(records, config)
 			if UpdateBookmarkPrimaryError != nil {
 				return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", UpdateBookmarkPrimaryError)
 			}

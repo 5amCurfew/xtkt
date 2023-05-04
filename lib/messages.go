@@ -40,17 +40,19 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 	bookmarkCondition := false
 
 	if UsingBookmark(config) {
-		bookmark, err := readBookmark(config)
+		state, err := parseStateJSON(config)
 		if err != nil {
 			return fmt.Errorf("error PARSING STATE WHEN GENERATING RECORD MESSAGES: %w", err)
 		}
+
 		switch path := *config.Records.PrimaryBookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
-			bookmarkCondition = !detectionSetContains(bookmark["detection_set"].([]interface{}), record["_sdc_surrogate_key"])
+			bookmarkCondition = !detectionSetContains(state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_bookmark"].([]interface{}), record["_sdc_surrogate_key"])
 		default:
 			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
-			bookmarkCondition = toString(primaryBookmarkValue) > bookmark["primary_bookmark"].(string)
+			bookmarkCondition = toString(primaryBookmarkValue) > state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["primary_bookmark"].(string)
 		}
+
 	} else {
 		bookmarkCondition = true
 	}

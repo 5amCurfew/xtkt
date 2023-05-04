@@ -12,10 +12,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func extractDbTypeFromUrl(config Config) (string, error) {
+func extractDatabaseTypeFromUrl(config Config) (string, error) {
 	splitUrl := strings.Split(*config.URL, "://")
 	if len(splitUrl) != 2 {
-		return "", fmt.Errorf("invalid database URL: %s", *config.URL)
+		return "", fmt.Errorf("invalid db URL: %s", *config.URL)
 	}
 	dbType := splitUrl[0]
 	switch dbType {
@@ -27,7 +27,7 @@ func extractDbTypeFromUrl(config Config) (string, error) {
 		return "sqlite3", nil
 	case "sqlserver":
 		return "mssql", nil
-	// add cases for other database types here...
+	// add cases for other db types here...
 	default:
 		return "", fmt.Errorf("unsupported database type: %s", dbType)
 	}
@@ -35,11 +35,17 @@ func extractDbTypeFromUrl(config Config) (string, error) {
 
 func generateQuery(config Config) (string, error) {
 
-	dbType, _ := extractDbTypeFromUrl(config)
-	value, err := readBookmark(config)
+	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {
-		return "", fmt.Errorf("error generating query with bookmark value: %w", err)
+		return "", fmt.Errorf("error determining DATABASE TYPE: %w", err)
 	}
+
+	state, err := parseStateJSON(config)
+	if err != nil {
+		return "", fmt.Errorf("error parsing STATE for bookmark value: %w", err)
+	}
+
+	value := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})
 
 	var query strings.Builder
 	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *config.Database.Table))
@@ -115,7 +121,7 @@ func readDatabaseRows(db *sql.DB, config Config) ([]interface{}, error) {
 
 func GenerateDatabaseRecords(config Config) ([]interface{}, error) {
 	address := *config.URL
-	dbType, err := extractDbTypeFromUrl(config)
+	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {
 		return nil, fmt.Errorf("unsupported database URL: %w", err)
 	}

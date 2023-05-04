@@ -201,15 +201,19 @@ Oauth authentication required, records returned immediately in an array, paginat
 ```json
 {
     "stream_name": "rick_and_morty_characters_from_postgres",
-    "source_type": "database",
+    "source_type": "db",
     "url": "postgres://admin:admin@localhost:5432/postgres?sslmode=disable",
     "records": {
         "unique_key_path": [
             "id"
         ],
-        "bookmark": false
+        "bookmark": true,
+        "primary_bookmark_path": ["created"],
+        "sensitive_paths": [
+            ["image"]
+        ]
     },
-    "database": {
+    "db": {
         "table": "rick_and_morty_characters"
     }
 }
@@ -219,7 +223,7 @@ Oauth authentication required, records returned immediately in an array, paginat
 ```json
 {
     "stream_name": "sqlite_customers",
-    "source_type": "database",
+    "source_type": "db",
     "url": "sqlite:///example.db",
     "records": {
         "unique_key_path": [
@@ -230,14 +234,14 @@ Oauth authentication required, records returned immediately in an array, paginat
             "updated_at"
         ]
     },
-    "database": {
+    "db": {
         "table": "customers"
     }
 }
 ```
 
 #### [www.fifaindex.com/teams](https://www.fifaindex.com/teams/)
-Scrape team "overall" rating found within HTML table
+Scrape team "overall" rating found within HTML table (beta)
 
 ```json
 {
@@ -256,85 +260,6 @@ Scrape team "overall" rating found within HTML table
             {"name": "name", "path": "td[data-title='Name'] > a.link-team"},
             {"name": "league", "path": "td[data-title='League'] > a.link-league"},
             {"name": "overall", "path": "td[data-title='OVR'] > span.rating:nth-child(1)"}
-        ]
-    }
-}
-```
-
-
-### config.json template
-
-```json
-{
-    "stream_name": "name_of_this_datastream",
-    "source_type": "rest",
-    "url": "https://www.helloworld.com/route",
-    "records": {
-        "unique_key_path": [
-            "id"
-        ],
-        "bookmark": true,
-        "primary_bookmark_path": [
-            "updated_at"
-        ],
-        "sensitive_paths": [
-            ["commit", "author", "email"]
-        ]
-    },
-    "database": {
-        "table": "my_table"
-    },
-    "rest": {
-        "auth": {
-            "required": true,
-            "strategy": "token",
-            "basic": {
-                "username": "u",
-                "password": "p"
-            },
-            "token": {
-                "header": "Authorization",
-                "header_value": "Bearer YOUR_API_TOKEN"
-            },
-            "oauth": {
-                "client_id": "YOUR_OAUTH_CLIENT_ID",
-                "client_secret": "YOUR_OAUTH_CLIENT_SECRET",
-                "refresh_token": "YOUR_OAUTH_REFRESH_TOKEN",
-                "token_url": "OAUTH_TOKEN_URL"
-            }
-        },
-        "response": {
-            "records_path": [
-                "results"
-            ],
-            "pagination": true,
-            "pagination_strategy": "next",
-            "pagination_next_path": [
-                "info",
-                "next"
-            ],
-            "pagination_query": {
-                "query_parameter": "page",
-                "query_value": 1,
-                "query_increment": 1
-            }
-        }
-    },
-    "html": {
-        "elements_path": "table.table-teams > tbody > tr",
-        "elements": [
-            {
-                "name": "name",
-                "path": "td[data-title='Name'] > a.link-team"
-            },
-            {
-                "name": "league",
-                "path": "td[data-title='League'] > a.link-league"
-            },
-            {
-                "name": "overall",
-                "path": "td[data-title='OVR'] > span.rating:nth-child(1)"
-            }
         ]
     }
 }

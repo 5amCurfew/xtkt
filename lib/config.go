@@ -16,7 +16,7 @@ type Config struct {
 	} `json:"records,omitempty"`
 	Database *struct {
 		Table *string `json:"table,omitempty"`
-	} `json:"database,omitempty"`
+	} `json:"db,omitempty"`
 	Rest *struct {
 		Auth *struct {
 			Required *bool   `json:"required,omitempty"`
