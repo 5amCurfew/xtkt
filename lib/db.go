@@ -45,7 +45,7 @@ func generateQuery(config Config) (string, error) {
 		return "", fmt.Errorf("error parsing STATE for bookmark value: %w", err)
 	}
 
-	value := state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})
+	value := state.Value.Bookmarks[*config.StreamName]
 
 	var query strings.Builder
 	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *config.Database.Table))
@@ -55,11 +55,11 @@ func generateQuery(config Config) (string, error) {
 		field := *config.Records.PrimaryBookmarkPath
 		switch dbType {
 		case "postgres", "postgresql", "sqlite":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value["primary_bookmark"]))
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], state.Value.Bookmarks[*config.StreamName]["primary_bookmark"]))
 		case "mysql":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], value["primary_bookmark"]))
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], state.Value.Bookmarks[*config.StreamName]["primary_bookmark"]))
 		case "sqlserver":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], value["primary_bookmark"]))
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], state.Value.Bookmarks[*config.StreamName]["primary_bookmark"]))
 		default:
 			return "", fmt.Errorf("unsupported database type: %s", dbType)
 		}

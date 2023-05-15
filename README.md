@@ -55,7 +55,7 @@ Install targets (Python) in `_targets/` in virtual environments:
 
 I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages in development. For example:
 ```bash
-$ xtkt config_github.json | jq .
+$ xtkt config_github.json 2>&1 | jq .
 ```
 
 When there is not an appropriate bookmark but you want to only write updates to your target you can use new-record-detection (not advisable for large data sets) by setting the `records.primary_bookmark_path: ["*"]` in your `config.json`. See examples below

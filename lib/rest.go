@@ -126,7 +126,7 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 
 	records, ok := getValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("error RESPONSE RECORDS PATH: %w", err)
+		return nil, fmt.Errorf("error RESPONSE RECORDS PATH")
 	}
 
 	if *config.Rest.Response.Pagination {

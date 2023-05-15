@@ -36,7 +36,6 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 }
 
 func GenerateRecordMessage(record map[string]interface{}, config Config) error {
-
 	bookmarkCondition := false
 
 	if UsingBookmark(config) {
@@ -47,10 +46,10 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 		switch path := *config.Records.PrimaryBookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
-			bookmarkCondition = !detectionSetContains(state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["detection_bookmark"].([]interface{}), record["_sdc_surrogate_key"])
+			bookmarkCondition = !detectionSetContains(state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]interface{}), record["_sdc_surrogate_key"])
 		default:
 			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
-			bookmarkCondition = toString(primaryBookmarkValue) > state["value"].(map[string]interface{})["bookmarks"].(map[string]interface{})[*config.StreamName].(map[string]interface{})["primary_bookmark"].(string)
+			bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName]["primary_bookmark"].(string)
 		}
 
 	} else {
@@ -83,7 +82,7 @@ func GenerateStateMessage() error {
 
 	message := Message{
 		Type:  "STATE",
-		Value: state["value"],
+		Value: state["Value"],
 	}
 
 	messageJson, err := json.Marshal(message)
