@@ -14,7 +14,7 @@ func Extract(config lib.Config) error {
 	if _, err := os.Stat("state.json"); err != nil {
 		CreateStateJSONError := lib.CreateStateJSON(config)
 		if CreateStateJSONError != nil {
-			return fmt.Errorf("error CREATING BOOKMARK: %w", CreateStateJSONError)
+			return fmt.Errorf("error CREATING STATE.JSON: %w", CreateStateJSONError)
 		}
 	}
 
@@ -46,7 +46,7 @@ func Extract(config lib.Config) error {
 
 	schemaMessageError := lib.GenerateSchemaMessage(schema, config)
 	if schemaMessageError != nil {
-		return fmt.Errorf("error GENERATING SCHEMA MESSAGE (bookmark): %w", schemaMessageError)
+		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", schemaMessageError)
 	}
 
 	// RECORD MESSAGE(S)
@@ -68,7 +68,7 @@ func Extract(config lib.Config) error {
 		default:
 			UpdateBookmarkPrimaryError := lib.UpdateBookmarkPrimary(records, config)
 			if UpdateBookmarkPrimaryError != nil {
-				return fmt.Errorf("error UPDATING BOOKMARK (bookmark): %w", UpdateBookmarkPrimaryError)
+				return fmt.Errorf("error UPDATING BOOKMARK (primary-bookmark): %w", UpdateBookmarkPrimaryError)
 			}
 		}
 	}
