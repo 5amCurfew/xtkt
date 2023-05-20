@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"time"
 )
 
 type Message struct {
@@ -46,7 +47,10 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 		switch path := *config.Records.PrimaryBookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
-			bookmarkCondition = !detectionSetContains(state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]interface{}), record["_sdc_surrogate_key"])
+			bookmarkCondition = !detectionSetContains(
+				state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]interface{}),
+				record["_sdc_surrogate_key"],
+			)
 		default:
 			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
 			bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName]["primary_bookmark"].(string)
@@ -70,6 +74,56 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 
 		os.Stdout.Write(messageJson)
 	}
+	return nil
+}
+
+func GenerateMetricMessage(records []interface{}, elapsed time.Duration, config Config) error {
+
+	n := 0
+
+	if UsingBookmark(config) {
+		state, err := parseStateJSON(config)
+		if err != nil {
+			return fmt.Errorf("error PARSING STATE WHEN GENERATING RECORD MESSAGES: %w", err)
+		}
+
+		for _, record := range records {
+			r := record.(map[string]interface{})
+			switch path := *config.Records.PrimaryBookmarkPath; {
+			case reflect.DeepEqual(path, []string{"*"}):
+				if !detectionSetContains(
+					state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]interface{}),
+					r["_sdc_surrogate_key"],
+				) {
+					n++
+				}
+			default:
+				primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, r)
+				if toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName]["primary_bookmark"].(string) {
+					n++
+				}
+			}
+		}
+	} else {
+		n = len(records)
+	}
+
+	message := Message{
+		Type:   "METRIC",
+		Stream: *config.StreamName,
+		Data: map[string]interface{}{
+			"record_messages": n,
+			"time_elapsed":    elapsed,
+		},
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
+
+	}
+
+	os.Stdout.Write(messageJson)
 	return nil
 }
 

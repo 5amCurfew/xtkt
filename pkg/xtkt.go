@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"time"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 )
 
 func Extract(config lib.Config) error {
+
+	start := time.Now()
+
 	// GENERATE STATE.JSON
 	if _, err := os.Stat("state.json"); err != nil {
 		CreateStateJSONError := lib.CreateStateJSON(config)
@@ -56,6 +60,10 @@ func Extract(config lib.Config) error {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", recordMessagesError)
 		}
 	}
+
+	end := time.Now()
+
+	lib.GenerateMetricMessage(records, end.Sub(start), config)
 
 	// UPDATE STATE.JSON
 	if lib.UsingBookmark(config) {
