@@ -6,6 +6,8 @@ import (
 	"os"
 	"reflect"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Message struct {
@@ -33,6 +35,7 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 	}
 
 	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
 	return nil
 }
 
@@ -73,11 +76,12 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 		}
 
 		os.Stdout.Write(messageJson)
+		os.Stdout.Write([]byte("\n"))
 	}
 	return nil
 }
 
-func GenerateMetricMessage(records []interface{}, elapsed time.Duration, config Config) error {
+func GenerateMetricInfoMessage(records []interface{}, elapsed time.Duration, config Config) error {
 
 	n := 0
 
@@ -119,11 +123,11 @@ func GenerateMetricMessage(records []interface{}, elapsed time.Duration, config 
 
 	messageJson, err := json.Marshal(message)
 	if err != nil {
-		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
+		return fmt.Errorf("error CREATING METRIC MESSAGE: %w", err)
 
 	}
 
-	os.Stdout.Write(messageJson)
+	log.Info(fmt.Sprintf("INFO METRIC: %s", messageJson))
 	return nil
 }
 
@@ -145,5 +149,6 @@ func GenerateStateMessage() error {
 	}
 
 	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
 	return nil
 }

@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var URLsParsed []string
@@ -90,6 +92,8 @@ func callAPI(config Config) ([]byte, error) {
 func GenerateRestRecords(config Config) ([]interface{}, error) {
 	var responseMap map[string]interface{}
 
+	log.Info(fmt.Sprintf("PAGE: %s", *config.URL))
+
 	response, err := callAPI(config)
 	if err != nil {
 		return nil, fmt.Errorf("error calling API: %w", err)
@@ -140,6 +144,7 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 				return records, nil
 			} else {
 				*config.URL = nextURL.(string)
+
 				if newRecords, err := GenerateRestRecords(config); err == nil {
 					records = append(records, newRecords...)
 				} else {
@@ -155,11 +160,12 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 			} else {
 				parsedURL, _ := url.Parse(*config.URL)
 				query := parsedURL.Query()
-				query.Set("page", strconv.Itoa(*config.Rest.Response.PaginationQuery.QueryValue))
+				query.Set(*config.Rest.Response.PaginationQuery.QueryParameter, strconv.Itoa(*config.Rest.Response.PaginationQuery.QueryValue))
 				parsedURL.RawQuery = query.Encode()
 
 				*config.URL = parsedURL.String()
 				*config.Rest.Response.PaginationQuery.QueryValue = *config.Rest.Response.PaginationQuery.QueryValue + *config.Rest.Response.PaginationQuery.QueryIncrement
+
 				if newRecords, err := GenerateRestRecords(config); err == nil {
 					records = append(records, newRecords...)
 				} else {

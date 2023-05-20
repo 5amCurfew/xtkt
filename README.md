@@ -51,7 +51,14 @@ Install targets (Python) in `_targets/` in virtual environments:
   3. `python3 -m pip install target-name`
   4. `deactivate`
 
-`xtkt config.json | ./_targets/target-name/bin/target-name`
+```bash
+xtkt config.json | ./_targets/target-name/bin/target-name`
+```
+
+For example:
+```bash
+xtkt config_github.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c config_target_postgres.json 
+```
 
 I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages in development. For example:
 ```bash
@@ -147,7 +154,7 @@ Token authentication required, records returned immediately as an array, paginat
             "pagination_strategy": "query",
             "pagination_query": {
                 "query_parameter": "page",
-                "query_value": 1,
+                "query_value": 2,
                 "query_increment": 1
             }
         }

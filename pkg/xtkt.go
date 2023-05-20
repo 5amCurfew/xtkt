@@ -63,7 +63,7 @@ func Extract(config lib.Config) error {
 
 	end := time.Now()
 
-	lib.GenerateMetricMessage(records, end.Sub(start), config)
+	lib.GenerateMetricInfoMessage(records, end.Sub(start), config)
 
 	// UPDATE STATE.JSON
 	if lib.UsingBookmark(config) {
