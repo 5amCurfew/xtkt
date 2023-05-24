@@ -65,7 +65,7 @@ func Extract(config lib.Config) error {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", recordMessagesError)
 		}
 	}
-	log.Info(fmt.Sprintf("METRIC: records: %d, completed: %s", recordCounter, time.Now()))
+	log.Info(fmt.Sprintf(`INFO: {type: METRIC, records: %d, completed: %s}`, recordCounter, time.Now().Format(time.RFC3339)))
 
 	// UPDATE STATE
 	if lib.UsingBookmark(config) {

@@ -92,7 +92,7 @@ func callAPI(config Config) ([]byte, error) {
 func GenerateRestRecords(config Config) ([]interface{}, error) {
 	var responseMap map[string]interface{}
 
-	log.Info(fmt.Sprintf("PAGE: %s", *config.URL))
+	log.Info(fmt.Sprintf(`INFO: {page: %s}`, *config.URL))
 
 	response, err := callAPI(config)
 	if err != nil {
