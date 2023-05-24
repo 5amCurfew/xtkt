@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 )
 
@@ -18,12 +19,16 @@ func UsingBookmark(config Config) bool {
 	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
 }
 
-func detectionSetContains(s []interface{}, str interface{}) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
+func detectionSetContains(s []string, str string) bool {
+	// Sort the slice of strings
+	sort.Strings(s)
+
+	// Perform a binary search on the sorted slice
+	index := sort.SearchStrings(s, str)
+	if index < len(s) && s[index] == str {
+		return true
 	}
+
 	return false
 }
 
@@ -89,6 +94,17 @@ func parseStateJSON(config Config) (*State, error) {
 // ///////////////////////////////////////////////////////////
 // UPDATE
 // ///////////////////////////////////////////////////////////
+func UpdateStateUpdatedAt(config Config) error {
+	state, err := parseStateJSON(config)
+	if err != nil {
+		return fmt.Errorf("error parsing state parseStateJSON() %w", err)
+	}
+
+	state.Value.Bookmarks[*config.StreamName]["bookmark_updated_at"] = time.Now().Format(time.RFC3339)
+	writeStateJSON(state)
+	return nil
+}
+
 func UpdateBookmarkPrimary(records []interface{}, config Config) error {
 	state, err := parseStateJSON(config)
 	if err != nil {
@@ -123,7 +139,7 @@ func UpdateBookmarkDetection(records []interface{}, config Config) error {
 	}
 
 	// CURRENT
-	latestDetectionSet := state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]interface{})
+	latestDetectionSet := state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]string)
 
 	// UPDATE DETECTION SET
 	for _, record := range records {
@@ -131,14 +147,13 @@ func UpdateBookmarkDetection(records []interface{}, config Config) error {
 		if !ok {
 			return fmt.Errorf("error parsing record to detection set")
 		}
-		if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"]) {
-			latestDetectionSet = append(latestDetectionSet, r["_sdc_surrogate_key"])
+		if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"].(string)) {
+			latestDetectionSet = append(latestDetectionSet, r["_sdc_surrogate_key"].(string))
 		}
 	}
 
 	// UPDATE
 	state.Value.Bookmarks[*config.StreamName]["detection_bookmark"] = latestDetectionSet
-	state.Value.Bookmarks[*config.StreamName]["bookmark_updated_at"] = time.Now().Format(time.RFC3339)
 
 	writeStateJSON(state)
 	return nil

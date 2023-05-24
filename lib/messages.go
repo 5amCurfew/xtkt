@@ -12,7 +12,7 @@ import (
 
 type Message struct {
 	Type               string                 `json:"type"`
-	Data               map[string]interface{} `json:"record,omitempty"`
+	Record             map[string]interface{} `json:"record,omitempty"`
 	Stream             string                 `json:"stream,omitempty"`
 	Schema             interface{}            `json:"schema,omitempty"`
 	Value              interface{}            `json:"value,omitempty"`
@@ -51,8 +51,8 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 		switch path := *config.Records.PrimaryBookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
 			bookmarkCondition = !detectionSetContains(
-				state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]interface{}),
-				record["_sdc_surrogate_key"],
+				state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]string),
+				record["_sdc_surrogate_key"].(string),
 			)
 		default:
 			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
@@ -66,7 +66,7 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 	if bookmarkCondition {
 		message := Message{
 			Type:   "RECORD",
-			Data:   record,
+			Record: record,
 			Stream: *config.StreamName,
 		}
 
@@ -81,7 +81,7 @@ func GenerateRecordMessage(record map[string]interface{}, config Config) error {
 	return nil
 }
 
-func GenerateMetricInfoMessage(records []interface{}, elapsed time.Duration, config Config) error {
+func GenerateMetricInfoMessage(records []interface{}, excecutionTime time.Duration, config Config) error {
 
 	n := 0
 
@@ -96,8 +96,8 @@ func GenerateMetricInfoMessage(records []interface{}, elapsed time.Duration, con
 			switch path := *config.Records.PrimaryBookmarkPath; {
 			case reflect.DeepEqual(path, []string{"*"}):
 				if !detectionSetContains(
-					state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]interface{}),
-					r["_sdc_surrogate_key"],
+					state.Value.Bookmarks[*config.StreamName]["detection_bookmark"].([]string),
+					r["_sdc_surrogate_key"].(string),
 				) {
 					n++
 				}
@@ -112,22 +112,7 @@ func GenerateMetricInfoMessage(records []interface{}, elapsed time.Duration, con
 		n = len(records)
 	}
 
-	message := Message{
-		Type:   "METRIC",
-		Stream: *config.StreamName,
-		Data: map[string]interface{}{
-			"record_messages": n,
-			"time_elapsed":    elapsed,
-		},
-	}
-
-	messageJson, err := json.Marshal(message)
-	if err != nil {
-		return fmt.Errorf("error CREATING METRIC MESSAGE: %w", err)
-
-	}
-
-	log.Info(fmt.Sprintf("INFO METRIC: %s", messageJson))
+	log.Info(fmt.Sprintf("METRIC: record messages: %d, excecution time: %fs", n, excecutionTime.Seconds()))
 	return nil
 }
 

@@ -11,7 +11,6 @@ import (
 )
 
 func Extract(config lib.Config) error {
-
 	start := time.Now()
 
 	// GENERATE STATE.JSON
@@ -63,23 +62,26 @@ func Extract(config lib.Config) error {
 
 	end := time.Now()
 
+	// INFO LOG MESSAGE
 	lib.GenerateMetricInfoMessage(records, end.Sub(start), config)
 
 	// UPDATE STATE.JSON
 	if lib.UsingBookmark(config) {
 		switch path := *config.Records.PrimaryBookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
-			UpdateBookmarkPrimaryError := lib.UpdateBookmarkDetection(records, config)
-			if UpdateBookmarkPrimaryError != nil {
-				return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", UpdateBookmarkPrimaryError)
+			UpdateBookmarkError := lib.UpdateBookmarkDetection(records, config)
+			if UpdateBookmarkError != nil {
+				return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", UpdateBookmarkError)
 			}
 		default:
-			UpdateBookmarkPrimaryError := lib.UpdateBookmarkPrimary(records, config)
-			if UpdateBookmarkPrimaryError != nil {
-				return fmt.Errorf("error UPDATING BOOKMARK (primary-bookmark): %w", UpdateBookmarkPrimaryError)
+			UpdateBookmarkError := lib.UpdateBookmarkPrimary(records, config)
+			if UpdateBookmarkError != nil {
+				return fmt.Errorf("error UPDATING BOOKMARK (primary-bookmark): %w", UpdateBookmarkError)
 			}
 		}
 	}
+
+	lib.UpdateStateUpdatedAt(config)
 
 	// STATE MESSAGE
 	stateMessageError := lib.GenerateStateMessage()
