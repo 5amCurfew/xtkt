@@ -18,11 +18,17 @@
   * [SQLite](#sqlite)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 
-`xtkt` ("extract") is a data extraction tool that adheres to the Singer.io specification. At its core, `xtkt` takes an opinionated approach to ELT for OLAP importing updated data as a new record when a bookmark is provided (using either the bookmark or new-record-detection) for RESTful APIs, databases or web-pages. Sensitive data fields can be hashed before ingestion using the `records.sensitive_fields` field in your config json file. Streams are always handled independently and deletion at source is not detected. `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery.
+`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification for OLAP (Online Analytical Processing). New/updated records are extracted as new records when a bookmark is provided.
 
-`xtkt` is still in development (currently v0.0.7) and isn't advised for production at this time
+A bookmark serves as a reference point to track the progress of data extraction. It indicates the last successfully extracted record or a specific value that can be used to identify the point of extraction. A bookmark can be either a suitable field within the data (e.g. `updated_at`) or can be generated using new-record-detection (`[*]`) in the abscence of such a field (see examples below).
 
-Databases currently focussed on during development are Postgres, SQLite, MySQL & Microsoft-SQL-Server.
+When a bookmark is not declared, full-table replication is used. For more information on replication methods see Transferwise's [Pipelinewise](https://github.com/transferwise/pipelinewise) documentation [here](https://transferwise.github.io/pipelinewise/concept/replication_methods.html)
+
+Sensitive data fields can be hashed using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
+
+`xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery. Each stream is handled independently and deletion-at-source is not detected.
+
+`xtkt` is still in development (currently v0.0.7)
 
 ### Installation
 
@@ -65,35 +71,12 @@ I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages
 $ xtkt config_github.json 2>&1 | jq .
 ```
 
-To run a local Postgres database in a container:
-
-1. `docker pull postgres`
-2. `docker run –name CONTAINER_NAME -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -p 5432:5432 -d postgres`
-
-Subsequently run a Singer.io Postgres target with the following `--config config_target_postgres.json`:
-```json
-{
-    "host": "localhost",
-    "port": 5432,
-    "user": "user",
-    "password": "password",
-    "dbname": "postgres",
-    "default_target_schema": "public"
-}
-```
-
-When there is not an appropriate bookmark but you want to only write updates to your target you can use new-record-detection (not advisable for large data sets) by setting the `records.primary_bookmark_path: ["*"]` in your `config.json`. See examples below
-
-You can also hash fields (e.g. sensitive data) by setting the `records.sensitive_paths` field in your `config.json`. See examples below
-
-When a bookmark is not provided (i.e. `records.bookmark: false`) full-table replication is invoked. For more information on replication methods see @transferwise's [Pipelinewise](https://github.com/transferwise/pipelinewise) documentation [here](https://transferwise.github.io/pipelinewise/concept/replication_methods.html)
-
 ### Metadata
 
 `xtkt` adds the following metadata to records
 
-* `_sdc_surrogate_key`: an identifier of a record (SHA256) generated using the unique_key and, if provided, bookmark. If record detection is used, this is generated using the entire record object
-* `_sdc_natural_key`: the unique key identifier of the source data (set in the `records.unique_key_path` in `config.json`)
+* `_sdc_surrogate_key`: SHA256 of record
+* `_sdc_natural_key`: the unique key identifier of the record in the source data (set in the `records.unique_key_path` in `config.json`)
 * `_sdc_time_extracted`: a timestamp (R3339) at the time of the data extraction
 
 ### Examples
