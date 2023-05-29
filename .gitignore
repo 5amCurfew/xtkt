@@ -1,6 +1,7 @@
 _*
 *.db
 config_*
+data.*
 index.html
 output.jsonl
 state.json

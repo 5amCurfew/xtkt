@@ -29,22 +29,23 @@ func Extract(config lib.Config) error {
 	var records []interface{}
 	var generateRecordsError error
 	switch *config.SourceType {
-	case "rest":
-		log.Info(fmt.Sprintf(`INFO: generating records from REST-api %s`, *config.URL))
-		records, generateRecordsError = lib.GenerateRestRecords(config)
-		log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
 	case "db":
 		log.Info(fmt.Sprintf(`INFO: generating records from database %s`, strings.Split(*config.URL, "@")[0]))
 		records, generateRecordsError = lib.GenerateDatabaseRecords(config)
-		log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
+	case "file":
+		log.Info(fmt.Sprintf(`INFO: generating records from file at %s`, *config.URL))
+		records, generateRecordsError = lib.GenerateFileRecords(config)
 	case "html":
 		log.Info(fmt.Sprintf(`INFO: generating records from HTML page %s`, *config.URL))
 		records, generateRecordsError = lib.GenerateHtmlRecords(config)
-		log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
+	case "rest":
+		log.Info(fmt.Sprintf(`INFO: generating records from REST-api %s`, *config.URL))
+		records, generateRecordsError = lib.GenerateRestRecords(config)
 	}
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
+	log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
 
 	// PROCESS RECORDS
 	processRecordsError := lib.ProcessRecords(&records, config)

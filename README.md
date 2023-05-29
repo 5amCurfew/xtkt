@@ -18,7 +18,7 @@
   * [SQLite](#sqlite)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 
-`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification for OLAP (Online Analytical Processing). New/updated records are extracted as new records when a bookmark is provided.
+`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification for OLAP (Online Analytical Processing). New/updated records are extracted as new records when a bookmark is provided. Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl).
 
 A bookmark serves as a reference point to track the progress of data extraction. It indicates the last successfully extracted record or a specific value that can be used to identify the point of extraction. A bookmark can be either a suitable field within the data (e.g. `updated_at`) or can be generated using new-record-detection (`[*]`) in the abscence of such a field (see examples below).
 
@@ -75,8 +75,8 @@ $ xtkt config_github.json 2>&1 | jq .
 
 `xtkt` adds the following metadata to records
 
-* `_sdc_surrogate_key`: SHA256 of record
-* `_sdc_natural_key`: the unique key identifier of the record in the source data (set in the `records.unique_key_path` in `config.json`)
+* `_sdc_surrogate_key`: SHA256 of a record
+* `_sdc_natural_key`: SHA256 of the unique key identifier of the record
 * `_sdc_time_extracted`: a timestamp (R3339) at the time of the data extraction
 
 ### Examples
