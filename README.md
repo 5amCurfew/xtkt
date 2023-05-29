@@ -76,7 +76,7 @@ $ xtkt config_github.json 2>&1 | jq .
 `xtkt` adds the following metadata to records
 
 * `_sdc_surrogate_key`: SHA256 of a record
-* `_sdc_natural_key`: SHA256 of the unique key identifier of the record
+* `_sdc_natural_key`: the unique key identifier of the record at source
 * `_sdc_time_extracted`: a timestamp (R3339) at the time of the data extraction
 
 ### Examples
