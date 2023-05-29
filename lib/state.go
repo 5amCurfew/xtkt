@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"sort"
 	"time"
 )
@@ -36,9 +37,15 @@ func detectionSetContains(s []string, str string) bool {
 	return false
 }
 
-func WriteStateJSON(state *State) {
-	result, _ := json.Marshal(state)
-	os.WriteFile("state.json", result, 0644)
+func writeStateJSON(state *State) error {
+	result, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("error MARSHALLING STATE into JSON: %w", err)
+	}
+	if err := os.WriteFile("state.json", result, 0644); err != nil {
+		return fmt.Errorf("error WRITING STATE.JSON: %w", err)
+	}
+	return nil
 }
 
 // ///////////////////////////////////////////////////////////
@@ -60,7 +67,7 @@ func CreateStateJSON(config Config) error {
 				PrimaryBookmark   string   `json:"primary_bookmark"`
 			}{
 				*config.StreamName: {
-					BookmarkUpdatedAt: time.Now().Format(time.RFC3339),
+					BookmarkUpdatedAt: time.Now().UTC().Format(time.RFC3339),
 					DetectionBookmark: []string{},
 					PrimaryBookmark:   "",
 				},
@@ -77,7 +84,7 @@ func CreateStateJSON(config Config) error {
 		return fmt.Errorf("error WRITING STATE.JSON: %w", err)
 	}
 
-	return nil
+	return writeStateJSON(&state)
 }
 
 // ///////////////////////////////////////////////////////////
@@ -104,55 +111,44 @@ func ParseStateJSON(config Config) (*State, error) {
 // ///////////////////////////////////////////////////////////
 // UPDATE
 // ///////////////////////////////////////////////////////////
-func UpdateStateUpdatedAt(state *State, config Config) error {
-	bookmarks := state.Value.Bookmarks[*config.StreamName]
-	bookmarks.BookmarkUpdatedAt = time.Now().Format(time.RFC3339)
-	state.Value.Bookmarks[*config.StreamName] = bookmarks
-
-	return nil
-}
-
-func UpdateBookmarkPrimary(records []interface{}, state *State, config Config) error {
+func UpdateState(records []interface{}, state *State, config Config) error {
 	// CURRENT
-	latestBookmark := state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
-
-	// FIND LATEST
-	for _, record := range records {
-		r, _ := record.(map[string]interface{})
-		if getValueAtPath(*config.Records.PrimaryBookmarkPath, r) == nil {
-			continue
-		} else if toString(getValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark {
-			latestBookmark = toString(getValueAtPath(*config.Records.PrimaryBookmarkPath, r))
-		}
-	}
-
-	// UPDATE PRIMARY BOOKMARK
 	bookmarks := state.Value.Bookmarks[*config.StreamName]
-	bookmarks.PrimaryBookmark = latestBookmark
-	state.Value.Bookmarks[*config.StreamName] = bookmarks
 
-	return nil
-}
-
-func UpdateBookmarkDetection(records []interface{}, state *State, config Config) error {
-	// CURRENT
-	latestDetectionSet := state.Value.Bookmarks[*config.StreamName].DetectionBookmark
-
-	// UPDATE DETECTION SET
-	for _, record := range records {
-		r, ok := record.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("error parsing record to detection set")
-		}
-		if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"].(string)) {
-			latestDetectionSet = append(latestDetectionSet, r["_sdc_surrogate_key"].(string))
+	if UsingBookmark(config) {
+		switch path := *config.Records.PrimaryBookmarkPath; {
+		case reflect.DeepEqual(path, []string{"*"}):
+			latestDetectionSet := state.Value.Bookmarks[*config.StreamName].DetectionBookmark
+			for _, record := range records {
+				r, parsed := record.(map[string]interface{})
+				if !parsed {
+					return fmt.Errorf("error PARSING RECORD IN UpdateStateBookmark (new-record-detection)")
+				}
+				if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"].(string)) {
+					latestDetectionSet = append(latestDetectionSet, r["_sdc_surrogate_key"].(string))
+				}
+			}
+			bookmarks.DetectionBookmark = latestDetectionSet
+		default:
+			latestBookmark := state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
+			for _, record := range records {
+				r, parsed := record.(map[string]interface{})
+				if !parsed {
+					return fmt.Errorf("error PARSING RECORD IN UpdateStateBookmark (primary-bookmark)")
+				}
+				if getValueAtPath(*config.Records.PrimaryBookmarkPath, r) == nil {
+					continue
+				} else if toString(getValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark {
+					latestBookmark = toString(getValueAtPath(*config.Records.PrimaryBookmarkPath, r))
+				}
+			}
+			bookmarks.PrimaryBookmark = latestBookmark
 		}
 	}
 
 	// UPDATE
-	bookmarks := state.Value.Bookmarks[*config.StreamName]
-	bookmarks.DetectionBookmark = latestDetectionSet
+	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	state.Value.Bookmarks[*config.StreamName] = bookmarks
 
-	return nil
+	return writeStateJSON(state)
 }

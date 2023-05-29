@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"reflect"
 	"time"
 )
 
@@ -44,51 +43,33 @@ func setValueAtPath(path []string, input map[string]interface{}, value interface
 	setValueAtPath(path, input[key].(map[string]interface{}), value)
 }
 
-func generateSurrogateKey(records []interface{}, config Config) {
-	for _, record := range records {
-		r, _ := record.(map[string]interface{})
-
-		r["_sdc_natural_key"] = getValueAtPath(*config.Records.UniqueKeyPath, r)
-
-		h := sha256.New()
-		if keyPath := config.Records.UniqueKeyPath; keyPath != nil {
-			keyValue := getValueAtPath(*keyPath, r)
-			h.Write([]byte(toString(keyValue)))
-		}
-		if bookmarkPath := config.Records.PrimaryBookmarkPath; bookmarkPath != nil {
-			if reflect.DeepEqual(*bookmarkPath, []string{"*"}) {
-				h.Write([]byte(toString(r)))
-			} else {
-				bookmarkValue := toString(getValueAtPath(*bookmarkPath, r))
-				if keyPath := config.Records.UniqueKeyPath; keyPath != nil {
-					keyValue := toString(getValueAtPath(*keyPath, r))
-					h.Write([]byte(keyValue + bookmarkValue))
-				} else {
-					h.Write([]byte(bookmarkValue))
-				}
-			}
-		}
-		r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
-	}
-}
-
-func AddMetadata(records []interface{}, config Config) {
-	for _, record := range records {
-		r, _ := record.(map[string]interface{})
-		r["_sdc_time_extracted"] = time.Now().Format(time.RFC3339)
-	}
-}
-
-func HashRecordsFields(records []interface{}, config Config) {
-	for i, record := range records {
-		if rec, ok := record.(map[string]interface{}); ok {
+func hashRecordsFields(record *interface{}, config Config) {
+	if config.Records.SensitivePaths != nil {
+		if r, parsed := (*record).(map[string]interface{}); parsed {
 			for _, path := range *config.Records.SensitivePaths {
-				if fieldValue := getValueAtPath(path, rec); fieldValue != nil {
+				if fieldValue := getValueAtPath(path, r); fieldValue != nil {
 					hash := sha256.Sum256([]byte(fmt.Sprintf("%v", fieldValue)))
-					setValueAtPath(path, rec, hex.EncodeToString(hash[:]))
+					setValueAtPath(path, r, hex.EncodeToString(hash[:]))
 				}
 			}
-			records[i] = rec
 		}
 	}
+}
+
+func generateSurrogateKey(record *interface{}, config Config) {
+	if r, parsed := (*record).(map[string]interface{}); parsed {
+		h := sha256.New()
+		h.Write([]byte(toString(r)))
+		r["_sdc_natural_key"] = getValueAtPath(*config.Records.UniqueKeyPath, r)
+		r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
+		r["_sdc_time_extracted"] = time.Now().UTC().Format(time.RFC3339)
+	}
+}
+
+func ProcessRecords(records *[]interface{}, config Config) error {
+	for _, record := range *records {
+		hashRecordsFields(&record, config)
+		generateSurrogateKey(&record, config)
+	}
+	return nil
 }

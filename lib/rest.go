@@ -140,7 +140,6 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 		case "next":
 			nextURL := getValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
 			if nextURL == nil || nextURL == "" {
-				generateSurrogateKey(records, config)
 				return records, nil
 			} else {
 				*config.URL = nextURL.(string)
@@ -155,7 +154,6 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 		// PAGINATED, "query"
 		case "query":
 			if len(records) == 0 {
-				generateSurrogateKey(records, config)
 				return records, nil
 			} else {
 				parsedURL, _ := url.Parse(*config.URL)
@@ -175,6 +173,5 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 		}
 	}
 
-	generateSurrogateKey(records, config)
 	return records, nil
 }

@@ -22,6 +22,5 @@ func GenerateHtmlRecords(config Config) ([]interface{}, error) {
 
 	collector.Visit(*config.URL)
 
-	generateSurrogateKey(records, config)
 	return records, nil
 }

@@ -3,7 +3,7 @@ package xtkt
 import (
 	"fmt"
 	"os"
-	"reflect"
+	"strings"
 	"time"
 
 	lib "github.com/5amCurfew/xtkt/lib"
@@ -22,76 +22,69 @@ func Extract(config lib.Config) error {
 	// PARSE CURRENT STATE
 	state, parseStateError := lib.ParseStateJSON(config)
 	if parseStateError != nil {
-		return fmt.Errorf("error parsing state ParseStateJSON() %w", parseStateError)
+		return fmt.Errorf("error PARSING STATE.JSON %w", parseStateError)
 	}
 
 	// RECORDS
 	var records []interface{}
-	var err error
+	var generateRecordsError error
 	switch *config.SourceType {
 	case "rest":
-		records, err = lib.GenerateRestRecords(config)
+		log.Info(fmt.Sprintf(`INFO: generating records from REST-api %s`, *config.URL))
+		records, generateRecordsError = lib.GenerateRestRecords(config)
+		log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
 	case "db":
-		records, err = lib.GenerateDatabaseRecords(config)
+		log.Info(fmt.Sprintf(`INFO: generating records from database %s`, strings.Split(*config.URL, "@")[0]))
+		records, generateRecordsError = lib.GenerateDatabaseRecords(config)
+		log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
 	case "html":
-		records, err = lib.GenerateHtmlRecords(config)
+		log.Info(fmt.Sprintf(`INFO: generating records from HTML page %s`, *config.URL))
+		records, generateRecordsError = lib.GenerateHtmlRecords(config)
+		log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
 	}
-	if err != nil {
-		return fmt.Errorf("error CREATING RECORDS: %w", err)
+	if generateRecordsError != nil {
+		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
 
-	lib.AddMetadata(records, config)
-	if config.Records.SensitivePaths != nil {
-		lib.HashRecordsFields(records, config)
+	// PROCESS RECORDS
+	processRecordsError := lib.ProcessRecords(&records, config)
+	if processRecordsError != nil {
+		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
 
 	// SCHEMA MESSAGE
-	schema, schemaError := lib.GenerateSchema(records)
-	if schemaError != nil {
-		return fmt.Errorf("error CREATING SCHEMA: %w", schemaError)
+	schema, generateSchemaError := lib.GenerateSchema(records)
+	if generateSchemaError != nil {
+		return fmt.Errorf("error CREATING SCHEMA: %w", generateSchemaError)
 	}
 
-	schemaMessageError := lib.GenerateSchemaMessage(schema, config)
-	if schemaMessageError != nil {
-		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", schemaMessageError)
+	generateSchemaMessageError := lib.GenerateSchemaMessage(schema, config)
+	if generateSchemaMessageError != nil {
+		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
 	}
 
 	// RECORD MESSAGE(S)
 	recordCounter := 0
 	for _, record := range records {
-		recordMessagesError := lib.GenerateRecordMessage(record.(map[string]interface{}), state, config)
+		generateRecordMessageError := lib.GenerateRecordMessage(record, state, config)
+		if generateRecordMessageError != nil {
+			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
+		}
 		recordCounter++
-		if recordMessagesError != nil {
-			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", recordMessagesError)
-		}
 	}
-	log.Info(fmt.Sprintf(`INFO: {type: METRIC, records: %d, completed: %s}`, recordCounter, time.Now().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`INFO: {type: METRIC, records: %d, completed: %s}`, recordCounter, time.Now().UTC().Format(time.RFC3339)))
 
-	// UPDATE STATE
-	if lib.UsingBookmark(config) {
-		switch path := *config.Records.PrimaryBookmarkPath; {
-		case reflect.DeepEqual(path, []string{"*"}):
-			UpdateBookmarkError := lib.UpdateBookmarkDetection(records, state, config)
-			if UpdateBookmarkError != nil {
-				return fmt.Errorf("error UPDATING BOOKMARK (new-record-detection): %w", UpdateBookmarkError)
-			}
-		default:
-			UpdateBookmarkError := lib.UpdateBookmarkPrimary(records, state, config)
-			if UpdateBookmarkError != nil {
-				return fmt.Errorf("error UPDATING BOOKMARK (primary-bookmark): %w", UpdateBookmarkError)
-			}
-		}
+	// UPDATE STATE & STATE.JSON
+	updateStateError := lib.UpdateState(records, state, config)
+	if updateStateError != nil {
+		return fmt.Errorf("error UPDATING STATE: %w", updateStateError)
 	}
-
-	lib.UpdateStateUpdatedAt(state, config)
-
-	// UPDATE STATE.JSON
-	lib.WriteStateJSON(state)
+	log.Info(fmt.Sprintf(`INFO: state.json updated at %s}`, time.Now().UTC().Format(time.RFC3339)))
 
 	// STATE MESSAGE
-	stateMessageError := lib.GenerateStateMessage()
-	if stateMessageError != nil {
-		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", stateMessageError)
+	generateStateMessageError := lib.GenerateStateMessage(state)
+	if generateStateMessageError != nil {
+		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
 	}
 
 	return nil

@@ -36,7 +36,12 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 	return nil
 }
 
-func GenerateRecordMessage(record map[string]interface{}, state *State, config Config) error {
+func GenerateRecordMessage(record interface{}, state *State, config Config) error {
+	r, parsed := record.(map[string]interface{})
+	if !parsed {
+		return fmt.Errorf("error PARSING RECORD IN GenerateRecordMessage: %v", r)
+	}
+
 	bookmarkCondition := false
 
 	if UsingBookmark(config) {
@@ -44,10 +49,10 @@ func GenerateRecordMessage(record map[string]interface{}, state *State, config C
 		case reflect.DeepEqual(path, []string{"*"}):
 			bookmarkCondition = !detectionSetContains(
 				state.Value.Bookmarks[*config.StreamName].DetectionBookmark,
-				record["_sdc_surrogate_key"].(string),
+				r["_sdc_surrogate_key"].(string),
 			)
 		default:
-			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
+			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, r)
 			bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
 		}
 
@@ -58,7 +63,7 @@ func GenerateRecordMessage(record map[string]interface{}, state *State, config C
 	if bookmarkCondition {
 		message := Message{
 			Type:   "RECORD",
-			Record: record,
+			Record: r,
 			Stream: *config.StreamName,
 		}
 
@@ -74,16 +79,10 @@ func GenerateRecordMessage(record map[string]interface{}, state *State, config C
 	return nil
 }
 
-func GenerateStateMessage() error {
-	stateFile, _ := os.ReadFile("state.json")
-	state := make(map[string]interface{})
-	if err := json.Unmarshal(stateFile, &state); err != nil {
-		return fmt.Errorf("error unmarshaling state JSON: %w", err)
-	}
-
+func GenerateStateMessage(state *State) error {
 	message := Message{
 		Type:  "STATE",
-		Value: state["Value"],
+		Value: state.Value,
 	}
 
 	messageJson, err := json.Marshal(message)
