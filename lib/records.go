@@ -1,10 +1,14 @@
 package lib
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"time"
+
+	"github.com/sashabaranov/go-openai"
 )
 
 func getValueAtPath(path []string, input map[string]interface{}) interface{} {
@@ -66,10 +70,33 @@ func generateSurrogateKey(record *interface{}, config Config) {
 	}
 }
 
+func generateIntelligentField(record *interface{}, config Config) {
+	if r, parsed := (*record).(map[string]interface{}); parsed {
+		openAPIKey := os.Getenv("OPENAI_API_KEY")
+		ctx := context.Background()
+		client := openai.NewClient(openAPIKey)
+
+		req := openai.CompletionRequest{
+			Model:     openai.GPT3Ada,
+			MaxTokens: 5,
+			Prompt:    *config.Records.IntelligentField.Prefix + getValueAtPath(*config.Records.IntelligentField.Field, r).(string),
+		}
+
+		resp, err := client.CreateCompletion(ctx, req)
+		if err != nil {
+			fmt.Printf("Completion error: %v\n", err)
+			return
+		}
+		r[*config.Records.IntelligentField.FieldName] = resp.Choices[0].Text
+
+	}
+}
+
 func ProcessRecords(records *[]interface{}, config Config) error {
 	for _, record := range *records {
 		generateHashedRecordsFields(&record, config)
 		generateSurrogateKey(&record, config)
+		//generateIntelligentField(&record, config)
 	}
 	return nil
 }
