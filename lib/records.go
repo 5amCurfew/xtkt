@@ -43,7 +43,7 @@ func setValueAtPath(path []string, input map[string]interface{}, value interface
 	setValueAtPath(path, input[key].(map[string]interface{}), value)
 }
 
-func hashRecordsFields(record *interface{}, config Config) {
+func generateHashedRecordsFields(record *interface{}, config Config) {
 	if config.Records.SensitivePaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
 			for _, path := range *config.Records.SensitivePaths {
@@ -68,7 +68,7 @@ func generateSurrogateKey(record *interface{}, config Config) {
 
 func ProcessRecords(records *[]interface{}, config Config) error {
 	for _, record := range *records {
-		hashRecordsFields(&record, config)
+		generateHashedRecordsFields(&record, config)
 		generateSurrogateKey(&record, config)
 	}
 	return nil
