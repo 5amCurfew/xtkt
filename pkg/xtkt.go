@@ -45,13 +45,14 @@ func Extract(config lib.Config) error {
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
-	log.Info(fmt.Sprintf(`INFO: records generated at %s}`, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`INFO: %d records generated at %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// PROCESS RECORDS
-	processRecordsError := lib.ProcessRecords(&records, config)
+	processRecordsError := lib.ProcessRecords(&records, state, config)
 	if processRecordsError != nil {
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
+	log.Info(fmt.Sprintf(`INFO: %d records when processed at %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// SCHEMA MESSAGE
 	schema, generateSchemaError := lib.GenerateSchema(records)
@@ -65,15 +66,13 @@ func Extract(config lib.Config) error {
 	}
 
 	// RECORD MESSAGE(S)
-	recordCounter := 0
 	for _, record := range records {
 		generateRecordMessageError := lib.GenerateRecordMessage(record, state, config)
 		if generateRecordMessageError != nil {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
 		}
-		recordCounter++
 	}
-	log.Info(fmt.Sprintf(`INFO: {type: METRIC, records: %d, completed: %s}`, recordCounter, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`INFO: {type: METRIC, new records: %d, completed: %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// UPDATE STATE & STATE.JSON
 	updateStateError := lib.UpdateState(records, state, config)

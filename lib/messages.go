@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 )
 
 type Message struct {
@@ -42,39 +41,19 @@ func GenerateRecordMessage(record interface{}, state *State, config Config) erro
 		return fmt.Errorf("error PARSING RECORD IN GenerateRecordMessage: %v", r)
 	}
 
-	bookmarkCondition := false
-
-	if UsingBookmark(config) {
-		switch path := *config.Records.PrimaryBookmarkPath; {
-		case reflect.DeepEqual(path, []string{"*"}):
-			bookmarkCondition = !detectionSetContains(
-				state.Value.Bookmarks[*config.StreamName].DetectionBookmark,
-				r["_sdc_surrogate_key"].(string),
-			)
-		default:
-			primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, r)
-			bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
-		}
-
-	} else {
-		bookmarkCondition = true
+	message := Message{
+		Type:   "RECORD",
+		Record: r,
+		Stream: *config.StreamName,
 	}
 
-	if bookmarkCondition {
-		message := Message{
-			Type:   "RECORD",
-			Record: r,
-			Stream: *config.StreamName,
-		}
-
-		messageJson, err := json.Marshal(message)
-		if err != nil {
-			return fmt.Errorf("error CREATING RECORD MESSAGE: %w", err)
-		}
-
-		os.Stdout.Write(messageJson)
-		os.Stdout.Write([]byte("\n"))
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("error CREATING RECORD MESSAGE: %w", err)
 	}
+
+	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
 
 	return nil
 }
