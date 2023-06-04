@@ -91,7 +91,7 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 
 		bookmarkCondition := false
 
-		if UsingBookmark(config) {
+		if config.Records.PrimaryBookmarkPath != nil {
 			switch path := *config.Records.PrimaryBookmarkPath; {
 			case reflect.DeepEqual(path, []string{"*"}):
 				bookmarkCondition = !detectionSetContains(

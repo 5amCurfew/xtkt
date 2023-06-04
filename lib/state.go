@@ -20,10 +20,6 @@ type State struct {
 	} `json:"Value"`
 }
 
-func UsingBookmark(config Config) bool {
-	return *config.Records.Bookmark && config.Records.PrimaryBookmarkPath != nil
-}
-
 func detectionSetContains(s []string, str string) bool {
 	// Sort the slice of strings
 	sort.Strings(s)
@@ -115,7 +111,7 @@ func UpdateState(records []interface{}, state *State, config Config) error {
 	// CURRENT
 	bookmarks := state.Value.Bookmarks[*config.StreamName]
 
-	if UsingBookmark(config) {
+	if config.Records.PrimaryBookmarkPath != nil {
 		switch path := *config.Records.PrimaryBookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
 			latestDetectionSet := state.Value.Bookmarks[*config.StreamName].DetectionBookmark

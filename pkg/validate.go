@@ -31,12 +31,6 @@ func ValidateJSONConfig(jsonBytes []byte) error {
 		if cfg.Records.UniqueKeyPath == nil {
 			return fmt.Errorf("missing required field: Records.UniqueKeyPath []string")
 		}
-		if cfg.Records.Bookmark != nil && *cfg.Records.Bookmark {
-			// Bookmark is true, validate that PrimaryBookmarkPath is not nil
-			if cfg.Records.PrimaryBookmarkPath == nil {
-				return fmt.Errorf("missing required field: Records.PrimaryBookmarkPath array")
-			}
-		}
 	}
 
 	if *cfg.SourceType == "database" && (cfg.Database == nil || cfg.Database.Table == nil) {

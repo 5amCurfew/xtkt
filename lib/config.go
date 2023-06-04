@@ -10,7 +10,6 @@ type Config struct {
 	URL        *string `json:"url,omitempty"`
 	Records    *struct {
 		UniqueKeyPath       *[]string   `json:"unique_key_path,omitempty"`
-		Bookmark            *bool       `json:"bookmark,omitempty"`
 		PrimaryBookmarkPath *[]string   `json:"primary_bookmark_path,omitempty"`
 		SensitivePaths      *[][]string `json:"sensitive_paths,omitempty"`
 		IntelligentFields   *[]struct {

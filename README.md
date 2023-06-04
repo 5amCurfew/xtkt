@@ -17,14 +17,15 @@
   * [Postgres](#postgres)
   * [SQLite](#sqlite)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
+  * [File](#file)
 
-`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification for OLAP (Online Analytical Processing). Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl). 
+`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl).
 
-Updated records are sent to your target as new records rather than updating existing records.
+New **and updated** records are sent to your target as new records.
 
-When a **bookmark** is delcared only records meeting this requirement will be sent to your target. A bookmark serves as a reference point to track the progress of data extraction (indicating the last successfully extracted record or set of records already extracted on previous invocations). A bookmark can be either a suitable field within records (e.g. `updated_at`) or can be tracked using new-record-detection (`[*]`) (see examples below).
+A **bookmark** can be used to define which records are processed by `xtkt` and subsequently sent to your target. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or *new-record-detection* (`records.primary_bookmark: [*]`) to only process new/updated records (*new-record-detection* is not advised for large data sets).
 
-When a bookmark is not declared, all records will be sent to your target. Unchanged records will overwrite existing records and new/updated records will be added as a new records. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
+In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
 
 Sensitive data fields can be hashed prior to being sent to your target using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
 
@@ -52,7 +53,7 @@ Flags:
   -v, --version   version for xtkt
 ```
 
-### Using with Singer.io Targets
+### Using with [Singer.io](https://www.singer.io/) Targets
 
 Install targets (Python) in `_targets/` in virtual environments:
 
@@ -86,59 +87,44 @@ $ xtkt config_github.json 2>&1 | jq .
 ### Examples
 
 #### [Rick & Morty API](https://rickandmortyapi.com/)
-No authentication required, records found in the response "results" array, paginated using "next", new-record-detection used
+No authentication required, records found in the response "results" array, paginated using "next", *new-record-detection* used for bookmark
 
+`config.json`
 ```json
 {
     "stream_name": "rick_and_morty_characters",
     "source_type": "rest",
     "url": "https://rickandmortyapi.com/api/character",
     "records": {
-        "unique_key_path": [
-            "id"
-        ],
-        "bookmark": true,
-        "primary_bookmark_path": [
-            "*"
-        ]
+        "unique_key_path": ["id"],
+        "primary_bookmark_path": ["*"]
     },
     "rest": {
         "auth": {
             "required": false
         },
         "response": {
-            "records_path": [
-                "results"
-            ],
+            "records_path": ["results"],
             "pagination": true,
             "pagination_strategy": "next",
-            "pagination_next_path": [
-                "info",
-                "next"
-            ]
+            "pagination_next_path": ["info", "next"]
         }
     }
 }
 ```
 
 #### [Github API](https://docs.github.com/en/rest?apiVersion=2022-11-28)
-Token authentication required, records returned immediately as an array, pagination using query parameter, bookmark'd using "commit.author.date"
+Token authentication required, records returned immediately as an array, pagination using query parameter, bookmark'd using "commit.author.date" in record
 
+`config.json`
 ```json
 {
     "stream_name": "xtkt_github_commits",
     "source_type": "rest",
     "url": "https://api.github.com/repos/5amCurfew/xtkt/commits",
     "records": {
-        "unique_key_path": [
-            "sha"
-        ],
-        "bookmark": true,
-        "primary_bookmark_path": [
-            "commit",
-            "author",
-            "date"
-        ],
+        "unique_key_path": ["sha"],
+        "primary_bookmark_path": ["commit", "author", "date"],
         "sensitive_paths": [
             ["commit", "author", "email"],
             ["commit", "committer", "email"]
@@ -167,20 +153,24 @@ Token authentication required, records returned immediately as an array, paginat
 ```
 
 #### [Strava API](https://developers.strava.com/docs/reference/)
-Oauth authentication required, records returned immediately in an array, paginated using query parameter, bookmark'd using "start_date"
+Oauth authentication required, records returned immediately in an array, paginated using query parameter, bookmark'd using "start_date" in record
 
+`config.json`
 ```json
 {
     "stream_name": "my_strava_activities",
     "source_type": "rest",
     "url": "https://www.strava.com/api/v3/athlete/activities",
     "records": {
-        "unique_key_path": [
-            "id"
-        ],
-        "bookmark": true,
-        "primary_bookmark_path": [
-            "start_date"
+        "unique_key_path": ["id"],
+        "primary_bookmark_path": ["start_date"],
+        "intelligent_fields": [
+            {
+                "prefix": "Convert the given number of miliseconds to hours. Number of miliseconds: ",
+                "field_path": ["elapsed_time"],
+                "suffix": " Number of hours: ", 
+                "intelligent_field_name": "elapsed_time_hours"
+            }
         ]
     },
     "rest": {
@@ -199,7 +189,7 @@ Oauth authentication required, records returned immediately in an array, paginat
             "pagination_strategy": "query",
             "pagination_query": {
                 "query_parameter": "page",
-                "query_value": 1,
+                "query_value": 2,
                 "query_increment": 1
             }
         }
@@ -208,20 +198,14 @@ Oauth authentication required, records returned immediately in an array, paginat
 ```
 
 #### Postgres
+`config.json`
 ```json
 {
     "stream_name": "rick_and_morty_characters_from_postgres",
     "source_type": "db",
     "url": "postgres://admin:admin@localhost:5432/postgres?sslmode=disable",
     "records": {
-        "unique_key_path": [
-            "id"
-        ],
-        "bookmark": true,
-        "primary_bookmark_path": ["created"],
-        "sensitive_paths": [
-            ["image"]
-        ]
+        "unique_key_path": ["id"]
     },
     "db": {
         "table": "rick_and_morty_characters"
@@ -230,19 +214,15 @@ Oauth authentication required, records returned immediately in an array, paginat
 ```
 
 #### SQLite
+`config.json`
 ```json
 {
     "stream_name": "sqlite_customers",
     "source_type": "db",
     "url": "sqlite:///example.db",
     "records": {
-        "unique_key_path": [
-            "id"
-        ],
-        "bookmark": true,
-        "primary_bookmark_path": [
-            "updated_at"
-        ]
+        "unique_key_path": ["id"],
+        "primary_bookmark_path": ["updated_at"]
     },
     "db": {
         "table": "customers"
@@ -253,16 +233,14 @@ Oauth authentication required, records returned immediately in an array, paginat
 #### [www.fifaindex.com/teams](https://www.fifaindex.com/teams/)
 Scrape team "overall" rating found within HTML table (beta)
 
+`config.json`
 ```json
 {
     "stream_name": "fifa_team_ratings",
     "source_type": "html",
     "url": "https://www.fifaindex.com/teams/",
     "records": {
-        "unique_key_path": [
-            "name"
-        ],
-        "bookmark": false
+        "unique_key_path": ["name"]
     },
     "html": {
         "elements_path": "table.table-teams > tbody > tr",
@@ -270,6 +248,22 @@ Scrape team "overall" rating found within HTML table (beta)
             {"name": "name", "path": "td[data-title='Name'] > a.link-team"},
             {"name": "league", "path": "td[data-title='League'] > a.link-league"},
             {"name": "overall", "path": "td[data-title='OVR'] > span.rating:nth-child(1)"}
+        ]
+    }
+}
+```
+
+#### File
+`config.json`
+```json
+{
+    "stream_name": "xtkt_jsonl",
+    "source_type": "file",
+    "url": "data.jsonl",
+    "records": {
+        "unique_key_path": ["name"],
+        "sensitive_paths": [
+            ["name"]
         ]
     }
 }
