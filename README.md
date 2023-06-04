@@ -163,15 +163,7 @@ Oauth authentication required, records returned immediately in an array, paginat
     "url": "https://www.strava.com/api/v3/athlete/activities",
     "records": {
         "unique_key_path": ["id"],
-        "primary_bookmark_path": ["start_date"],
-        "intelligent_fields": [
-            {
-                "prefix": "Convert the given number of miliseconds to hours. Number of miliseconds: ",
-                "field_path": ["elapsed_time"],
-                "suffix": " Number of hours: ", 
-                "intelligent_field_name": "elapsed_time_hours"
-            }
-        ]
+        "primary_bookmark_path": ["start_date"]
     },
     "rest": {
         "auth": {

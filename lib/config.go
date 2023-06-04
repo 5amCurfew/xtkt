@@ -16,6 +16,8 @@ type Config struct {
 			Prefix               *string   `json:"prefix,omitempty"`
 			FieldPath            *[]string `json:"field_path,omitempty"`
 			Suffix               *string   `json:"suffix,omitempty"`
+			MaxTokens            *int      `json:"max_tokens,omitempty"`
+			Temperature          *float32  `json:"temperature,omitempty"`
 			IntelligentFieldName *string   `json:"intelligent_field_name,omitempty"`
 		} `json:"intelligent_fields,omitempty"`
 	} `json:"records,omitempty"`

@@ -128,9 +128,11 @@ func generateIntelligentFields(record *interface{}, config Config) error {
 			client := openai.NewClient(openAPIKey)
 
 			req := openai.CompletionRequest{
-				Model:     "ada",
-				MaxTokens: 10,
-				Prompt:    *intellientField.Prefix + toString(getValueAtPath(*intellientField.FieldPath, r)) + *intellientField.Suffix,
+				Model:       "text-davinci-003",
+				MaxTokens:   *intellientField.MaxTokens,
+				TopP:        1,
+				Temperature: *intellientField.Temperature,
+				Prompt:      *intellientField.Prefix + toString(getValueAtPath(*intellientField.FieldPath, r)) + *intellientField.Suffix,
 			}
 
 			resp, err := client.CreateCompletion(ctx, req)
