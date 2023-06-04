@@ -18,13 +18,17 @@
   * [SQLite](#sqlite)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 
-`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification for OLAP (Online Analytical Processing). New/updated records are extracted as new records when a bookmark is provided. Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl).
+`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification for OLAP (Online Analytical Processing). Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl). 
 
-A bookmark serves as a reference point to track the progress of data extraction. It indicates the last successfully extracted record or a specific value that can be used to identify the point of extraction. A bookmark can be either a suitable field within the data (e.g. `updated_at`) or can be generated using new-record-detection (`[*]`) in the abscence of such a field (see examples below).
+Updated records are sent to your target as new records rather than updating existing records.
 
-When a bookmark is not declared, full-table replication is used. For more information on replication methods see Transferwise's [Pipelinewise](https://github.com/transferwise/pipelinewise) documentation [here](https://transferwise.github.io/pipelinewise/concept/replication_methods.html)
+When a **bookmark** is delcared only records meeting this requirement will be sent to your target. A bookmark serves as a reference point to track the progress of data extraction (indicating the last successfully extracted record or set of records already extracted on previous invocations). A bookmark can be either a suitable field within records (e.g. `updated_at`) or can be tracked using new-record-detection (`[*]`) (see examples below).
 
-Sensitive data fields can be hashed using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
+When a bookmark is not declared, all records will be sent to your target. Unchanged records will overwrite existing records and new/updated records will be added as a new records. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
+
+Sensitive data fields can be hashed prior to being sent to your target using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
+
+Intelligent data fields (beta) can be added to your records using OpenAI LLM models the `records.intelligent_fields` field in your JSON configuration file (see examples below).
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery. Each stream is handled independently and deletion-at-source is not detected.
 
