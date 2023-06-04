@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+	log "github.com/sirupsen/logrus"
 )
 
 func getValueAtPath(path []string, input map[string]interface{}) interface{} {
@@ -128,8 +129,8 @@ func generateIntelligentField(record *interface{}, config Config) error {
 
 			req := openai.CompletionRequest{
 				Model:     openai.GPT3Ada,
-				MaxTokens: 5,
-				Prompt:    *intellientField.Prefix + getValueAtPath(*intellientField.FieldPath, r).(string),
+				MaxTokens: 10,
+				Prompt:    *intellientField.Prefix + toString(getValueAtPath(*intellientField.FieldPath, r)) + *intellientField.Suffix,
 			}
 
 			resp, err := client.CreateCompletion(ctx, req)
@@ -137,8 +138,7 @@ func generateIntelligentField(record *interface{}, config Config) error {
 				return fmt.Errorf("error GENERATING RECORD INTELLIGENT FIELD IN generateIntelligentField: %v", err)
 			}
 
-			fmt.Println("hello")
-			fmt.Printf("%+v\n", resp)
+			log.Info(fmt.Sprintf(`INFO: {%s (%s): %+v, prompt: %s}`, *intellientField.IntelligentFieldName, r["_sdc_natural_key"], resp.Usage, req.Prompt))
 
 			if len(resp.Choices) == 0 {
 				r[*intellientField.IntelligentFieldName] = "ERROR_NO_VALID_RESPONSE"
@@ -168,12 +168,14 @@ func ProcessRecords(records *[]interface{}, state *State, config Config) error {
 		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceRecordsError)
 	}
 
-	for _, record := range *records {
-		generateIntelligentFieldError := generateIntelligentField(&record, config)
-		if generateIntelligentFieldError != nil {
-			return fmt.Errorf("error GENERATING INTELLIGENT FIELD IN ProcessRecords: %v", generateIntelligentFieldError)
+	if config.Records.IntelligentFields != nil {
+		for _, record := range *records {
+			generateIntelligentFieldError := generateIntelligentField(&record, config)
+			if generateIntelligentFieldError != nil {
+				return fmt.Errorf("error GENERATING INTELLIGENT FIELD IN ProcessRecords: %v", generateIntelligentFieldError)
+			}
 		}
-
 	}
+
 	return nil
 }
