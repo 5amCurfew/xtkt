@@ -120,6 +120,9 @@ func generateIntelligentField(record *interface{}, config Config) error {
 		for _, intellientField := range *config.Records.IntelligentFields {
 
 			openAPIKey := os.Getenv("OPENAI_API_KEY")
+			if openAPIKey == "" {
+				return fmt.Errorf("error GENERATING RECORD INTELLIGENT FIELD IN generateIntelligentField: OPEN_API_KEY not found")
+			}
 			ctx := context.Background()
 			client := openai.NewClient(openAPIKey)
 
