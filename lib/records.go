@@ -128,7 +128,7 @@ func generateIntelligentFields(record *interface{}, config Config) error {
 			client := openai.NewClient(openAPIKey)
 
 			req := openai.CompletionRequest{
-				Model:     openai.GPT3Ada,
+				Model:     "ada",
 				MaxTokens: 10,
 				Prompt:    *intellientField.Prefix + toString(getValueAtPath(*intellientField.FieldPath, r)) + *intellientField.Suffix,
 			}
