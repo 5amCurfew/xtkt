@@ -13,11 +13,11 @@ type Config struct {
 		Bookmark            *bool       `json:"bookmark,omitempty"`
 		PrimaryBookmarkPath *[]string   `json:"primary_bookmark_path,omitempty"`
 		SensitivePaths      *[][]string `json:"sensitive_paths,omitempty"`
-		IntelligentField    *struct {
-			Field     *[]string `json:"field,omitempty"`
-			Prefix    *string   `json:"prefix,omitempty"`
-			FieldName *string   `json:"field_name,omitempty"`
-		} `json:"intelligent_field,omitempty"`
+		IntelligentFields   *[]struct {
+			FieldPath            *[]string `json:"field_path,omitempty"`
+			Prefix               *string   `json:"prefix,omitempty"`
+			IntelligentFieldName *string   `json:"intelligent_field_name,omitempty"`
+		} `json:"intelligent_fields,omitempty"`
 	} `json:"records,omitempty"`
 	Database *struct {
 		Table *string `json:"table,omitempty"`

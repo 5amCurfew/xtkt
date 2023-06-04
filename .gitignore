@@ -1,5 +1,6 @@
 _*
 *.db
+*.html
 config_*
 data.*
 index.html

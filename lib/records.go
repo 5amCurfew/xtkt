@@ -83,7 +83,7 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 	var reducedRecords []interface{}
 
 	for _, record := range *records {
-		record, parsed := record.(map[string]interface{})
+		r, parsed := record.(map[string]interface{})
 		if !parsed {
 			return fmt.Errorf("error PARSING RECORD IN reduceRecords: %v", record)
 		}
@@ -95,10 +95,10 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 			case reflect.DeepEqual(path, []string{"*"}):
 				bookmarkCondition = !detectionSetContains(
 					state.Value.Bookmarks[*config.StreamName].DetectionBookmark,
-					record["_sdc_surrogate_key"].(string),
+					r["_sdc_surrogate_key"].(string),
 				)
 			default:
-				primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, record)
+				primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, r)
 				bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
 			}
 
@@ -107,7 +107,7 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 		}
 
 		if bookmarkCondition {
-			reducedRecords = append(reducedRecords, record)
+			reducedRecords = append(reducedRecords, r)
 		}
 	}
 
@@ -117,21 +117,32 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 
 func generateIntelligentField(record *interface{}, config Config) error {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
-		openAPIKey := os.Getenv("OPENAI_API_KEY")
-		ctx := context.Background()
-		client := openai.NewClient(openAPIKey)
+		for _, intellientField := range *config.Records.IntelligentFields {
 
-		req := openai.CompletionRequest{
-			Model:     openai.GPT3Ada,
-			MaxTokens: 5,
-			Prompt:    *config.Records.IntelligentField.Prefix + getValueAtPath(*config.Records.IntelligentField.Field, r).(string),
-		}
+			openAPIKey := os.Getenv("OPENAI_API_KEY")
+			ctx := context.Background()
+			client := openai.NewClient(openAPIKey)
 
-		resp, err := client.CreateCompletion(ctx, req)
-		if err != nil {
-			return fmt.Errorf("error GENERATING RECORD INTELLIGENT FIELD IN ProcessRecords: %v", err)
+			req := openai.CompletionRequest{
+				Model:     openai.GPT3Ada,
+				MaxTokens: 5,
+				Prompt:    *intellientField.Prefix + getValueAtPath(*intellientField.FieldPath, r).(string),
+			}
+
+			resp, err := client.CreateCompletion(ctx, req)
+			if err != nil {
+				return fmt.Errorf("error GENERATING RECORD INTELLIGENT FIELD IN generateIntelligentField: %v", err)
+			}
+
+			fmt.Println("hello")
+			fmt.Printf("%+v\n", resp)
+
+			if len(resp.Choices) == 0 {
+				r[*intellientField.IntelligentFieldName] = "ERROR_NO_VALID_RESPONSE"
+			} else {
+				r[*intellientField.IntelligentFieldName] = resp.Choices[0].Text
+			}
 		}
-		r[*config.Records.IntelligentField.FieldName] = resp.Choices[0].Text
 	}
 	return nil
 }
@@ -153,8 +164,13 @@ func ProcessRecords(records *[]interface{}, state *State, config Config) error {
 	if reduceRecordsError != nil {
 		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceRecordsError)
 	}
-	//for _, record := range *records {
-	//	generateIntelligentField(&record, config)
-	//}
+
+	for _, record := range *records {
+		generateIntelligentFieldError := generateIntelligentField(&record, config)
+		if generateIntelligentFieldError != nil {
+			return fmt.Errorf("error GENERATING INTELLIGENT FIELD IN ProcessRecords: %v", generateIntelligentFieldError)
+		}
+
+	}
 	return nil
 }
