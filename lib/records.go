@@ -116,7 +116,7 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 	return nil
 }
 
-func generateIntelligentField(record *interface{}, config Config) error {
+func generateIntelligentFields(record *interface{}, config Config) error {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		for _, intellientField := range *config.Records.IntelligentFields {
 
@@ -170,7 +170,7 @@ func ProcessRecords(records *[]interface{}, state *State, config Config) error {
 
 	if config.Records.IntelligentFields != nil {
 		for _, record := range *records {
-			generateIntelligentFieldError := generateIntelligentField(&record, config)
+			generateIntelligentFieldError := generateIntelligentFields(&record, config)
 			if generateIntelligentFieldError != nil {
 				return fmt.Errorf("error GENERATING INTELLIGENT FIELD IN ProcessRecords: %v", generateIntelligentFieldError)
 			}
