@@ -28,7 +28,7 @@ When a bookmark is not declared, all records will be sent to your target. Unchan
 
 Sensitive data fields can be hashed prior to being sent to your target using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
 
-Intelligent data fields (beta) can be added to your records using OpenAI LLM models the `records.intelligent_fields` field in your JSON configuration file (see examples below).
+Intelligent data fields (beta) can be added to your records using OpenAI LLM models using the `records.intelligent_fields` field in your JSON configuration file (see examples below).
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery. Each stream is handled independently and deletion-at-source is not detected.
 
