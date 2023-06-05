@@ -21,7 +21,7 @@
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl).
 
-New **and updated** records are sent to your target as new records.
+New **and updated** records are sent to your target as new records (unique key `_sdc_surrogate_key`).
 
 A **bookmark** can be used to define which records are processed by `xtkt` and subsequently sent to your target. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or *new-record-detection* (`records.primary_bookmark: [*]`) to only process new/updated records (*new-record-detection* is not advised for large data sets).
 
