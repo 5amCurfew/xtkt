@@ -19,7 +19,7 @@
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
   * [File](#file)
 
-![Brew Release](https://github.com/github/5amCurfew/xtkt/workflows/release.yml/badge.svg?branch=main)
+![example workflow](https://github.com/github/docs/actions/workflows/main.yml/badge.svg)
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl).
 
