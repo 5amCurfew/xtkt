@@ -6,6 +6,7 @@
   \/_/\/_/  \/_/  \/_/\/_/   \/_/ 
                                   
 ```
+![Release on Homebrew](https://github.com/5amCurfew/xtkt/actions/workflows/release.yml/badge.svg)
 
 - [Installation](#Installation)
 - [Using with Singer.io Targets](#using-with-singerio-targets)
@@ -18,8 +19,6 @@
   * [SQLite](#sqlite)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
   * [File](#file)
-
-![example workflow](https://github.com/5amCurfew/xtkt/actions/workflows/release.yml/badge.svg)
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl).
 
