@@ -140,7 +140,7 @@ func generateIntelligentFields(record *interface{}, config Config) error {
 				return fmt.Errorf("error GENERATING RECORD INTELLIGENT FIELD IN generateIntelligentField: %v", err)
 			}
 
-			log.Info(fmt.Sprintf(`INFO: {%s (%s): %+v, prompt: %s}`, *intellientField.IntelligentFieldName, r["_sdc_natural_key"], resp.Usage, req.Prompt))
+			log.Info(fmt.Sprintf(`%v (%s): %+v, prompt: %s`, *intellientField.IntelligentFieldName, r["_sdc_natural_key"], resp.Usage, req.Prompt))
 
 			if len(resp.Choices) == 0 {
 				r[*intellientField.IntelligentFieldName] = "ERROR_NO_VALID_RESPONSE"

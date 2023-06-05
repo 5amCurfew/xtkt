@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -16,6 +17,7 @@ import (
 var URLsParsed []string
 
 func callAPI(config Config) ([]byte, error) {
+	log.Info(fmt.Sprintf(`API call sleeping %d seconds`, *config.Rest.Sleep))
 	client := http.DefaultClient
 
 	req, err := http.NewRequest("GET", *config.URL, nil)
@@ -90,10 +92,12 @@ func callAPI(config Config) ([]byte, error) {
 }
 
 func GenerateRestRecords(config Config) ([]interface{}, error) {
+	if config.Rest.Sleep != nil {
+		time.Sleep(time.Duration(*config.Rest.Sleep) * time.Second)
+	}
 	var responseMap map[string]interface{}
 
-	log.Info(fmt.Sprintf(`INFO: {page: %s}`, *config.URL))
-
+	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
 	response, err := callAPI(config)
 	if err != nil {
 		return nil, fmt.Errorf("error calling API: %w", err)

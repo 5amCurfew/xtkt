@@ -30,29 +30,29 @@ func Extract(config lib.Config) error {
 	var generateRecordsError error
 	switch *config.SourceType {
 	case "db":
-		log.Info(fmt.Sprintf(`INFO: generating records from database %s`, strings.Split(*config.URL, "@")[0]))
+		log.Info(fmt.Sprintf(`generating records from database %s`, strings.Split(*config.URL, "@")[0]))
 		records, generateRecordsError = lib.GenerateDatabaseRecords(config)
 	case "file":
-		log.Info(fmt.Sprintf(`INFO: generating records from file at %s`, *config.URL))
+		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
 		records, generateRecordsError = lib.GenerateFileRecords(config)
 	case "html":
-		log.Info(fmt.Sprintf(`INFO: generating records from HTML page %s`, *config.URL))
+		log.Info(fmt.Sprintf(`generating records from HTML page %s`, *config.URL))
 		records, generateRecordsError = lib.GenerateHtmlRecords(config)
 	case "rest":
-		log.Info(fmt.Sprintf(`INFO: generating records from REST-api %s`, *config.URL))
+		log.Info(fmt.Sprintf(`generating records from REST-api %s`, *config.URL))
 		records, generateRecordsError = lib.GenerateRestRecords(config)
 	}
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
-	log.Info(fmt.Sprintf(`INFO: %d records generated at %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`%d records generated at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// PROCESS RECORDS
 	processRecordsError := lib.ProcessRecords(&records, state, config)
 	if processRecordsError != nil {
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
-	log.Info(fmt.Sprintf(`INFO: %d records when processed at %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// SCHEMA MESSAGE
 	schema, generateSchemaError := lib.GenerateSchema(records)
@@ -72,14 +72,14 @@ func Extract(config lib.Config) error {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
 		}
 	}
-	log.Info(fmt.Sprintf(`INFO: {type: METRIC, new_records: %d, completed_at: %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`{type: METRIC, new_records: %d, completed_at: %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// UPDATE STATE & STATE.JSON
 	updateStateError := lib.UpdateState(records, state, config)
 	if updateStateError != nil {
 		return fmt.Errorf("error UPDATING STATE: %w", updateStateError)
 	}
-	log.Info(fmt.Sprintf(`INFO: state.json updated at %s}`, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`state.json updated at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	// STATE MESSAGE
 	generateStateMessageError := lib.GenerateStateMessage(state)

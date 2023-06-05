@@ -25,7 +25,8 @@ type Config struct {
 		Table *string `json:"table,omitempty"`
 	} `json:"db,omitempty"`
 	Rest *struct {
-		Auth *struct {
+		Sleep *int `json:"sleep,omitempty"`
+		Auth  *struct {
 			Required *bool   `json:"required,omitempty"`
 			Strategy *string `json:"strategy,omitempty"`
 			Basic    *struct {

@@ -101,6 +101,7 @@ No authentication required, records found in the response "results" array, pagin
         "primary_bookmark_path": ["*"]
     },
     "rest": {
+        "sleep": 2,
         "auth": {
             "required": false
         },
