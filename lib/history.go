@@ -2,7 +2,6 @@ package lib
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"time"
 )
@@ -45,7 +44,7 @@ func AppendToHistory(metric ExecutionMetric) error {
 	}
 
 	// Write the JSON data back to the file
-	err = ioutil.WriteFile("history.json", data, 0644)
+	err = os.WriteFile("history.json", data, 0644)
 	if err != nil {
 		return err
 	}
