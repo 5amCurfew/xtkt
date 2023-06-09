@@ -11,6 +11,10 @@ import (
 )
 
 func Extract(config lib.Config) error {
+	var execution lib.ExecutionMetric
+	execution.Stream = *config.StreamName
+	execution.Start = time.Now().UTC()
+
 	// GENERATE STATE.JSON
 	if _, err := os.Stat("state.json"); err != nil {
 		CreateStateJSONError := lib.CreateStateJSON(config)
@@ -45,6 +49,7 @@ func Extract(config lib.Config) error {
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
+	execution.RecordsExtracted = len(records)
 	log.Info(fmt.Sprintf(`%d records generated at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// PROCESS RECORDS
@@ -52,6 +57,8 @@ func Extract(config lib.Config) error {
 	if processRecordsError != nil {
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
+	execution.RecordsProcessed = len(records)
+	execution.RecordsMeetingContract = len(records)
 	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// SCHEMA MESSAGE
@@ -87,5 +94,12 @@ func Extract(config lib.Config) error {
 		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
 	}
 
+	// UPDATE HISTORY.JSON
+	execution.End = time.Now().UTC()
+	execution.Duration = execution.End.Sub(execution.Start)
+	appendToHistoryError := lib.AppendToHistory(execution)
+	if appendToHistoryError != nil {
+		return fmt.Errorf("error GENERATING APPENDING EXECUTION TO HISTORY: %w", appendToHistoryError)
+	}
 	return nil
 }

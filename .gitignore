@@ -3,6 +3,7 @@ _*
 *.html
 config_*
 data.*
+history.json
 index.html
 output.jsonl
 state.json
