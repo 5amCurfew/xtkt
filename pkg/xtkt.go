@@ -103,3 +103,7 @@ func Extract(config lib.Config) error {
 	}
 	return nil
 }
+
+func Listen(config lib.Config) {
+	lib.StartListening(config)
+}

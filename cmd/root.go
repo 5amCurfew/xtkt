@@ -50,13 +50,17 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		parseError := xtkt.Extract(cfg)
-		if parseError != nil {
-			log.WithFields(
-				log.Fields{
-					"Error": fmt.Sprintf("%v", parseError),
-				},
-			).Fatalln("Failed to EXTRACT RECORDS")
+		if *cfg.SourceType == "listen" {
+			xtkt.Listen(cfg)
+		} else {
+			parseError := xtkt.Extract(cfg)
+			if parseError != nil {
+				log.WithFields(
+					log.Fields{
+						"Error": fmt.Sprintf("%v", parseError),
+					},
+				).Fatalln("Failed to EXTRACT RECORDS")
+			}
 		}
 	},
 }
