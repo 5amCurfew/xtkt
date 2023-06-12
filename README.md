@@ -19,6 +19,7 @@
   * [SQLite](#sqlite)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
   * [File](#file)
+  * [Listen](#listen)
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases, HTML web pages and files (csv, jsonl).
 
@@ -27,6 +28,8 @@ New **and updated** records are sent to your target as new records (unique key `
 A **bookmark** can be used to define which records are processed by `xtkt` and subsequently sent to your target. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or *new-record-detection* (`records.primary_bookmark: [*]`) to only process new/updated records (*new-record-detection* is not advised for large data sets).
 
 In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
+
+`xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target.
 
 Sensitive data fields can be hashed prior to being sent to your target using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
 
@@ -259,6 +262,26 @@ Scrape team "overall" rating found within HTML table (beta)
         "sensitive_paths": [
             ["name"]
         ]
+    }
+}
+```
+
+#### Listen
+`config.json` (e.g. `curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/records`)
+```json
+{
+    "stream_name": "listen_testing",
+    "source_type": "listen",
+    "url": "",
+    "records": {
+        "unique_key_path": ["key1"],
+        "sensitive_paths": [
+            ["key2"]
+        ]
+    },
+    "listen":{
+        "emit_every": 10,
+        "port": "8080"
     }
 }
 ```
