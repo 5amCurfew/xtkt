@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -13,20 +14,107 @@ import (
 // curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/records
 
 func StartListening(config Config) {
-	http.HandleFunc("/records", handleIncomingRecords(config))
+	recordStore := &RecordStore{}
+
+	http.HandleFunc("/records", handleIncomingRecords(recordStore, config))
 	go func() {
 		if err := http.ListenAndServe(":8080", nil); err != nil {
 			fmt.Println("Server error:", err)
 			os.Exit(1)
 		}
 	}()
+	recordStore.StartTimer(config)
 	log.Info(fmt.Sprintf(`xtkt started listening on port 8080 at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	// Keep the main goroutine running
 	select {}
 }
 
-func handleIncomingRecords(config Config) http.HandlerFunc {
+type RecordStore struct {
+	sync.Mutex
+	records []*interface{}
+	timer   *time.Timer
+}
+
+func (rs *RecordStore) AddRecord(record interface{}) {
+	rs.Lock()
+	defer rs.Unlock()
+	rs.records = append(rs.records, &record)
+}
+
+func (rs *RecordStore) ClearRecords() {
+	rs.Lock()
+	defer rs.Unlock()
+	rs.records = []*interface{}{}
+}
+
+func (rs *RecordStore) StartTimer(config Config) {
+	rs.Lock()
+	defer rs.Unlock()
+
+	if rs.timer == nil {
+		rs.timer = time.NewTimer(30 * time.Second)
+		go func() {
+			<-rs.timer.C
+			rs.processRecords(config)
+			rs.ClearRecords()
+			log.Info(fmt.Sprintf(`record cache cleared at %s`, time.Now().UTC().Format(time.RFC3339)))
+
+			rs.Lock()
+			rs.timer.Stop() // Stop the timer before starting it again
+			rs.timer = nil  // Reset the timer to nil
+			rs.Unlock()
+
+			rs.StartTimer(config) // Start the timer again
+		}()
+	} else {
+		rs.timer.Stop() // Stop the timer before resetting it
+		rs.timer.Reset(30 * time.Second)
+	}
+}
+
+func (rs *RecordStore) processRecords(config Config) {
+	rs.Lock()
+	log.Info(fmt.Sprintf(`records stored at %s: %d`, time.Now().UTC().Format(time.RFC3339), len(rs.records)))
+	log.Info(fmt.Sprintf(`records processing started at %s`, time.Now().UTC().Format(time.RFC3339)))
+
+	defer rs.Unlock()
+
+	for i := range rs.records {
+		record := rs.records[i]
+		generateHashedRecordsFields(record, config)
+		generateSurrogateKey(record, config)
+		rs.records[i] = record
+	}
+
+	// Create a new slice to store the records
+	records := make([]interface{}, len(rs.records))
+	// Iterate over the *interface{} pointers and copy the values to the new slice
+	for i, recordPtr := range rs.records {
+		records[i] = *recordPtr
+	}
+	schema, _ := GenerateSchema(records)
+	GenerateSchemaMessage(schema, config)
+
+	for _, record := range rs.records {
+		r := (*record).(map[string]interface{})
+		message := Message{
+			Type:   "RECORD",
+			Record: r,
+			Stream: *config.StreamName,
+		}
+
+		messageJson, err := json.Marshal(message)
+		if err != nil {
+			log.Error("Error marshaling message:", err)
+			continue
+		}
+
+		fmt.Println(string(messageJson))
+	}
+}
+
+func handleIncomingRecords(recordStore *RecordStore, config Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Header.Get("Content-Type") != "application/json" {
 			log.Println("only Content-Type: application/json is supported")
@@ -41,19 +129,7 @@ func handleIncomingRecords(config Config) http.HandlerFunc {
 			return
 		}
 
-		generateHashedRecordsFields(&record, config)
-		generateSurrogateKey(&record, config)
-
-		r, _ := record.(map[string]interface{})
-
-		message := Message{
-			Type:   "RECORD",
-			Record: r,
-			Stream: *config.StreamName,
-		}
-
-		messageJson, _ := json.Marshal(message)
-		// os.Stdout.Write() different location when running as server?
-		fmt.Println(string(messageJson))
+		recordStore.AddRecord(record)
+		log.Info(fmt.Sprintf(`record added to recordStore at %s`, time.Now().UTC().Format(time.RFC3339)))
 	}
 }
