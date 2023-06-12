@@ -18,13 +18,13 @@ func StartListening(config Config) {
 
 	http.HandleFunc("/records", handleIncomingRecords(recordStore, config))
 	go func() {
-		if err := http.ListenAndServe(":8080", nil); err != nil {
+		if err := http.ListenAndServe(":"+*config.Listen.Port, nil); err != nil {
 			fmt.Println("Server error:", err)
 			os.Exit(1)
 		}
 	}()
 	recordStore.StartTimer(config)
-	log.Info(fmt.Sprintf(`xtkt started listening on port 8080 at %s`, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`xtkt started listening on port %s at %s`, *config.Listen.Port, time.Now().UTC().Format(time.RFC3339)))
 
 	// Keep the main goroutine running
 	select {}
@@ -53,7 +53,7 @@ func (rs *RecordStore) StartTimer(config Config) {
 	defer rs.Unlock()
 
 	if rs.timer == nil {
-		rs.timer = time.NewTimer(30 * time.Second)
+		rs.timer = time.NewTimer(time.Duration(*config.Listen.EmitEvery) * time.Second)
 		go func() {
 			<-rs.timer.C
 			rs.processRecords(config)
@@ -69,7 +69,7 @@ func (rs *RecordStore) StartTimer(config Config) {
 		}()
 	} else {
 		rs.timer.Stop() // Stop the timer before resetting it
-		rs.timer.Reset(30 * time.Second)
+		rs.timer.Reset(time.Duration(*config.Listen.EmitEvery) * time.Second)
 	}
 }
 
@@ -80,37 +80,39 @@ func (rs *RecordStore) processRecords(config Config) {
 
 	defer rs.Unlock()
 
-	for i := range rs.records {
-		record := rs.records[i]
-		generateHashedRecordsFields(record, config)
-		generateSurrogateKey(record, config)
-		rs.records[i] = record
-	}
-
-	// Create a new slice to store the records
-	records := make([]interface{}, len(rs.records))
-	// Iterate over the *interface{} pointers and copy the values to the new slice
-	for i, recordPtr := range rs.records {
-		records[i] = *recordPtr
-	}
-	schema, _ := GenerateSchema(records)
-	GenerateSchemaMessage(schema, config)
-
-	for _, record := range rs.records {
-		r := (*record).(map[string]interface{})
-		message := Message{
-			Type:   "RECORD",
-			Record: r,
-			Stream: *config.StreamName,
+	if len(rs.records) > 0 {
+		for i := range rs.records {
+			record := rs.records[i]
+			generateHashedRecordsFields(record, config)
+			generateSurrogateKey(record, config)
+			rs.records[i] = record
 		}
 
-		messageJson, err := json.Marshal(message)
-		if err != nil {
-			log.Error("Error marshaling message:", err)
-			continue
+		// Create a new slice to store the records
+		records := make([]interface{}, len(rs.records))
+		// Iterate over the *interface{} pointers and copy the values to the new slice
+		for i, recordPtr := range rs.records {
+			records[i] = *recordPtr
 		}
+		schema, _ := GenerateSchema(records)
+		GenerateSchemaMessage(schema, config)
 
-		fmt.Println(string(messageJson))
+		for _, record := range rs.records {
+			r := (*record).(map[string]interface{})
+			message := Message{
+				Type:   "RECORD",
+				Record: r,
+				Stream: *config.StreamName,
+			}
+
+			messageJson, err := json.Marshal(message)
+			if err != nil {
+				log.Error("Error marshaling message:", err)
+				continue
+			}
+
+			fmt.Println(string(messageJson))
+		}
 	}
 }
 
