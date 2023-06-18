@@ -280,7 +280,7 @@ Scrape team "overall" rating found within HTML table (beta)
         ]
     },
     "listen":{
-        "emit_every": 10,
+        "collection_interval": 10,
         "port": "8080"
     }
 }
