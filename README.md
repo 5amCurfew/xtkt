@@ -92,7 +92,7 @@ $ xtkt config_github.json 2>&1 | jq .
 ### Config.json
 
 #### xtkt
-```json
+```javascript
 {
   "stream_name": "<stream_name>", // required, <string>: the name of your stream
   "source_type": "<source_type>", // required, <string>: one of either db, file, html, rest or listen
@@ -108,7 +108,7 @@ $ xtkt config_github.json 2>&1 | jq .
 ```
 
 #### db, html and listen
-```json
+```javascript
 {
   ...
   "db": { // optional <object>: required when "source_type": "db"
@@ -132,7 +132,7 @@ $ xtkt config_github.json 2>&1 | jq .
 ```
 
 #### rest
-```json
+```javascript
   "rest": { // optional <object>: required when "source_type": "rest"
     "sleep": <sleep>, // required <int>: number of seconds between pagination requests
     "auth": { // optional <object>: describe the authorisation strategy
