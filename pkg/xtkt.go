@@ -58,7 +58,6 @@ func Extract(config lib.Config) error {
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
 	execution.RecordsProcessed = len(records)
-	execution.RecordsMeetingContract = len(records)
 	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// SCHEMA MESSAGE
