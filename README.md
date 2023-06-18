@@ -94,78 +94,78 @@ $ xtkt config_github.json 2>&1 | jq .
 #### xtkt
 ```javascript
 {
-  "stream_name": "<stream_name>", // required, <string>: the name of your stream
-  "source_type": "<source_type>", // required, <string>: one of either db, file, html, rest or listen
-  "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL, relative file path etc)
-  "records": { // required <object>: describes habdling of records
+    "stream_name": "<stream_name>", // required, <string>: the name of your stream
+    "source_type": "<source_type>", // required, <string>: one of either db, file, html, rest or listen
+    "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL, relative file path etc)
+    "records": { // required <object>: describes habdling of records
     "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
     "primary_bookmark_path": ["<key_path_1>", "<key_path_1>", ...], // optional <array[string]>: path to bookmark within records
     "sensitive_paths": [ // optional <array[array]>: array of paths of fields to hash
-      ["<sensitive_path_1_1>", "<sensitive_path_1_2>", ...], // required <array[string]>
-      ...
+        ["<sensitive_path_1_1>", "<sensitive_path_1_2>", ...], // required <array[string]>
+        ...
     ],
     ...
 ```
 
 #### db, html and listen
 ```javascript
-{
-  ...
-  "db": { // optional <object>: required when "source_type": "db"
+    ...
+    "db": { // optional <object>: required when "source_type": "db"
     "table": "<table>" // required <string>: table name in database
-  },
-  "html": { // optional <object>: required when "source_type": "html"
+    },
+    "html": { // optional <object>: required when "source_type": "html"
     "elements_path": "<elements_path>", // required <string>: css identifier of elements parent
-    "elements": [ // required <array[object]>: {"name":  "path": css identifier of element}
-      {
-        "name": "<element_name>", // resulting field name in record,
-        "path": "<element_path>"
-      },
-      ...
+    "elements": [ // required <array[object]>
+        {
+        "name": "<element_name>", // required <string>: resulting field name in record
+        "path": "<element_path>" // required <string>: css identifier of record
+        },
+        ...
     ]
-  },
-  "listen": { // optional <object>: required when "source_type": "listen"
-    "collection_interval": <collection_interval>, // required <int>: period of collection in seconds before emitting record messages
+    },
+    "listen": { // optional <object>: required when "source_type": "listen"
+    "collection_interval": "<collection_interval>", // required <int>: period of collection in seconds before emitting record messages
     "port": "<port>" // required <string>: port declaration of xtkt API
-  },
-  ...
+    },
+    ...
 ```
 
 #### rest
 ```javascript
-  "rest": { // optional <object>: required when "source_type": "rest"
-    "sleep": <sleep>, // required <int>: number of seconds between pagination requests
-    "auth": { // optional <object>: describe the authorisation strategy
-      "required": <required>, // required <boolean>: is authorisation required?
-      "strategy": "<strategy>", // required <string>: one of either basic, token or oauth
-      "basic": { // optional <object>: required if "strategy": "basic"
-        "username": "<username>", // required <string>
-        "password": "<password>" // required <string>
-      },
-      "token": { // optional <object>: required if "strategy": "token"
-        "header": "<header>", // required <string>: authorisation header name
-        "header_value": "<header_value>" // required <string> authorisation header value
-      },
-      "oauth": { // optional <object>: required if "strategy": "oauth"
-        "client_id": "<client_id>", // required <string>
-        "client_secret": "<client_secret>", // required <string>
-        "refresh_token": "<refresh_token>", // required <string>
-        "token_url": "<token_url>" // required <string>
-      }
-    },
-    "response": { // required <object>: describes the REST-ful API response handling
-      "records_path": ["<records_path_1>", "<records_path_2>", ...], // optional <string>: path to records in response (omit if immediately returned)
-      "pagination": <pagination>, // required <boolean>: is there pagination in the response?
-      "pagination_strategy": "<pagination_strategy>", // optional <string>: required if "pagination": true, one of either "next" or "query"
-      "pagination_next_path": ["<pagination_next_path_1>", "<pagination_next_path_2>", ...], // optional <array[string]>: required if "pagination_strategy": "next", path to "next" URL in response
-      "pagination_query": { // optional <object>: required if "pagination_strategy": "query", describes pagination query strategy
-        "query_parameter": "<query_parameter>", // required <string>: parameter name for URL pagination
-        "query_value": <query_value>, // required <int>: initial value after base URL is called
-        "query_increment": <query_increment> // required <int>: query parameter increment
-      }
+    ...
+    "rest": { // optional <object>: required when "source_type": "rest"
+        "sleep": "<sleep>", // required <int>: number of seconds between pagination requests
+        "auth": { // optional <object>: describe the authorisation strategy
+        "required": "<required>", // required <boolean>: is authorisation required?
+        "strategy": "<strategy>", // required <string>: one of either basic, token or oauth
+        "basic": { // optional <object>: required if "strategy": "basic"
+            "username": "<username>", // required <string>
+            "password": "<password>" // required <string>
+        },
+        "token": { // optional <object>: required if "strategy": "token"
+            "header": "<header>", // required <string>: authorisation header name
+            "header_value": "<header_value>" // required <string> authorisation header value
+        },
+        "oauth": { // optional <object>: required if "strategy": "oauth"
+            "client_id": "<client_id>", // required <string>
+            "client_secret": "<client_secret>", // required <string>
+            "refresh_token": "<refresh_token>", // required <string>
+            "token_url": "<token_url>" // required <string>
+        }
+        },
+        "response": { // required <object>: describes the REST-ful API response handling
+        "records_path": ["<records_path_1>", "<records_path_2>", ...], // optional <string>: path to records in response (omit if immediately returned)
+        "pagination": "<pagination>", // required <boolean>: is there pagination in the response?
+        "pagination_strategy": "<pagination_strategy>", // optional <string>: required if "pagination": true, one of either "next" or "query"
+        "pagination_next_path": ["<pagination_next_path_1>", "<pagination_next_path_2>", ...], // optional <array[string]>: required if "pagination_strategy": "next", path to "next" URL in response
+        "pagination_query": { // optional <object>: required if "pagination_strategy": "query", describes pagination query strategy
+            "query_parameter": "<query_parameter>", // required <string>: parameter name for URL pagination
+            "query_value": "<query_value>", // required <int>: initial value after base URL is called
+            "query_increment": "<query_increment>" // required <int>: query parameter increment
+        }
+        }
     }
-  }
-}
+    ...
 ```
 
 ### Examples
