@@ -53,7 +53,7 @@ func (rs *RecordStore) StartTimer(config Config) {
 	defer rs.Unlock()
 
 	if rs.timer == nil {
-		rs.timer = time.NewTimer(time.Duration(*config.Listen.EmitEvery) * time.Second)
+		rs.timer = time.NewTimer(time.Duration(*config.Listen.CollectionInterval) * time.Second)
 		go func() {
 			<-rs.timer.C
 			rs.processRecords(config)
@@ -69,7 +69,7 @@ func (rs *RecordStore) StartTimer(config Config) {
 		}()
 	} else {
 		rs.timer.Stop() // Stop the timer before resetting it
-		rs.timer.Reset(time.Duration(*config.Listen.EmitEvery) * time.Second)
+		rs.timer.Reset(time.Duration(*config.Listen.CollectionInterval) * time.Second)
 	}
 }
 

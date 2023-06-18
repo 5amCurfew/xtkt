@@ -32,8 +32,8 @@ type Config struct {
 		} `json:"elements,omitempty"`
 	} `json:"html,omitempty"`
 	Listen *struct {
-		EmitEvery *int    `json:"emit_every,omitempty"`
-		Port      *string `json:"port,omitempty"`
+		CollectionInterval *int    `json:"collection_interval,omitempty"`
+		Port               *string `json:"port,omitempty"`
 	}
 	Rest *struct {
 		Sleep *int `json:"sleep,omitempty"`
