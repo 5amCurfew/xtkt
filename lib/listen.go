@@ -16,7 +16,7 @@ import (
 func StartListening(config Config) {
 	recordStore := &RecordStore{}
 
-	http.HandleFunc("/records", handleIncomingRecords(recordStore, config))
+	http.HandleFunc("/messages", handleIncomingRecords(recordStore, config))
 	go func() {
 		if err := http.ListenAndServe(":"+*config.Listen.Port, nil); err != nil {
 			fmt.Println("Server error:", err)

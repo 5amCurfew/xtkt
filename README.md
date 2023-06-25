@@ -349,7 +349,7 @@ Scrape team "overall" rating found within HTML table (beta)
 ```
 
 #### Listen
-`config.json` (e.g. `curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/records`)
+`config.json` (e.g. `curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/messages`)
 ```json
 {
     "stream_name": "listen_testing",
