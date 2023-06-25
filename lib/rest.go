@@ -17,7 +17,6 @@ import (
 var URLsParsed []string
 
 func callAPI(config Config) ([]byte, error) {
-	log.Info(fmt.Sprintf(`API call sleeping %d seconds`, *config.Rest.Sleep))
 	client := http.DefaultClient
 
 	req, err := http.NewRequest("GET", *config.URL, nil)
@@ -93,6 +92,7 @@ func callAPI(config Config) ([]byte, error) {
 
 func GenerateRestRecords(config Config) ([]interface{}, error) {
 	if config.Rest.Sleep != nil {
+		log.Info(fmt.Sprintf(`API call sleeping %d seconds`, *config.Rest.Sleep))
 		time.Sleep(time.Duration(*config.Rest.Sleep) * time.Second)
 	}
 	var responseMap map[string]interface{}
