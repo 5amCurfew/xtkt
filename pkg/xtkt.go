@@ -61,14 +61,15 @@ func Extract(config lib.Config) error {
 	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// SCHEMA MESSAGE
-	schema, generateSchemaError := lib.GenerateSchema(records)
-	if generateSchemaError != nil {
-		return fmt.Errorf("error CREATING SCHEMA: %w", generateSchemaError)
-	}
-
-	generateSchemaMessageError := lib.GenerateSchemaMessage(schema, config)
-	if generateSchemaMessageError != nil {
-		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
+	if len(records) > 0 {
+		schema, generateSchemaError := lib.GenerateSchema(records)
+		if generateSchemaError != nil {
+			return fmt.Errorf("error CREATING SCHEMA: %w", generateSchemaError)
+		}
+		generateSchemaMessageError := lib.GenerateSchemaMessage(schema, config)
+		if generateSchemaMessageError != nil {
+			return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
+		}
 	}
 
 	// RECORD MESSAGE(S)
