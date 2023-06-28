@@ -8,6 +8,7 @@ type Config struct {
 	StreamName *string `json:"stream_name,omitempty"`
 	SourceType *string `json:"source_type,omitempty"`
 	URL        *string `json:"url,omitempty"`
+	Schedule   *string `json:"schedule,omitempty"`
 	Records    *struct {
 		UniqueKeyPath       *[]string   `json:"unique_key_path,omitempty"`
 		PrimaryBookmarkPath *[]string   `json:"primary_bookmark_path,omitempty"`

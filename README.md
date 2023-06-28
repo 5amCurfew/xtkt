@@ -8,6 +8,7 @@
 ```
 ![Release on Homebrew](https://github.com/5amCurfew/xtkt/actions/workflows/release.yml/badge.svg)
 ![Commit activity (branch)](https://img.shields.io/github/commit-activity/m/5amCurfew/xtkt)
+[![Go Report Card](https://goreportcard.com/badge/github.com/5amCurfew/xtkt)](https://goreportcard.com/report/github.com/5amCurfew/xtkt)
 
 - [Installation](#Installation)
 - [Using with Singer.io Targets](#using-with-singerio-targets)

@@ -4,14 +4,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/5amCurfew/xtkt/lib"
 	xtkt "github.com/5amCurfew/xtkt/pkg"
+	"github.com/go-co-op/gocron"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var version = "0.0.79"
+
+func runXtktOnSchedule(cfg lib.Config) error {
+	s := gocron.NewScheduler(time.UTC)
+	_, err := s.Cron(*cfg.Schedule).Do(xtkt.Extract, cfg)
+	if err != nil {
+		return fmt.Errorf("failed to schedule xtk in runXtktOnSchedulet: %w", err)
+	}
+
+	s.StartAsync()
+	log.Info(fmt.Sprintf(`xtkt (%s) runing with schedule %s`, *cfg.StreamName, *cfg.Schedule))
+	return nil
+}
 
 var rootCmd = &cobra.Command{
 	Use:     "xtkt <PATH_TO_CONFIG_JSON>",
@@ -52,6 +68,17 @@ var rootCmd = &cobra.Command{
 
 		if *cfg.SourceType == "listen" {
 			xtkt.Listen(cfg)
+		} else if cfg.Schedule != nil {
+			stopChan := make(chan os.Signal, 1)
+			signal.Notify(stopChan, syscall.SIGINT, syscall.SIGTERM)
+
+			// Start the CLI tool execution in a separate goroutine
+			go func() {
+				runXtktOnSchedule(cfg)
+			}()
+
+			// Wait for the termination signal
+			<-stopChan
 		} else {
 			parseError := xtkt.Extract(cfg)
 			if parseError != nil {
