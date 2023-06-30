@@ -7,12 +7,12 @@ import (
 )
 
 type ExecutionMetric struct {
-	Stream           string
-	Start            time.Time
-	End              time.Time
-	Duration         time.Duration
-	RecordsExtracted int
-	RecordsProcessed int
+	Stream            string
+	ExecutionStart    time.Time
+	ExecutionEnd      time.Time
+	ExecutionDuration time.Duration
+	RecordsExtracted  int
+	RecordsProcessed  int
 }
 
 func AppendToHistory(metric ExecutionMetric) error {

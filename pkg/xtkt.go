@@ -1,6 +1,7 @@
 package xtkt
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -10,10 +11,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func ParseConfigJSON(filePath string) (lib.Config, error) {
+	var cfg lib.Config
+
+	config, readConfigError := os.ReadFile(filePath)
+	if readConfigError != nil {
+		return cfg, fmt.Errorf("error parseConfigJson reading config.json: %w", readConfigError)
+	}
+
+	jsonError := json.Unmarshal(config, &cfg)
+	if jsonError != nil {
+		return cfg, fmt.Errorf("error parseConfigJson unmarshlling config.json: %w", jsonError)
+	}
+
+	return cfg, nil
+}
+
 func Extract(config lib.Config) error {
 	var execution lib.ExecutionMetric
 	execution.Stream = *config.StreamName
-	execution.Start = time.Now().UTC()
+	execution.ExecutionStart = time.Now().UTC()
 
 	// GENERATE STATE.JSON
 	if _, err := os.Stat("state.json"); err != nil {
@@ -50,7 +67,7 @@ func Extract(config lib.Config) error {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
 	execution.RecordsExtracted = len(records)
-	log.Info(fmt.Sprintf(`%d records generated at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`%d records extracted at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// PROCESS RECORDS
 	processRecordsError := lib.ProcessRecords(&records, state, config)
@@ -95,12 +112,13 @@ func Extract(config lib.Config) error {
 	}
 
 	// UPDATE HISTORY.JSON
-	execution.End = time.Now().UTC()
-	execution.Duration = execution.End.Sub(execution.Start)
+	execution.ExecutionEnd = time.Now().UTC()
+	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
 	appendToHistoryError := lib.AppendToHistory(execution)
 	if appendToHistoryError != nil {
 		return fmt.Errorf("error GENERATING APPENDING EXECUTION TO HISTORY: %w", appendToHistoryError)
 	}
+
 	return nil
 }
 
