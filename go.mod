@@ -2,10 +2,7 @@ module github.com/5amCurfew/xtkt
 
 go 1.20
 
-require (
-	github.com/sashabaranov/go-openai v1.9.5
-	github.com/spf13/cobra v1.6.1
-)
+require github.com/spf13/cobra v1.6.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
