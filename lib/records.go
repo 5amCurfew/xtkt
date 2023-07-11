@@ -113,37 +113,56 @@ func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, 
 }
 
 func reduceRecords(records *[]interface{}, state *State, config Config) error {
-	var reducedRecords []interface{}
+	var (
+		reducedRecords []interface{}
+		wg             sync.WaitGroup
+		mu             sync.Mutex // Mutex to synchronize access to reducedRecords
+	)
 
+	// Iterate over the records slice
 	for _, record := range *records {
-		r, parsed := record.(map[string]interface{})
-		if !parsed {
-			return fmt.Errorf("error PARSING RECORD IN reduceRecords: %v", record)
-		}
+		// Increment the wait group counter
+		wg.Add(1)
 
-		bookmarkCondition := false
+		go func(record interface{}) {
+			defer wg.Done()
 
-		if config.Records.PrimaryBookmarkPath != nil {
-			switch path := *config.Records.PrimaryBookmarkPath; {
-			case reflect.DeepEqual(path, []string{"*"}):
-				bookmarkCondition = !detectionSetContains(
-					state.Value.Bookmarks[*config.StreamName].DetectionBookmark,
-					r["_sdc_surrogate_key"].(string),
-				)
-			default:
-				primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, r)
-				bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
+			r, parsed := record.(map[string]interface{})
+			if !parsed {
+				fmt.Printf("error PARSING RECORD IN reduceRecords: %v\n", record)
+				return
 			}
 
-		} else {
-			bookmarkCondition = true
-		}
+			bookmarkCondition := false
 
-		if bookmarkCondition {
-			reducedRecords = append(reducedRecords, r)
-		}
+			if config.Records.PrimaryBookmarkPath != nil {
+				switch path := *config.Records.PrimaryBookmarkPath; {
+				case reflect.DeepEqual(path, []string{"*"}):
+					bookmarkCondition = !detectionSetContains(
+						state.Value.Bookmarks[*config.StreamName].DetectionBookmark,
+						r["_sdc_surrogate_key"].(string),
+					)
+				default:
+					primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, r)
+					bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
+				}
+
+			} else {
+				bookmarkCondition = true
+			}
+
+			if bookmarkCondition {
+				mu.Lock()
+				reducedRecords = append(reducedRecords, r)
+				mu.Unlock()
+			}
+		}(record)
 	}
 
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	// Update the original records slice with the reduced records
 	*records = reducedRecords
 	return nil
 }
