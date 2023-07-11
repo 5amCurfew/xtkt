@@ -36,7 +36,7 @@ In the absence of a bookmark, all records will be processed and sent to your tar
 
 Sensitive data fields can be hashed prior to being sent to your target using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
 
-Intelligent data fields (beta) can be added to your records using OpenAI LLM models using the `records.intelligent_fields` field in your JSON configuration file (see examples below, requires environment variable `OPENAI_API_KEY`).
+Intelligent data fields (REMOVED FOR NOW) can be added to your records using OpenAI LLM models using the `records.intelligent_fields` field in your JSON configuration file (see examples below, requires environment variable `OPENAI_API_KEY`).
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery. Each stream is handled independently and deletion-at-source is not detected.
 

@@ -1,16 +1,12 @@
 package lib
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"reflect"
+	"sync"
 	"time"
-
-	"github.com/sashabaranov/go-openai"
-	log "github.com/sirupsen/logrus"
 )
 
 func getValueAtPath(path []string, input map[string]interface{}) interface{} {
@@ -80,6 +76,42 @@ func generateSurrogateKey(record *interface{}, config Config) error {
 	return nil
 }
 
+func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, config Config) error {
+	recordChan := make(chan int, len(*records))
+	resultChan := make(chan error, len(*records))
+	var wg sync.WaitGroup
+
+	// Launch goroutines to process the records
+	for i := 0; i < len(*records); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+
+			index := <-recordChan
+			record := (*records)[index]
+			err := f(&record, config)
+			if err != nil {
+				resultChan <- fmt.Errorf("error applying function to record %d: %s", index, err.Error())
+			}
+			(*records)[index] = record
+			resultChan <- nil
+		}(i)
+		recordChan <- i
+	}
+
+	wg.Wait()
+	close(recordChan)
+	close(resultChan)
+
+	for err := range resultChan {
+		if err != nil {
+			return fmt.Errorf("error APPLYING TO RECORDS: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func reduceRecords(records *[]interface{}, state *State, config Config) error {
 	var reducedRecords []interface{}
 
@@ -116,67 +148,20 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 	return nil
 }
 
-func generateIntelligentFields(record *interface{}, config Config) error {
-	if r, parsed := (*record).(map[string]interface{}); parsed {
-		for _, intellientField := range *config.Records.IntelligentFields {
-
-			openAPIKey := os.Getenv("OPENAI_API_KEY")
-			if openAPIKey == "" {
-				return fmt.Errorf("error GENERATING RECORD INTELLIGENT FIELD IN generateIntelligentField: OPEN_API_KEY not found")
-			}
-			ctx := context.Background()
-			client := openai.NewClient(openAPIKey)
-
-			req := openai.CompletionRequest{
-				Model:       "text-davinci-003",
-				MaxTokens:   *intellientField.MaxTokens,
-				TopP:        1,
-				Temperature: *intellientField.Temperature,
-				Prompt:      *intellientField.Prefix + toString(getValueAtPath(*intellientField.FieldPath, r)) + *intellientField.Suffix,
-			}
-
-			resp, err := client.CreateCompletion(ctx, req)
-			if err != nil {
-				return fmt.Errorf("error GENERATING RECORD INTELLIGENT FIELD IN generateIntelligentField: %v", err)
-			}
-
-			log.Info(fmt.Sprintf(`%v (%s): %+v, prompt: %s`, *intellientField.IntelligentFieldName, r["_sdc_natural_key"], resp.Usage, req.Prompt))
-
-			if len(resp.Choices) == 0 {
-				r[*intellientField.IntelligentFieldName] = "ERROR_NO_VALID_RESPONSE"
-			} else {
-				r[*intellientField.IntelligentFieldName] = resp.Choices[0].Text
-			}
-		}
-	}
-	return nil
-}
-
 func ProcessRecords(records *[]interface{}, state *State, config Config) error {
-	for _, record := range *records {
+	generateHashedRecordsFieldsError := applyToRecords(generateHashedRecordsFields, records, config)
+	if generateHashedRecordsFieldsError != nil {
+		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", generateHashedRecordsFieldsError)
+	}
 
-		generateHashedRecordsFieldsError := generateHashedRecordsFields(&record, config)
-		if generateHashedRecordsFieldsError != nil {
-			return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", generateHashedRecordsFieldsError)
-		}
-		generateSurrogateKeyError := generateSurrogateKey(&record, config)
-		if generateSurrogateKeyError != nil {
-			return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", generateSurrogateKeyError)
-		}
+	generateSurrogateKeyError := applyToRecords(generateSurrogateKey, records, config)
+	if generateSurrogateKeyError != nil {
+		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", generateSurrogateKeyError)
 	}
 
 	reduceRecordsError := reduceRecords(records, state, config)
 	if reduceRecordsError != nil {
 		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceRecordsError)
-	}
-
-	if config.Records.IntelligentFields != nil {
-		for _, record := range *records {
-			generateIntelligentFieldError := generateIntelligentFields(&record, config)
-			if generateIntelligentFieldError != nil {
-				return fmt.Errorf("error GENERATING INTELLIGENT FIELD IN ProcessRecords: %v", generateIntelligentFieldError)
-			}
-		}
 	}
 
 	return nil
