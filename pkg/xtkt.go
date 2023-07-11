@@ -96,7 +96,6 @@ func Extract(config lib.Config) error {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
 		}
 	}
-	log.Info(fmt.Sprintf(`{type: METRIC, new_records: %d, completed_at: %s}`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// UPDATE STATE & STATE.JSON
 	updateStateError := lib.UpdateState(records, state, config)
