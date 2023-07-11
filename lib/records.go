@@ -127,12 +127,7 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 		go func(record interface{}) {
 			defer wg.Done()
 
-			r, parsed := record.(map[string]interface{})
-			if !parsed {
-				fmt.Printf("error PARSING RECORD IN reduceRecords: %v\n", record)
-				return
-			}
-
+			r := record.(map[string]interface{})
 			bookmarkCondition := false
 
 			if config.Records.PrimaryBookmarkPath != nil {
@@ -159,9 +154,7 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 		}(record)
 	}
 
-	// Wait for all goroutines to complete
 	wg.Wait()
-
 	// Update the original records slice with the reduced records
 	*records = reducedRecords
 	return nil
