@@ -1,4 +1,4 @@
-package lib
+package sources
 
 import (
 	"bytes"
@@ -11,12 +11,14 @@ import (
 	"strconv"
 	"time"
 
+	lib "github.com/5amCurfew/xtkt/lib"
+	util "github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
 )
 
 var URLsParsed []string
 
-func callAPI(config Config) ([]byte, error) {
+func callAPI(config lib.Config) ([]byte, error) {
 	client := http.DefaultClient
 
 	req, err := http.NewRequest("GET", *config.URL, nil)
@@ -64,7 +66,7 @@ func callAPI(config Config) ([]byte, error) {
 			if err := json.Unmarshal([]byte(output), &responseMap); err != nil {
 				return nil, fmt.Errorf("error JSON.UNMARSHAL: %w", err)
 			}
-			accesToken := getValueAtPath([]string{"access_token"}, responseMap)
+			accesToken := util.GetValueAtPath([]string{"access_token"}, responseMap)
 
 			header := "Authorization"
 			t := "Bearer " + accesToken.(string)
@@ -90,7 +92,7 @@ func callAPI(config Config) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func GenerateRestRecords(config Config) ([]interface{}, error) {
+func GenerateRestRecords(config lib.Config) ([]interface{}, error) {
 	if config.Rest.Sleep != nil {
 		log.Info(fmt.Sprintf(`API call sleeping %d seconds`, *config.Rest.Sleep))
 		time.Sleep(time.Duration(*config.Rest.Sleep) * time.Second)
@@ -132,7 +134,7 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 
 	json.Unmarshal([]byte(response), &responseMap)
 
-	records, ok := getValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("error RESPONSE RECORDS PATH")
 	}
@@ -142,7 +144,7 @@ func GenerateRestRecords(config Config) ([]interface{}, error) {
 
 		// PAGINATED, "next"
 		case "next":
-			nextURL := getValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
+			nextURL := util.GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
 			if nextURL == nil || nextURL == "" {
 				return records, nil
 			} else {

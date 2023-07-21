@@ -1,4 +1,4 @@
-package lib
+package sources
 
 import (
 	"encoding/json"
@@ -8,12 +8,13 @@ import (
 	"sync"
 	"time"
 
+	lib "github.com/5amCurfew/xtkt/lib"
 	log "github.com/sirupsen/logrus"
 )
 
 // curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/records
 
-func StartListening(config Config) {
+func StartListening(config lib.Config) {
 	recordStore := &RecordStore{}
 
 	http.HandleFunc("/messages", handleIncomingRecords(recordStore, config))
@@ -48,7 +49,7 @@ func (rs *RecordStore) ClearRecords() {
 	rs.records = []*interface{}{}
 }
 
-func (rs *RecordStore) StartTimer(config Config) {
+func (rs *RecordStore) StartTimer(config lib.Config) {
 	rs.Lock()
 	defer rs.Unlock()
 
@@ -73,7 +74,7 @@ func (rs *RecordStore) StartTimer(config Config) {
 	}
 }
 
-func (rs *RecordStore) processRecords(config Config) {
+func (rs *RecordStore) processRecords(config lib.Config) {
 	rs.Lock()
 	log.Info(fmt.Sprintf(`records stored at %s: %d`, time.Now().UTC().Format(time.RFC3339), len(rs.records)))
 	log.Info(fmt.Sprintf(`records processing started at %s`, time.Now().UTC().Format(time.RFC3339)))
@@ -83,8 +84,8 @@ func (rs *RecordStore) processRecords(config Config) {
 	if len(rs.records) > 0 {
 		for i := range rs.records {
 			record := rs.records[i]
-			generateHashedRecordsFields(record, config)
-			generateSurrogateKey(record, config)
+			lib.GenerateHashedRecordsFields(record, config)
+			lib.GenerateSurrogateKey(record, config)
 			rs.records[i] = record
 		}
 
@@ -94,12 +95,12 @@ func (rs *RecordStore) processRecords(config Config) {
 		for i, recordPtr := range rs.records {
 			records[i] = *recordPtr
 		}
-		schema, _ := GenerateSchema(records)
-		GenerateSchemaMessage(schema, config)
+		schema, _ := lib.GenerateSchema(records)
+		lib.GenerateSchemaMessage(schema, config)
 
 		for _, record := range rs.records {
 			r := (*record).(map[string]interface{})
-			message := Message{
+			message := lib.Message{
 				Type:   "RECORD",
 				Record: r,
 				Stream: *config.StreamName,
@@ -116,7 +117,7 @@ func (rs *RecordStore) processRecords(config Config) {
 	}
 }
 
-func handleIncomingRecords(recordStore *RecordStore, config Config) http.HandlerFunc {
+func handleIncomingRecords(recordStore *RecordStore, config lib.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Header.Get("Content-Type") != "application/json" {
 			log.Println("only Content-Type: application/json is supported")

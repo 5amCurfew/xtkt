@@ -1,10 +1,11 @@
-package lib
+package sources
 
 import (
+	lib "github.com/5amCurfew/xtkt/lib"
 	"github.com/gocolly/colly"
 )
 
-func GenerateHtmlRecords(config Config) ([]interface{}, error) {
+func GenerateHtmlRecords(config lib.Config) ([]interface{}, error) {
 	records := make([]interface{}, 0)
 
 	collector := colly.NewCollector()

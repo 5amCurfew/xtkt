@@ -1,4 +1,4 @@
-package lib
+package sources
 
 import (
 	"database/sql"
@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"strings"
 
+	lib "github.com/5amCurfew/xtkt/lib"
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func extractDatabaseTypeFromUrl(config Config) (string, error) {
+func extractDatabaseTypeFromUrl(config lib.Config) (string, error) {
 	splitUrl := strings.Split(*config.URL, "://")
 	if len(splitUrl) != 2 {
 		return "", fmt.Errorf("invalid db URL: %s", *config.URL)
@@ -33,14 +34,14 @@ func extractDatabaseTypeFromUrl(config Config) (string, error) {
 	}
 }
 
-func generateQuery(config Config) (string, error) {
+func generateQuery(config lib.Config) (string, error) {
 
 	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {
 		return "", fmt.Errorf("error determining DATABASE TYPE: %w", err)
 	}
 
-	state, err := ParseStateJSON(config)
+	state, err := lib.ParseStateJSON(config)
 	if err != nil {
 		return "", fmt.Errorf("error parsing STATE for bookmark value: %w", err)
 	}
@@ -68,7 +69,7 @@ func generateQuery(config Config) (string, error) {
 	return query.String(), nil
 }
 
-func readDatabaseRows(db *sql.DB, config Config) ([]interface{}, error) {
+func readDatabaseRows(db *sql.DB, config lib.Config) ([]interface{}, error) {
 	qry, err := generateQuery(config)
 	if err != nil {
 		return nil, fmt.Errorf("error generating QUERY: %w", err)
@@ -119,7 +120,7 @@ func readDatabaseRows(db *sql.DB, config Config) ([]interface{}, error) {
 	return result, nil
 }
 
-func GenerateDatabaseRecords(config Config) ([]interface{}, error) {
+func GenerateDatabaseRecords(config lib.Config) ([]interface{}, error) {
 	address := *config.URL
 	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {

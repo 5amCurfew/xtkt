@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"sort"
 	"time"
+
+	util "github.com/5amCurfew/xtkt/util"
 )
 
 type State struct {
@@ -132,10 +134,10 @@ func UpdateState(records []interface{}, state *State, config Config) error {
 				if !parsed {
 					return fmt.Errorf("error PARSING RECORD IN UpdateStateBookmark (primary-bookmark)")
 				}
-				if getValueAtPath(*config.Records.PrimaryBookmarkPath, r) == nil {
+				if util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r) == nil {
 					continue
-				} else if toString(getValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark {
-					latestBookmark = toString(getValueAtPath(*config.Records.PrimaryBookmarkPath, r))
+				} else if toString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark {
+					latestBookmark = toString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r))
 				}
 			}
 			bookmarks.PrimaryBookmark = latestBookmark

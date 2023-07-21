@@ -7,51 +7,17 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	util "github.com/5amCurfew/xtkt/util"
 )
 
-func getValueAtPath(path []string, input map[string]interface{}) interface{} {
-	if len(path) > 0 {
-		if check, ok := input[path[0]]; !ok || check == nil {
-			return nil
-		}
-		if len(path) == 1 {
-			return input[path[0]]
-		}
-
-		key := path[0]
-		path = path[1:]
-
-		nextInput, _ := input[key].(map[string]interface{})
-
-		return getValueAtPath(path, nextInput)
-	} else {
-		return input
-	}
-}
-
-func setValueAtPath(path []string, input map[string]interface{}, value interface{}) {
-	if len(path) == 1 {
-		input[path[0]] = value
-		return
-	}
-
-	key := path[0]
-	path = path[1:]
-
-	if _, ok := input[key]; !ok {
-		input[key] = make(map[string]interface{})
-	}
-
-	setValueAtPath(path, input[key].(map[string]interface{}), value)
-}
-
-func generateHashedRecordsFields(record *interface{}, config Config) error {
+func GenerateHashedRecordsFields(record *interface{}, config Config) error {
 	if config.Records.SensitivePaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
 			for _, path := range *config.Records.SensitivePaths {
-				if fieldValue := getValueAtPath(path, r); fieldValue != nil {
+				if fieldValue := util.GetValueAtPath(path, r); fieldValue != nil {
 					hash := sha256.Sum256([]byte(fmt.Sprintf("%v", fieldValue)))
-					setValueAtPath(path, r, hex.EncodeToString(hash[:]))
+					util.SetValueAtPath(path, r, hex.EncodeToString(hash[:]))
 				} else {
 					return fmt.Errorf("error PARSING RECORD FIELD in generateHashedRecordsFields in record: %+v", r)
 				}
@@ -63,11 +29,11 @@ func generateHashedRecordsFields(record *interface{}, config Config) error {
 	return nil
 }
 
-func generateSurrogateKey(record *interface{}, config Config) error {
+func GenerateSurrogateKey(record *interface{}, config Config) error {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		h := sha256.New()
 		h.Write([]byte(toString(r)))
-		r["_sdc_natural_key"] = getValueAtPath(*config.Records.UniqueKeyPath, r)
+		r["_sdc_natural_key"] = util.GetValueAtPath(*config.Records.UniqueKeyPath, r)
 		r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
 		r["_sdc_time_extracted"] = time.Now().UTC().Format(time.RFC3339)
 	} else {
@@ -138,7 +104,7 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 						r["_sdc_surrogate_key"].(string),
 					)
 				default:
-					primaryBookmarkValue := getValueAtPath(*config.Records.PrimaryBookmarkPath, r)
+					primaryBookmarkValue := util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)
 					bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
 				}
 
@@ -161,12 +127,12 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 }
 
 func ProcessRecords(records *[]interface{}, state *State, config Config) error {
-	generateHashedRecordsFieldsError := applyToRecords(generateHashedRecordsFields, records, config)
+	generateHashedRecordsFieldsError := applyToRecords(GenerateHashedRecordsFields, records, config)
 	if generateHashedRecordsFieldsError != nil {
 		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", generateHashedRecordsFieldsError)
 	}
 
-	generateSurrogateKeyError := applyToRecords(generateSurrogateKey, records, config)
+	generateSurrogateKeyError := applyToRecords(GenerateSurrogateKey, records, config)
 	if generateSurrogateKeyError != nil {
 		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", generateSurrogateKeyError)
 	}

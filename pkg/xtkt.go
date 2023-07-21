@@ -8,6 +8,7 @@ import (
 	"time"
 
 	lib "github.com/5amCurfew/xtkt/lib"
+	sources "github.com/5amCurfew/xtkt/lib/sources"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -52,16 +53,16 @@ func Extract(config lib.Config) error {
 	switch *config.SourceType {
 	case "db":
 		log.Info(fmt.Sprintf(`generating records from database %s`, strings.Split(*config.URL, "@")[0]))
-		records, generateRecordsError = lib.GenerateDatabaseRecords(config)
+		records, generateRecordsError = sources.GenerateDatabaseRecords(config)
 	case "file":
 		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
-		records, generateRecordsError = lib.GenerateFileRecords(config)
+		records, generateRecordsError = sources.GenerateFileRecords(config)
 	case "html":
 		log.Info(fmt.Sprintf(`generating records from HTML page %s`, *config.URL))
-		records, generateRecordsError = lib.GenerateHtmlRecords(config)
+		records, generateRecordsError = sources.GenerateHtmlRecords(config)
 	case "rest":
 		log.Info(fmt.Sprintf(`generating records from REST-api %s`, *config.URL))
-		records, generateRecordsError = lib.GenerateRestRecords(config)
+		records, generateRecordsError = sources.GenerateRestRecords(config)
 	}
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
@@ -122,5 +123,5 @@ func Extract(config lib.Config) error {
 }
 
 func Listen(config lib.Config) {
-	lib.StartListening(config)
+	sources.StartListening(config)
 }

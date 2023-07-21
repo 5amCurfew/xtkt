@@ -1,4 +1,4 @@
-package lib
+package sources
 
 import (
 	"bufio"
@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	lib "github.com/5amCurfew/xtkt/lib"
 )
 
 func parseJSONL(file io.Reader) ([]interface{}, error) {
@@ -58,7 +60,7 @@ func parseCSV(file io.Reader) ([]interface{}, error) {
 	return result, nil
 }
 
-func GenerateFileRecords(config Config) ([]interface{}, error) {
+func GenerateFileRecords(config lib.Config) ([]interface{}, error) {
 	file, err := os.Open(*config.URL)
 	if err != nil {
 		return nil, fmt.Errorf("error OPENING file in GenerateFileRecords: %w", err)
