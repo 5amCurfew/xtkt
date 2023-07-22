@@ -12,9 +12,9 @@ import (
 )
 
 func GenerateHashedRecordsFields(record *interface{}, config Config) error {
-	if config.Records.SensitivePaths != nil {
+	if config.Records.SensitiveFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
-			for _, path := range *config.Records.SensitivePaths {
+			for _, path := range *config.Records.SensitiveFieldPaths {
 				if fieldValue := util.GetValueAtPath(path, r); fieldValue != nil {
 					hash := sha256.Sum256([]byte(fmt.Sprintf("%v", fieldValue)))
 					util.SetValueAtPath(path, r, hex.EncodeToString(hash[:]))

@@ -34,7 +34,9 @@ In the absence of a bookmark, all records will be processed and sent to your tar
 
 `xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target.
 
-Sensitive data fields can be hashed prior to being sent to your target using the `records.sensitive_fields` field in your JSON configuration file (see examples below).
+Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below).
+
+Sensitive data fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below).
 
 Intelligent data fields (REMOVED FOR NOW) can be added to your records using OpenAI LLM models using the `records.intelligent_fields` field in your JSON configuration file (see examples below, requires environment variable `OPENAI_API_KEY`).
 
@@ -106,7 +108,7 @@ $ xtkt config_github.json 2>&1 | jq .
             ["<key_path_1>", "<key_path_1>", ...], // required <array[string]>
             ...
         ],
-        "sensitive_paths": [ // optional <array[array]>: array of paths of fields to hash
+        "sensitive_field_paths": [ // optional <array[array]>: array of paths of fields to hash
             ["<sensitive_path_1_1>", "<sensitive_path_1_2>", ...], // required <array[string]>
             ...
         ],
@@ -193,7 +195,7 @@ No authentication required, records found in the response "results" array, pagin
             ["episode"],
             ["origin", "url"]
         ],
-        "sensitive_paths": [
+        "sensitive_field_paths": [
             ["name"],
             ["location", "name"]
         ]
@@ -225,7 +227,7 @@ Token authentication required, records returned immediately as an array, paginat
     "records": {
         "unique_key_path": ["sha"],
         "primary_bookmark_path": ["commit", "author", "date"],
-        "sensitive_paths": [
+        "sensitive_field_paths": [
             ["commit", "author", "email"],
             ["commit", "committer", "email"]
         ]
@@ -354,7 +356,7 @@ Scrape team "overall" rating found within HTML table (beta)
     "url": "data.jsonl",
     "records": {
         "unique_key_path": ["name"],
-        "sensitive_paths": [
+        "sensitive_field_paths": [
             ["name"]
         ]
     }
@@ -370,7 +372,7 @@ Scrape team "overall" rating found within HTML table (beta)
     "url": "",
     "records": {
         "unique_key_path": ["key1"],
-        "sensitive_paths": [
+        "sensitive_field_paths": [
             ["key2"]
         ]
     },
