@@ -170,23 +170,19 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 }
 
 func ProcessRecords(records *[]interface{}, state *State, config Config) error {
-	dropFieldsError := applyToRecords(DropFields, records, config)
-	if dropFieldsError != nil {
+	if dropFieldsError := applyToRecords(DropFields, records, config); dropFieldsError != nil {
 		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
 	}
 
-	generateHashedRecordsFieldsError := applyToRecords(GenerateHashedRecordsFields, records, config)
-	if generateHashedRecordsFieldsError != nil {
+	if generateHashedRecordsFieldsError := applyToRecords(GenerateHashedRecordsFields, records, config); generateHashedRecordsFieldsError != nil {
 		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", generateHashedRecordsFieldsError)
 	}
 
-	generateSurrogateKeyError := applyToRecords(GenerateSurrogateKey, records, config)
-	if generateSurrogateKeyError != nil {
+	if generateSurrogateKeyError := applyToRecords(GenerateSurrogateKey, records, config); generateSurrogateKeyError != nil {
 		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", generateSurrogateKeyError)
 	}
 
-	reduceRecordsError := reduceRecords(records, state, config)
-	if reduceRecordsError != nil {
+	if reduceRecordsError := reduceRecords(records, state, config); reduceRecordsError != nil {
 		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceRecordsError)
 	}
 

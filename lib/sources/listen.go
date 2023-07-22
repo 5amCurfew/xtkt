@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/records
+// curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/messages
 
 func StartListening(config lib.Config) {
 	recordStore := &RecordStore{}
@@ -95,8 +95,9 @@ func (rs *RecordStore) processRecords(config lib.Config) {
 		for i, recordPtr := range rs.records {
 			records[i] = *recordPtr
 		}
-		schema, _ := lib.GenerateSchema(records)
-		lib.GenerateSchemaMessage(schema, config)
+		if processSchemaError := lib.ProcessSchema(records, config); processSchemaError != nil {
+			log.Error("error PROCESSING SCHEMA: %w", processSchemaError)
+		}
 
 		for _, record := range rs.records {
 			r := (*record).(map[string]interface{})

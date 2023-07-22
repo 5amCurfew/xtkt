@@ -35,21 +35,15 @@ func detectionSetContains(s []string, str string) bool {
 	return false
 }
 
-func writeStateJSON(state *State) error {
-	result, err := json.Marshal(state)
-	if err != nil {
-		return fmt.Errorf("error MARSHALLING STATE into JSON: %w", err)
-	}
-	if err := os.WriteFile("state.json", result, 0644); err != nil {
-		return fmt.Errorf("error WRITING STATE.JSON: %w", err)
-	}
-	return nil
+func writeStateJSON(state *State) {
+	result, _ := json.Marshal(state)
+	os.WriteFile("state.json", result, 0644)
 }
 
 // ///////////////////////////////////////////////////////////
 // CREATE
 // ///////////////////////////////////////////////////////////
-func CreateStateJSON(config Config) error {
+func CreateStateJSON(config Config) {
 	state := State{
 		Type: "STATE",
 		Value: struct {
@@ -72,17 +66,7 @@ func CreateStateJSON(config Config) error {
 			},
 		},
 	}
-
-	result, err := json.Marshal(state)
-	if err != nil {
-		return fmt.Errorf("error MARSHALLING STATE into JSON: %w", err)
-	}
-
-	if err := os.WriteFile("state.json", result, 0644); err != nil {
-		return fmt.Errorf("error WRITING STATE.JSON: %w", err)
-	}
-
-	return writeStateJSON(&state)
+	writeStateJSON(&state)
 }
 
 // ///////////////////////////////////////////////////////////
@@ -109,7 +93,7 @@ func ParseStateJSON(config Config) (*State, error) {
 // ///////////////////////////////////////////////////////////
 // UPDATE
 // ///////////////////////////////////////////////////////////
-func UpdateState(records []interface{}, state *State, config Config) error {
+func UpdateState(records []interface{}, state *State, config Config) {
 	// CURRENT
 	bookmarks := state.Value.Bookmarks[*config.StreamName]
 
@@ -118,10 +102,7 @@ func UpdateState(records []interface{}, state *State, config Config) error {
 		case reflect.DeepEqual(path, []string{"*"}):
 			latestDetectionSet := state.Value.Bookmarks[*config.StreamName].DetectionBookmark
 			for _, record := range records {
-				r, parsed := record.(map[string]interface{})
-				if !parsed {
-					return fmt.Errorf("error PARSING RECORD IN UpdateStateBookmark (new-record-detection)")
-				}
+				r, _ := record.(map[string]interface{})
 				if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"].(string)) {
 					latestDetectionSet = append(latestDetectionSet, r["_sdc_surrogate_key"].(string))
 				}
@@ -130,10 +111,7 @@ func UpdateState(records []interface{}, state *State, config Config) error {
 		default:
 			latestBookmark := state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
 			for _, record := range records {
-				r, parsed := record.(map[string]interface{})
-				if !parsed {
-					return fmt.Errorf("error PARSING RECORD IN UpdateStateBookmark (primary-bookmark)")
-				}
+				r, _ := record.(map[string]interface{})
 				if util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r) == nil {
 					continue
 				} else if toString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark {
@@ -148,5 +126,5 @@ func UpdateState(records []interface{}, state *State, config Config) error {
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	state.Value.Bookmarks[*config.StreamName] = bookmarks
 
-	return writeStateJSON(state)
+	writeStateJSON(state)
 }

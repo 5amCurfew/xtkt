@@ -8,7 +8,7 @@ import (
 // ///////////////////////////////////////////////////////////
 // GENERATE JSON SCHEMA
 // ///////////////////////////////////////////////////////////
-func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
+func generateSchema(records []interface{}) (map[string]interface{}, error) {
 	schema := make(map[string]interface{})
 	properties := make(map[string]interface{})
 
@@ -33,7 +33,7 @@ func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
 			case float64:
 				prop.(map[string]interface{})["type"] = []string{"number", "null"}
 			case map[string]interface{}:
-				if subProps, err := GenerateSchema([]interface{}{value}); err == nil {
+				if subProps, err := generateSchema([]interface{}{value}); err == nil {
 					prop.(map[string]interface{})["type"] = []string{"object", "null"}
 					prop.(map[string]interface{})["properties"] = subProps["properties"]
 				} else {
@@ -62,4 +62,21 @@ func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
 	schema["properties"] = properties
 	schema["type"] = "object"
 	return schema, nil
+}
+
+func ProcessSchema(records []interface{}, config Config) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	schema, generateSchemaError := generateSchema(records)
+	if generateSchemaError != nil {
+		return fmt.Errorf("error CREATING SCHEMA: %w", generateSchemaError)
+	}
+
+	if generateSchemaMessageError := GenerateSchemaMessage(schema, config); generateSchemaMessageError != nil {
+		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
+	}
+
+	return nil
 }
