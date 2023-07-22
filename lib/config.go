@@ -11,6 +11,7 @@ type Config struct {
 	Records    *struct {
 		UniqueKeyPath       *[]string   `json:"unique_key_path,omitempty"`
 		PrimaryBookmarkPath *[]string   `json:"primary_bookmark_path,omitempty"`
+		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
 		SensitivePaths      *[][]string `json:"sensitive_paths,omitempty"`
 		IntelligentFields   *[]struct {
 			Prefix               *string   `json:"prefix,omitempty"`

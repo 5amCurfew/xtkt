@@ -99,9 +99,13 @@ $ xtkt config_github.json 2>&1 | jq .
     "stream_name": "<stream_name>", // required, <string>: the name of your stream
     "source_type": "<source_type>", // required, <string>: one of either db, file, html, rest or listen
     "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL, relative file path etc)
-    "records": { // required <object>: describes habdling of records
+    "records": { // required <object>: describes handling of records
         "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
         "primary_bookmark_path": ["<key_path_1>", "<key_path_1>", ...], // optional <array[string]>: path to bookmark within records
+        "drop_field_paths": [ // optional <array[array]>: paths to remove within records
+            ["<key_path_1>", "<key_path_1>", ...], // required <array[string]>
+            ...
+        ],
         "sensitive_paths": [ // optional <array[array]>: array of paths of fields to hash
             ["<sensitive_path_1_1>", "<sensitive_path_1_2>", ...], // required <array[string]>
             ...
@@ -184,10 +188,18 @@ No authentication required, records found in the response "results" array, pagin
     "url": "https://rickandmortyapi.com/api/character",
     "records": {
         "unique_key_path": ["id"],
-        "primary_bookmark_path": ["*"]
+        "primary_bookmark_path": ["*"],
+        "drop_field_paths": [
+            ["episode"],
+            ["origin", "url"]
+        ],
+        "sensitive_paths": [
+            ["name"],
+            ["location", "name"]
+        ]
     },
     "rest": {
-        "sleep": 2,
+        "sleep": 0,
         "auth": {
             "required": false
         },

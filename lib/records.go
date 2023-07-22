@@ -42,6 +42,49 @@ func GenerateSurrogateKey(record *interface{}, config Config) error {
 	return nil
 }
 
+func DropFields(record *interface{}, config Config) error {
+	if config.Records.DropFieldPaths != nil {
+		if r, parsed := (*record).(map[string]interface{}); parsed {
+			for _, path := range *config.Records.DropFieldPaths {
+				dropFieldAtPath(path, r)
+			}
+		} else {
+			return fmt.Errorf("error PARSING RECORD in DropFields in record: %+v", r)
+		}
+	}
+	return nil
+}
+
+func dropFieldAtPath(path []string, record map[string]interface{}) error {
+	if len(path) == 0 {
+		return nil
+	}
+
+	var currentMap = record
+	for i := 0; i < len(path)-1; i++ {
+		key := path[i]
+		value, exists := currentMap[key]
+		if !exists {
+			return nil
+		}
+
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			currentMap = nestedMap
+		} else {
+			return nil
+		}
+	}
+
+	lastKey := path[len(path)-1]
+	// Delete the field from the nested map if it exists
+	if _, exists := currentMap[lastKey]; exists {
+		delete(currentMap, lastKey)
+		return nil
+	}
+
+	return nil
+}
+
 func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, config Config) error {
 	recordChan := make(chan int, len(*records))
 	resultChan := make(chan error, len(*records))
@@ -127,6 +170,11 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 }
 
 func ProcessRecords(records *[]interface{}, state *State, config Config) error {
+	dropFieldsError := applyToRecords(DropFields, records, config)
+	if dropFieldsError != nil {
+		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
+	}
+
 	generateHashedRecordsFieldsError := applyToRecords(GenerateHashedRecordsFields, records, config)
 	if generateHashedRecordsFieldsError != nil {
 		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", generateHashedRecordsFieldsError)
