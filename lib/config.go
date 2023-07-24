@@ -4,6 +4,9 @@ import (
 	"fmt"
 )
 
+// /////////////////////////////////////////////////////////
+// CONFIG.JSON
+// /////////////////////////////////////////////////////////
 type Config struct {
 	StreamName *string `json:"stream_name,omitempty"`
 	SourceType *string `json:"source_type,omitempty"`
@@ -12,6 +15,11 @@ type Config struct {
 		UniqueKeyPath       *[]string   `json:"unique_key_path,omitempty"`
 		PrimaryBookmarkPath *[]string   `json:"primary_bookmark_path,omitempty"`
 		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
+		FilterFieldPath     *[]struct {
+			FieldPath []string `json:"field_path"`
+			Operation string   `json:"operation"`
+			Value     string   `json:"value"`
+		} `json:"filter_field_paths"`
 		SensitiveFieldPaths *[][]string `json:"sensitive_field_paths,omitempty"`
 		IntelligentFields   *[]struct {
 			Prefix               *string   `json:"prefix,omitempty"`

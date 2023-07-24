@@ -23,10 +23,8 @@ type State struct {
 }
 
 func detectionSetContains(s []string, str string) bool {
-	// Sort the slice of strings
 	sort.Strings(s)
 
-	// Perform a binary search on the sorted slice
 	index := sort.SearchStrings(s, str)
 	if index < len(s) && s[index] == str {
 		return true
@@ -122,9 +120,7 @@ func UpdateState(records []interface{}, state *State, config Config) {
 		}
 	}
 
-	// UPDATE
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	state.Value.Bookmarks[*config.StreamName] = bookmarks
-
 	writeStateJSON(state)
 }

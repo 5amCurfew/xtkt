@@ -11,6 +11,9 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
+// /////////////////////////////////////////////////////////
+// TRANSFORM FIELD(s)
+// /////////////////////////////////////////////////////////
 func GenerateHashedRecordsFields(record *interface{}, config Config) error {
 	if config.Records.SensitiveFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
@@ -42,6 +45,9 @@ func GenerateSurrogateKey(record *interface{}, config Config) error {
 	return nil
 }
 
+// /////////////////////////////////////////////////////////
+// DROP FIELD(s)
+// /////////////////////////////////////////////////////////
 func DropFields(record *interface{}, config Config) error {
 	if config.Records.DropFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
@@ -85,6 +91,9 @@ func dropFieldAtPath(path []string, record map[string]interface{}) error {
 	return nil
 }
 
+// /////////////////////////////////////////////////////////
+// UPDATE RECORDS PER FIELD FUNCTION
+// /////////////////////////////////////////////////////////
 func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, config Config) error {
 	recordChan := make(chan int, len(*records))
 	resultChan := make(chan error, len(*records))
@@ -117,10 +126,73 @@ func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, 
 			return fmt.Errorf("error APPLYING TO RECORDS: %v", err)
 		}
 	}
-
 	return nil
 }
 
+// /////////////////////////////////////////////////////////
+// FILTER RECORDS
+// /////////////////////////////////////////////////////////
+func filterRecords(records *[]interface{}, config Config) error {
+	if config.Records.FilterFieldPath != nil {
+		var (
+			filteredRecords []interface{}
+			wg              sync.WaitGroup
+			mu              sync.Mutex // Mutex to synchronize access to reducedRecords
+		)
+
+		// Launch goroutines to process the records
+		for _, record := range *records {
+			// Increment the wait group counter
+			wg.Add(1)
+			go func(record interface{}) {
+				defer wg.Done()
+
+				r := record.(map[string]interface{})
+				if !filterBreached(r, config) {
+					mu.Lock()
+					filteredRecords = append(filteredRecords, record)
+					mu.Unlock()
+				}
+			}(record)
+		}
+
+		wg.Wait()
+		*records = filteredRecords
+		return nil
+	}
+	return nil
+}
+
+func filterBreached(record map[string]interface{}, config Config) bool {
+	for _, filter := range *config.Records.FilterFieldPath {
+		value := util.GetValueAtPath(filter.FieldPath, record).(string)
+		switch filter.Operation {
+		case "less_than":
+			if value >= filter.Value {
+				return true
+			}
+		case "greater_than":
+			if value <= filter.Value {
+				return true
+			}
+		case "equal_to":
+			if value != filter.Value {
+				return true
+			}
+		case "not_equal_to":
+			if value == filter.Value {
+				return true
+			}
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// /////////////////////////////////////////////////////////
+// REDUCE RECORDS
+// /////////////////////////////////////////////////////////
 func reduceRecords(records *[]interface{}, state *State, config Config) error {
 	var (
 		reducedRecords []interface{}
@@ -164,12 +236,18 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 	}
 
 	wg.Wait()
-	// Update the original records slice with the reduced records
 	*records = reducedRecords
 	return nil
 }
 
+// /////////////////////////////////////////////////////////
+// PROCESS RECORDS
+// /////////////////////////////////////////////////////////
 func ProcessRecords(records *[]interface{}, state *State, config Config) error {
+	if filterRecordsError := filterRecords(records, config); filterRecordsError != nil {
+		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", filterRecordsError)
+	}
+
 	if dropFieldsError := applyToRecords(DropFields, records, config); dropFieldsError != nil {
 		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
 	}

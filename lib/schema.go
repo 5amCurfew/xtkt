@@ -6,7 +6,7 @@ import (
 )
 
 // ///////////////////////////////////////////////////////////
-// GENERATE JSON SCHEMA
+// GENERATE SCHEMA
 // ///////////////////////////////////////////////////////////
 func generateSchema(records []interface{}) (map[string]interface{}, error) {
 	schema := make(map[string]interface{})
@@ -64,6 +64,9 @@ func generateSchema(records []interface{}) (map[string]interface{}, error) {
 	return schema, nil
 }
 
+// /////////////////////////////////////////////////////////
+// PROCESS SCHEMA
+// /////////////////////////////////////////////////////////
 func ProcessSchema(records []interface{}, config Config) error {
 	if len(records) == 0 {
 		return nil

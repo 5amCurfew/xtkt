@@ -51,18 +51,24 @@ func Extract(config lib.Config) error {
 	execution.Stream = *config.StreamName
 	execution.ExecutionStart = time.Now().UTC()
 
-	// GENERATE STATE.JSON
+	// /////////////////////////////////////////////////////////
+	// GENERATSE state.json
+	// /////////////////////////////////////////////////////////
 	if _, err := os.Stat("state.json"); err != nil {
 		lib.CreateStateJSON(config)
 	}
 
+	// /////////////////////////////////////////////////////////
 	// PARSE CURRENT STATE
+	// /////////////////////////////////////////////////////////
 	state, parseStateError := lib.ParseStateJSON(config)
 	if parseStateError != nil {
 		return fmt.Errorf("error PARSING STATE.JSON %w", parseStateError)
 	}
 
-	// RECORDS
+	// /////////////////////////////////////////////////////////
+	// GENERATSE RECORDS
+	// /////////////////////////////////////////////////////////
 	records, generateRecordsError := generateRecords(config)
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
@@ -71,7 +77,9 @@ func Extract(config lib.Config) error {
 	execution.RecordsExtracted = len(records)
 	log.Info(fmt.Sprintf(`%d records extracted at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
+	// /////////////////////////////////////////////////////////
 	// PROCESS RECORDS
+	// /////////////////////////////////////////////////////////
 	if processRecordsError := lib.ProcessRecords(&records, state, config); processRecordsError != nil {
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
@@ -79,28 +87,38 @@ func Extract(config lib.Config) error {
 	execution.RecordsProcessed = len(records)
 	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
-	// SCHEMA MESSAGE
+	// /////////////////////////////////////////////////////////
+	// GENERATE & PROCESS SCHEMA
+	// /////////////////////////////////////////////////////////
 	if processSchemaError := lib.ProcessSchema(records, config); processSchemaError != nil {
 		return fmt.Errorf("error PROCESSING SCHEMA: %w", processSchemaError)
 	}
 
-	// RECORD MESSAGE(S)
+	// /////////////////////////////////////////////////////////
+	// GENERATSE RECORD MESSAGES
+	// /////////////////////////////////////////////////////////
 	for _, record := range records {
 		if generateRecordMessageError := lib.GenerateRecordMessage(record, state, config); generateRecordMessageError != nil {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
 		}
 	}
 
-	// UPDATE STATE & STATE.JSON
+	// /////////////////////////////////////////////////////////
+	// UPDATE STATE (& state.json)
+	// /////////////////////////////////////////////////////////
 	lib.UpdateState(records, state, config)
 	log.Info(fmt.Sprintf(`state.json updated at %s`, time.Now().UTC().Format(time.RFC3339)))
 
-	// STATE MESSAGE
+	// /////////////////////////////////////////////////////////
+	// GENERATSE STATE MESSAGE
+	// /////////////////////////////////////////////////////////
 	if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
 		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
 	}
 
-	// UPDATE HISTORY.JSON
+	// /////////////////////////////////////////////////////////
+	// UPDATE history.json
+	// /////////////////////////////////////////////////////////
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
 	if appendToHistoryError := lib.AppendToHistory(execution); appendToHistoryError != nil {

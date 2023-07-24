@@ -195,6 +195,13 @@ No authentication required, records found in the response "results" array, pagin
             ["episode"],
             ["origin", "url"]
         ],
+        "filter_field_paths": [
+            {
+                "field_path": ["gender"],
+                "operation": "equal_to",
+                "value": "Female"
+            }
+        ],
         "sensitive_field_paths": [
             ["name"],
             ["location", "name"]
@@ -227,6 +234,11 @@ Token authentication required, records returned immediately as an array, paginat
     "records": {
         "unique_key_path": ["sha"],
         "primary_bookmark_path": ["commit", "author", "date"],
+        "drop_field_paths": [
+            ["author"],
+            ["committer", "avatar_url"],
+            ["committer", "events_url"]
+        ],
         "sensitive_field_paths": [
             ["commit", "author", "email"],
             ["commit", "committer", "email"]
@@ -278,6 +290,7 @@ Oauth authentication required, records returned immediately in an array, paginat
                 "token_url": "https://www.strava.com/oauth/token"
             }
         },
+        "sleep": 1,
         "response": {
             "pagination": true,
             "pagination_strategy": "query",
