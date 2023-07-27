@@ -70,7 +70,7 @@ func GenerateFileRecords(config lib.Config) ([]interface{}, error) {
 	var result []interface{}
 
 	switch strings.Split(*config.URL, ".")[1] {
-	case "jsonl":
+	case "jsonl", "json":
 		result, err = parseJSONL(file)
 	case "csv":
 		result, err = parseCSV(file)

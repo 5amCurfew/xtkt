@@ -20,29 +20,31 @@
   * [Strava API](#strava-api)
   * [Postgres](#postgres)
   * [SQLite](#sqlite)
-  * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
   * [File](#file)
   * [Listen](#listen)
+  * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 
-`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl). HTML scraping in beta.
+`xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl). HTML scraping in beta.
 
-New **and updated** records are sent to your target as new records (unique key `_sdc_surrogate_key`).
+`xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-A **bookmark** can be used to define which records are processed by `xtkt` and subsequently sent to your target. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or *new-record-detection* (`records.primary_bookmark: [*]`) to only process new/updated records (*new-record-detection* is not advised for large data sets).
+Both new **and updated** records (per `unique_key`) are sent to your target as new records (with subsequent unique key `_sdc_surrogate_key`).
+
+Determine which records are processed by `xtkt` and subsequently sent to your target by using a **bookmark**. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or set to *new-record-detection* (`records.primary_bookmark: [*]`, not advised for large data).
 
 In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
 
-`xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target.
+`xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target. Bookmarks are not considered when `"source_type": "listen"`.
 
-Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below).
+Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
-Sensitive data fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below).
+Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
 
 Intelligent data fields (REMOVED FOR NOW) can be added to your records using OpenAI LLM models using the `records.intelligent_fields` field in your JSON configuration file (see examples below, requires environment variable `OPENAI_API_KEY`).
 
-`xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite, Postgres and BigQuery. Each stream is handled independently and deletion-at-source is not detected.
+Both integers and floats are sent as floats. All fields are considered `NULLABLE`.
 
-`xtkt` is still in development (currently v0.0.7)
+`xtkt` is still in development (currently v0.0.8)
 
 ### Installation
 
@@ -337,40 +339,24 @@ Oauth authentication required, records returned immediately in an array, paginat
 }
 ```
 
-#### [www.fifaindex.com/teams](https://www.fifaindex.com/teams/)
-Scrape team "overall" rating found within HTML table (beta)
-
-`config.json`
-```json
-{
-    "stream_name": "fifa_team_ratings",
-    "source_type": "html",
-    "url": "https://www.fifaindex.com/teams/",
-    "records": {
-        "unique_key_path": ["name"]
-    },
-    "html": {
-        "elements_path": "table.table-teams > tbody > tr",
-        "elements": [
-            {"name": "name", "path": "td[data-title='Name'] > a.link-team"},
-            {"name": "league", "path": "td[data-title='League'] > a.link-league"},
-            {"name": "overall", "path": "td[data-title='OVR'] > span.rating:nth-child(1)"}
-        ]
-    }
-}
-```
-
 #### File
 `config.json`
 ```json
 {
     "stream_name": "xtkt_jsonl",
     "source_type": "file",
-    "url": "data.jsonl",
+    "url": "_config_json/data.jsonl",
     "records": {
-        "unique_key_path": ["name"],
+        "unique_key_path": ["id"],
+        "filter_field_paths": [
+            {
+                "field_path": ["sport"],
+                "operation": "not_equal_to",
+                "value": "Volleyball"
+            }
+        ],
         "sensitive_field_paths": [
-            ["name"]
+            ["location", "address"]
         ]
     }
 }
@@ -392,6 +378,29 @@ Scrape team "overall" rating found within HTML table (beta)
     "listen":{
         "collection_interval": 10,
         "port": "8080"
+    }
+}
+```
+
+#### [www.fifaindex.com/teams](https://www.fifaindex.com/teams/)
+Scrape team "overall" rating found within HTML table (beta)
+
+`config.json`
+```json
+{
+    "stream_name": "fifa_team_ratings",
+    "source_type": "html",
+    "url": "https://www.fifaindex.com/teams/",
+    "records": {
+        "unique_key_path": ["name"]
+    },
+    "html": {
+        "elements_path": "table.table-teams > tbody > tr",
+        "elements": [
+            {"name": "name", "path": "td[data-title='Name'] > a.link-team"},
+            {"name": "league", "path": "td[data-title='League'] > a.link-league"},
+            {"name": "overall", "path": "td[data-title='OVR'] > span.rating:nth-child(1)"}
+        ]
     }
 }
 ```

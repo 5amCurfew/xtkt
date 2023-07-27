@@ -35,3 +35,33 @@ func SetValueAtPath(path []string, input map[string]interface{}, value interface
 
 	SetValueAtPath(path, input[key].(map[string]interface{}), value)
 }
+
+func DropFieldAtPath(path []string, input map[string]interface{}) error {
+	if len(path) == 0 {
+		return nil
+	}
+
+	var currentMap = input
+	for i := 0; i < len(path)-1; i++ {
+		key := path[i]
+		value, exists := currentMap[key]
+		if !exists {
+			return nil
+		}
+
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			currentMap = nestedMap
+		} else {
+			return nil
+		}
+	}
+
+	lastKey := path[len(path)-1]
+	// Delete the field from the nested map if it exists
+	if _, exists := currentMap[lastKey]; exists {
+		delete(currentMap, lastKey)
+		return nil
+	}
+
+	return nil
+}

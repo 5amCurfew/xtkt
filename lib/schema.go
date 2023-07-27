@@ -29,7 +29,7 @@ func generateSchema(records []interface{}) (map[string]interface{}, error) {
 			case bool:
 				prop.(map[string]interface{})["type"] = []string{"boolean", "null"}
 			case int:
-				prop.(map[string]interface{})["type"] = []string{"integer", "null"}
+				prop.(map[string]interface{})["type"] = []string{"number", "null"}
 			case float64:
 				prop.(map[string]interface{})["type"] = []string{"number", "null"}
 			case map[string]interface{}:

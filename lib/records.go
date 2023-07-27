@@ -14,7 +14,7 @@ import (
 // /////////////////////////////////////////////////////////
 // TRANSFORM FIELD(s)
 // /////////////////////////////////////////////////////////
-func GenerateHashedRecordsFields(record *interface{}, config Config) error {
+func GenerateHashedFields(record *interface{}, config Config) error {
 	if config.Records.SensitiveFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
 			for _, path := range *config.Records.SensitiveFieldPaths {
@@ -22,25 +22,27 @@ func GenerateHashedRecordsFields(record *interface{}, config Config) error {
 					hash := sha256.Sum256([]byte(fmt.Sprintf("%v", fieldValue)))
 					util.SetValueAtPath(path, r, hex.EncodeToString(hash[:]))
 				} else {
-					return fmt.Errorf("error PARSING RECORD FIELD in generateHashedRecordsFields in record: %+v", r)
+					continue
 				}
 			}
 		} else {
-			return fmt.Errorf("error PARSING RECORD in generateHashedRecordsFields in record: %+v", r)
+			return fmt.Errorf("error PARSING RECORD in GenerateHashedFields in record: %+v", r)
 		}
 	}
 	return nil
 }
 
-func GenerateSurrogateKey(record *interface{}, config Config) error {
+func GenerateSurrogateKeyFields(record *interface{}, config Config) error {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		h := sha256.New()
 		h.Write([]byte(toString(r)))
-		r["_sdc_natural_key"] = util.GetValueAtPath(*config.Records.UniqueKeyPath, r)
+		if util.GetValueAtPath(*config.Records.UniqueKeyPath, r) != nil {
+			r["_sdc_natural_key"] = util.GetValueAtPath(*config.Records.UniqueKeyPath, r)
+		}
 		r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
 		r["_sdc_time_extracted"] = time.Now().UTC().Format(time.RFC3339)
 	} else {
-		return fmt.Errorf("error PARSING RECORD in generateSurrogateKey in record: %+v", r)
+		return fmt.Errorf("error PARSING RECORD in GenerateSurrogateKeyFields in record: %+v", r)
 	}
 	return nil
 }
@@ -52,42 +54,12 @@ func DropFields(record *interface{}, config Config) error {
 	if config.Records.DropFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
 			for _, path := range *config.Records.DropFieldPaths {
-				dropFieldAtPath(path, r)
+				util.DropFieldAtPath(path, r)
 			}
 		} else {
 			return fmt.Errorf("error PARSING RECORD in DropFields in record: %+v", r)
 		}
 	}
-	return nil
-}
-
-func dropFieldAtPath(path []string, record map[string]interface{}) error {
-	if len(path) == 0 {
-		return nil
-	}
-
-	var currentMap = record
-	for i := 0; i < len(path)-1; i++ {
-		key := path[i]
-		value, exists := currentMap[key]
-		if !exists {
-			return nil
-		}
-
-		if nestedMap, ok := value.(map[string]interface{}); ok {
-			currentMap = nestedMap
-		} else {
-			return nil
-		}
-	}
-
-	lastKey := path[len(path)-1]
-	// Delete the field from the nested map if it exists
-	if _, exists := currentMap[lastKey]; exists {
-		delete(currentMap, lastKey)
-		return nil
-	}
-
 	return nil
 }
 
@@ -148,7 +120,7 @@ func filterRecords(records *[]interface{}, config Config) error {
 				defer wg.Done()
 
 				r := record.(map[string]interface{})
-				if !filterBreached(r, config) {
+				if !FilterBreached(r, config) {
 					mu.Lock()
 					filteredRecords = append(filteredRecords, record)
 					mu.Unlock()
@@ -163,31 +135,39 @@ func filterRecords(records *[]interface{}, config Config) error {
 	return nil
 }
 
-func filterBreached(record map[string]interface{}, config Config) bool {
-	for _, filter := range *config.Records.FilterFieldPath {
-		value := util.GetValueAtPath(filter.FieldPath, record).(string)
-		switch filter.Operation {
-		case "less_than":
-			if value >= filter.Value {
-				return true
+// Also used in listen.go
+func FilterBreached(record map[string]interface{}, config Config) bool {
+	if config.Records.FilterFieldPath == nil {
+		return false
+	} else {
+		for _, filter := range *config.Records.FilterFieldPath {
+			if value := util.GetValueAtPath(filter.FieldPath, record); value != nil {
+				switch filter.Operation {
+				case "less_than":
+					if value.(string) >= filter.Value {
+						return true
+					}
+				case "greater_than":
+					if value.(string) <= filter.Value {
+						return true
+					}
+				case "equal_to":
+					if value != filter.Value {
+						return true
+					}
+				case "not_equal_to":
+					if value == filter.Value {
+						return true
+					}
+				default:
+					return false
+				}
+			} else {
+				return false
 			}
-		case "greater_than":
-			if value <= filter.Value {
-				return true
-			}
-		case "equal_to":
-			if value != filter.Value {
-				return true
-			}
-		case "not_equal_to":
-			if value == filter.Value {
-				return true
-			}
-		default:
-			return false
 		}
+		return false
 	}
-	return false
 }
 
 // /////////////////////////////////////////////////////////
@@ -219,8 +199,11 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 						r["_sdc_surrogate_key"].(string),
 					)
 				default:
-					primaryBookmarkValue := util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)
-					bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
+					if primaryBookmarkValue := util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r); primaryBookmarkValue != nil {
+						bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
+					} else {
+						bookmarkCondition = true
+					}
 				}
 
 			} else {
@@ -252,12 +235,12 @@ func ProcessRecords(records *[]interface{}, state *State, config Config) error {
 		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
 	}
 
-	if generateHashedRecordsFieldsError := applyToRecords(GenerateHashedRecordsFields, records, config); generateHashedRecordsFieldsError != nil {
-		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", generateHashedRecordsFieldsError)
+	if GenerateHashedFieldsError := applyToRecords(GenerateHashedFields, records, config); GenerateHashedFieldsError != nil {
+		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", GenerateHashedFieldsError)
 	}
 
-	if generateSurrogateKeyError := applyToRecords(GenerateSurrogateKey, records, config); generateSurrogateKeyError != nil {
-		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", generateSurrogateKeyError)
+	if GenerateSurrogateKeyFieldsError := applyToRecords(GenerateSurrogateKeyFields, records, config); GenerateSurrogateKeyFieldsError != nil {
+		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", GenerateSurrogateKeyFieldsError)
 	}
 
 	if reduceRecordsError := reduceRecords(records, state, config); reduceRecordsError != nil {

@@ -84,9 +84,12 @@ func (rs *RecordStore) processRecords(config lib.Config) {
 	if len(rs.records) > 0 {
 		for i := range rs.records {
 			record := rs.records[i]
-			lib.GenerateHashedRecordsFields(record, config)
-			lib.GenerateSurrogateKey(record, config)
-			rs.records[i] = record
+			lib.GenerateHashedFields(record, config)
+			lib.GenerateSurrogateKeyFields(record, config)
+			lib.DropFields(record, config)
+			if !lib.FilterBreached((*record).(map[string]interface{}), config) {
+				rs.records[i] = record
+			}
 		}
 
 		// Create a new slice to store the records
@@ -134,6 +137,6 @@ func handleIncomingRecords(recordStore *RecordStore, config lib.Config) http.Han
 		}
 
 		recordStore.AddRecord(record)
-		log.Info(fmt.Sprintf(`record added to recordStore at %s`, time.Now().UTC().Format(time.RFC3339)))
+		//log.Info(fmt.Sprintf(`record added to recordStore at %s`, time.Now().UTC().Format(time.RFC3339)))
 	}
 }
