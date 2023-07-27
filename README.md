@@ -10,11 +10,11 @@
 ![Commit activity (branch)](https://img.shields.io/github/commit-activity/m/5amCurfew/xtkt)
 [![Go Report Card](https://goreportcard.com/badge/github.com/5amCurfew/xtkt)](https://goreportcard.com/report/github.com/5amCurfew/xtkt)
 
-- [Installation](#Installation)
-- [Using with Singer.io Targets](#using-with-singerio-targets)
-- [Metadata](#metadata)
-- [Config.json](#configjson)
-- [Examples](#examples)
+- [:computer: Installation](#computer-installation)
+- [:nut_and_bolt: Using with Singer.io Targets](#nut_and_bolt-using-with-singerio-targets)
+- [:floppy_disk: Metadata](#floppy_disk-metadata)
+- [:wrench: Config.json](#wrench-configjson)
+- [:rocket: Examples](#rocket-examples)
   * [Rick & Morty API](#rick-&-morty-api)
   * [Github API](#github-api)
   * [Strava API](#strava-api)
@@ -46,7 +46,7 @@ Both integers and floats are sent as floats. All fields are considered `NULLABLE
 
 `xtkt` is still in development (currently v0.0.8)
 
-### Installation
+### :computer: Installation
 
 Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `go build`
 
@@ -64,7 +64,7 @@ Flags:
   -v, --version   version for xtkt
 ```
 
-### Using with [Singer.io](https://www.singer.io/) Targets
+### :nut_and_bolt: Using with [Singer.io](https://www.singer.io/) Targets
 
 Install targets (Python) in `_targets/` in virtual environments:
 
@@ -87,7 +87,7 @@ I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages
 $ xtkt config_github.json 2>&1 | jq .
 ```
 
-### Metadata
+### :floppy_disk: Metadata
 
 `xtkt` adds the following metadata to records
 
@@ -95,7 +95,7 @@ $ xtkt config_github.json 2>&1 | jq .
 * `_sdc_natural_key`: the unique key identifier of the record at source
 * `_sdc_time_extracted`: a timestamp (R3339) at the time of the data extraction
 
-### Config.json
+### :wrench: Config.json
 
 #### xtkt
 ```javascript
@@ -179,7 +179,7 @@ $ xtkt config_github.json 2>&1 | jq .
     ...
 ```
 
-### Examples
+### :rocket: Examples
 
 #### [Rick & Morty API](https://rickandmortyapi.com/)
 No authentication required, records found in the response "results" array, paginated using "next", *new-record-detection* used for bookmark
