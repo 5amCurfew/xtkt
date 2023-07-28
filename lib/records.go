@@ -9,6 +9,7 @@ import (
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
+	log "github.com/sirupsen/logrus"
 )
 
 // /////////////////////////////////////////////////////////
@@ -22,6 +23,7 @@ func GenerateHashedFields(record *interface{}, config Config) error {
 					hash := sha256.Sum256([]byte(fmt.Sprintf("%v", fieldValue)))
 					util.SetValueAtPath(path, r, hex.EncodeToString(hash[:]))
 				} else {
+					log.Warn(fmt.Sprintf("field path %s not found in record", path))
 					continue
 				}
 			}
@@ -38,6 +40,8 @@ func GenerateSurrogateKeyFields(record *interface{}, config Config) error {
 		h.Write([]byte(toString(r)))
 		if util.GetValueAtPath(*config.Records.UniqueKeyPath, r) != nil {
 			r["_sdc_natural_key"] = util.GetValueAtPath(*config.Records.UniqueKeyPath, r)
+		} else {
+			log.Warn(fmt.Sprintf("unique_key field path %s not found in record", *config.Records.UniqueKeyPath))
 		}
 		r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
 		r["_sdc_time_extracted"] = time.Now().UTC().Format(time.RFC3339)
@@ -142,14 +146,46 @@ func FilterBreached(record map[string]interface{}, config Config) bool {
 	} else {
 		for _, filter := range *config.Records.FilterFieldPath {
 			if value := util.GetValueAtPath(filter.FieldPath, record); value != nil {
+
+				if !util.TypesMatch(value, filter.Value) {
+					log.Warn(fmt.Sprintf("record value of different type to filter.Value (%s): ignoring filter", filter))
+					return false
+				}
+
 				switch filter.Operation {
 				case "less_than":
-					if value.(string) >= filter.Value {
-						return true
+					switch value.(type) {
+					case int, int32, int64, float32, float64:
+						if floatValue, err := util.GetFloatValue(value); err == nil && floatValue >= filter.Value.(float64) {
+							return true
+						} else {
+							return false
+						}
+					case string:
+						if stringValue := value.(string); stringValue >= filter.Value.(string) {
+							return true
+						} else {
+							return false
+						}
+					default:
+						return false
 					}
 				case "greater_than":
-					if value.(string) <= filter.Value {
-						return true
+					switch value.(type) {
+					case int, int32, int64, float32, float64:
+						if floatValue, err := util.GetFloatValue(value); err == nil && floatValue <= filter.Value.(float64) {
+							return true
+						} else {
+							return false
+						}
+					case string:
+						if stringValue := value.(string); stringValue <= filter.Value.(string) {
+							return true
+						} else {
+							return false
+						}
+					default:
+						return false
 					}
 				case "equal_to":
 					if value != filter.Value {
@@ -230,6 +266,7 @@ func ProcessRecords(records *[]interface{}, state *State, config Config) error {
 	if filterRecordsError := filterRecords(records, config); filterRecordsError != nil {
 		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", filterRecordsError)
 	}
+	log.Info(fmt.Sprintf(`%d records when filtered at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
 
 	if dropFieldsError := applyToRecords(DropFields, records, config); dropFieldsError != nil {
 		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
@@ -246,6 +283,8 @@ func ProcessRecords(records *[]interface{}, state *State, config Config) error {
 	if reduceRecordsError := reduceRecords(records, state, config); reduceRecordsError != nil {
 		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceRecordsError)
 	}
+
+	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
 
 	return nil
 }

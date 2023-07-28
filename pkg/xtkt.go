@@ -73,7 +73,6 @@ func Extract(config lib.Config) error {
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
-
 	execution.RecordsExtracted = len(records)
 	log.Info(fmt.Sprintf(`%d records extracted at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
@@ -81,11 +80,9 @@ func Extract(config lib.Config) error {
 	// PROCESS RECORDS
 	// /////////////////////////////////////////////////////////
 	if processRecordsError := lib.ProcessRecords(&records, state, config); processRecordsError != nil {
+		execution.RecordsProcessed = len(records)
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
-
-	execution.RecordsProcessed = len(records)
-	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// /////////////////////////////////////////////////////////
 	// GENERATE & PROCESS SCHEMA

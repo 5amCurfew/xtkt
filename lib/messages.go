@@ -27,7 +27,6 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 	messageJson, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
-
 	}
 
 	os.Stdout.Write(messageJson)

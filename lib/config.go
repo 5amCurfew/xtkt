@@ -16,9 +16,9 @@ type Config struct {
 		PrimaryBookmarkPath *[]string   `json:"primary_bookmark_path,omitempty"`
 		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
 		FilterFieldPath     *[]struct {
-			FieldPath []string `json:"field_path"`
-			Operation string   `json:"operation"`
-			Value     string   `json:"value"`
+			FieldPath []string    `json:"field_path"`
+			Operation string      `json:"operation"`
+			Value     interface{} `json:"value"`
 		} `json:"filter_field_paths"`
 		SensitiveFieldPaths *[][]string `json:"sensitive_field_paths,omitempty"`
 		IntelligentFields   *[]struct {

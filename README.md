@@ -34,6 +34,8 @@ Determine which records are processed by `xtkt` and subsequently sent to your ta
 
 In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
 
+Records can be filtered prior to being processed by `xtkt` using the `records.filter_field_paths` field in your JSON configuration file (see examples below).
+
 `xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target. Bookmarks are not considered when `"source_type": "listen"`.
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
@@ -108,6 +110,14 @@ $ xtkt config_github.json 2>&1 | jq .
         "primary_bookmark_path": ["<key_path_1>", "<key_path_1>", ...], // optional <array[string]>: path to bookmark within records
         "drop_field_paths": [ // optional <array[array]>: paths to remove within records
             ["<key_path_1>", "<key_path_1>", ...], // required <array[string]>
+            ...
+        ],
+        "filter_field_paths": [ // optional <array[object]>
+            {
+                "field_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to field within records
+                "operation": "<operation>", // required <string>: one of equal_to, not_equal_to, greater_than, less_than
+                "value": "<value>" // required <string/number>: value to filter against
+            },
             ...
         ],
         "sensitive_field_paths": [ // optional <array[array]>: array of paths of fields to hash
@@ -353,6 +363,11 @@ Oauth authentication required, records returned immediately in an array, paginat
                 "field_path": ["sport"],
                 "operation": "not_equal_to",
                 "value": "Volleyball"
+            },
+            {
+                "field_path": ["championships_won"],
+                "operation": "greater_than",
+                "value": 0
             }
         ],
         "sensitive_field_paths": [
