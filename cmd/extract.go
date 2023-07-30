@@ -1,4 +1,4 @@
-package xtkt
+package cmd
 
 import (
 	"encoding/json"
@@ -8,45 +8,14 @@ import (
 	"time"
 
 	lib "github.com/5amCurfew/xtkt/lib"
-	sources "github.com/5amCurfew/xtkt/lib/sources"
+	sources "github.com/5amCurfew/xtkt/sources"
 	log "github.com/sirupsen/logrus"
 )
 
-func ParseConfigJSON(filePath string) (lib.Config, error) {
-	var cfg lib.Config
-
-	config, readConfigError := os.ReadFile(filePath)
-	if readConfigError != nil {
-		return cfg, fmt.Errorf("error parseConfigJson reading config.json: %w", readConfigError)
-	}
-
-	if jsonError := json.Unmarshal(config, &cfg); jsonError != nil {
-		return cfg, fmt.Errorf("error parseConfigJson unmarshlling config.json: %w", jsonError)
-	}
-
-	return cfg, nil
-}
-
-func generateRecords(config lib.Config) ([]interface{}, error) {
-	switch *config.SourceType {
-	case "db":
-		log.Info(fmt.Sprintf(`generating records from database %s`, strings.Split(*config.URL, "@")[0]))
-		return sources.GenerateDatabaseRecords(config)
-	case "file":
-		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
-		return sources.GenerateFileRecords(config)
-	case "html":
-		log.Info(fmt.Sprintf(`generating records from HTML page %s`, *config.URL))
-		return sources.GenerateHtmlRecords(config)
-	case "rest":
-		log.Info(fmt.Sprintf(`generating records from REST-api %s`, *config.URL))
-		return sources.GenerateRestRecords(config)
-	default:
-		return nil, fmt.Errorf("unsupported data source in generateRecords")
-	}
-}
-
-func Extract(config lib.Config) error {
+// /////////////////////////////////////////////////////////
+// EXTRACT
+// /////////////////////////////////////////////////////////
+func extract(config lib.Config) error {
 	var execution lib.ExecutionMetric
 	execution.Stream = *config.StreamName
 	execution.ExecutionStart = time.Now().UTC()
@@ -77,22 +46,22 @@ func Extract(config lib.Config) error {
 	log.Info(fmt.Sprintf(`%d records extracted at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// /////////////////////////////////////////////////////////
-	// PROCESS RECORDS
+	// PROCESS RECORD(s)
 	// /////////////////////////////////////////////////////////
 	if processRecordsError := lib.ProcessRecords(&records, state, config); processRecordsError != nil {
-		execution.RecordsProcessed = len(records)
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
 	}
+	execution.RecordsProcessed = len(records)
 
 	// /////////////////////////////////////////////////////////
-	// GENERATE & PROCESS SCHEMA
+	// GENERATE SCHEMA, SCHEMA MESSAGE
 	// /////////////////////////////////////////////////////////
-	if processSchemaError := lib.ProcessSchema(records, config); processSchemaError != nil {
+	if processSchemaError := lib.ProcessSchema(&records, config); processSchemaError != nil {
 		return fmt.Errorf("error PROCESSING SCHEMA: %w", processSchemaError)
 	}
 
 	// /////////////////////////////////////////////////////////
-	// GENERATSE RECORD MESSAGES
+	// GENERATSE RECORD MESSAGE(s)
 	// /////////////////////////////////////////////////////////
 	for _, record := range records {
 		if generateRecordMessageError := lib.GenerateRecordMessage(record, state, config); generateRecordMessageError != nil {
@@ -125,6 +94,39 @@ func Extract(config lib.Config) error {
 	return nil
 }
 
-func Listen(config lib.Config) {
-	sources.StartListening(config)
+// /////////////////////////////////////////////////////////
+// GENERATE RECORDS
+// /////////////////////////////////////////////////////////
+func generateRecords(config lib.Config) ([]interface{}, error) {
+	switch *config.SourceType {
+	case "db":
+		log.Info(fmt.Sprintf(`generating records from database %s`, strings.Split(*config.URL, "@")[0]))
+		return sources.GenerateDatabaseRecords(config)
+	case "file":
+		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
+		return sources.GenerateFileRecords(config)
+	case "html":
+		log.Info(fmt.Sprintf(`generating records from HTML page %s`, *config.URL))
+		return sources.GenerateHtmlRecords(config)
+	case "rest":
+		log.Info(fmt.Sprintf(`generating records from REST-API %s`, *config.URL))
+		return sources.GenerateRestRecords(config)
+	default:
+		return nil, fmt.Errorf("unsupported data source in GenerateRecords")
+	}
+}
+
+func parseConfigJSON(filePath string) (lib.Config, error) {
+	var cfg lib.Config
+
+	config, readConfigError := os.ReadFile(filePath)
+	if readConfigError != nil {
+		return cfg, fmt.Errorf("error parseConfigJson reading config.json: %w", readConfigError)
+	}
+
+	if jsonError := json.Unmarshal(config, &cfg); jsonError != nil {
+		return cfg, fmt.Errorf("error parseConfigJson unmarshlling config.json: %w", jsonError)
+	}
+
+	return cfg, nil
 }

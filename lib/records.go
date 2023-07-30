@@ -13,8 +13,54 @@ import (
 )
 
 // /////////////////////////////////////////////////////////
-// TRANSFORM FIELD(s)
+// PROCESS RECORDS
 // /////////////////////////////////////////////////////////
+func ProcessRecords(records *[]interface{}, state *State, config Config) error {
+	if filterRecordsError := filterRecords(records, config); filterRecordsError != nil {
+		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", filterRecordsError)
+	}
+	log.Info(fmt.Sprintf(`%d records when filtered at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
+
+	if dropFieldsError := applyToRecords(DropFields, records, config); dropFieldsError != nil {
+		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
+	}
+	log.Info(fmt.Sprintf(`DropFields applied to records at %s`, time.Now().UTC().Format(time.RFC3339)))
+
+	if GenerateHashedFieldsError := applyToRecords(GenerateHashedFields, records, config); GenerateHashedFieldsError != nil {
+		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", GenerateHashedFieldsError)
+	}
+	log.Info(fmt.Sprintf(`GenerateHashedFields applied to records at %s`, time.Now().UTC().Format(time.RFC3339)))
+
+	if GenerateSurrogateKeyFieldsError := applyToRecords(GenerateSurrogateKeyFields, records, config); GenerateSurrogateKeyFieldsError != nil {
+		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", GenerateSurrogateKeyFieldsError)
+	}
+	log.Info(fmt.Sprintf(`surrogate keys generated at %s`, time.Now().UTC().Format(time.RFC3339)))
+
+	if reduceUsingBookmarkError := reduceUsingBookmark(records, state, config); reduceUsingBookmarkError != nil {
+		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceUsingBookmarkError)
+	}
+	log.Info(fmt.Sprintf(`%d records when reduced using bookmark at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
+
+	log.Info(fmt.Sprintf(`%d records processed at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
+	return nil
+}
+
+// /////////////////////////////////////////////////////////
+// TRANSFORM RECORD
+// /////////////////////////////////////////////////////////
+func DropFields(record *interface{}, config Config) error {
+	if config.Records.DropFieldPaths != nil {
+		if r, parsed := (*record).(map[string]interface{}); parsed {
+			for _, path := range *config.Records.DropFieldPaths {
+				util.DropFieldAtPath(path, r)
+			}
+		} else {
+			return fmt.Errorf("error PARSING RECORD in DropFields in record: %+v", r)
+		}
+	}
+	return nil
+}
+
 func GenerateHashedFields(record *interface{}, config Config) error {
 	if config.Records.SensitiveFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
@@ -52,23 +98,7 @@ func GenerateSurrogateKeyFields(record *interface{}, config Config) error {
 }
 
 // /////////////////////////////////////////////////////////
-// DROP FIELD(s)
-// /////////////////////////////////////////////////////////
-func DropFields(record *interface{}, config Config) error {
-	if config.Records.DropFieldPaths != nil {
-		if r, parsed := (*record).(map[string]interface{}); parsed {
-			for _, path := range *config.Records.DropFieldPaths {
-				util.DropFieldAtPath(path, r)
-			}
-		} else {
-			return fmt.Errorf("error PARSING RECORD in DropFields in record: %+v", r)
-		}
-	}
-	return nil
-}
-
-// /////////////////////////////////////////////////////////
-// UPDATE RECORDS PER FIELD FUNCTION
+// APPLY TO RECORDS
 // /////////////////////////////////////////////////////////
 func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, config Config) error {
 	recordChan := make(chan int, len(*records))
@@ -109,7 +139,7 @@ func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, 
 // FILTER RECORDS
 // /////////////////////////////////////////////////////////
 func filterRecords(records *[]interface{}, config Config) error {
-	if config.Records.FilterFieldPath != nil {
+	if config.Records.FilterFieldPaths != nil {
 		var (
 			filteredRecords []interface{}
 			wg              sync.WaitGroup
@@ -124,7 +154,7 @@ func filterRecords(records *[]interface{}, config Config) error {
 				defer wg.Done()
 
 				r := record.(map[string]interface{})
-				if !FilterBreached(r, config) {
+				if !filterBreached(r, config) {
 					mu.Lock()
 					filteredRecords = append(filteredRecords, record)
 					mu.Unlock()
@@ -139,12 +169,11 @@ func filterRecords(records *[]interface{}, config Config) error {
 	return nil
 }
 
-// Also used in listen.go
-func FilterBreached(record map[string]interface{}, config Config) bool {
-	if config.Records.FilterFieldPath == nil {
+func filterBreached(record map[string]interface{}, config Config) bool {
+	if config.Records.FilterFieldPaths == nil {
 		return false
 	} else {
-		for _, filter := range *config.Records.FilterFieldPath {
+		for _, filter := range *config.Records.FilterFieldPaths {
 			if value := util.GetValueAtPath(filter.FieldPath, record); value != nil {
 
 				if !util.TypesMatch(value, filter.Value) {
@@ -209,7 +238,7 @@ func FilterBreached(record map[string]interface{}, config Config) bool {
 // /////////////////////////////////////////////////////////
 // REDUCE RECORDS
 // /////////////////////////////////////////////////////////
-func reduceRecords(records *[]interface{}, state *State, config Config) error {
+func reduceUsingBookmark(records *[]interface{}, state *State, config Config) error {
 	var (
 		reducedRecords []interface{}
 		wg             sync.WaitGroup
@@ -227,16 +256,16 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 			r := record.(map[string]interface{})
 			bookmarkCondition := false
 
-			if config.Records.PrimaryBookmarkPath != nil {
-				switch path := *config.Records.PrimaryBookmarkPath; {
+			if config.Records.BookmarkPath != nil {
+				switch path := *config.Records.BookmarkPath; {
 				case reflect.DeepEqual(path, []string{"*"}):
 					bookmarkCondition = !detectionSetContains(
 						state.Value.Bookmarks[*config.StreamName].DetectionBookmark,
 						r["_sdc_surrogate_key"].(string),
 					)
 				default:
-					if primaryBookmarkValue := util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r); primaryBookmarkValue != nil {
-						bookmarkCondition = toString(primaryBookmarkValue) > state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
+					if BookmarkValue := util.GetValueAtPath(*config.Records.BookmarkPath, r); BookmarkValue != nil {
+						bookmarkCondition = toString(BookmarkValue) > state.Value.Bookmarks[*config.StreamName].Bookmark
 					} else {
 						bookmarkCondition = true
 					}
@@ -256,35 +285,5 @@ func reduceRecords(records *[]interface{}, state *State, config Config) error {
 
 	wg.Wait()
 	*records = reducedRecords
-	return nil
-}
-
-// /////////////////////////////////////////////////////////
-// PROCESS RECORDS
-// /////////////////////////////////////////////////////////
-func ProcessRecords(records *[]interface{}, state *State, config Config) error {
-	if filterRecordsError := filterRecords(records, config); filterRecordsError != nil {
-		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", filterRecordsError)
-	}
-	log.Info(fmt.Sprintf(`%d records when filtered at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
-
-	if dropFieldsError := applyToRecords(DropFields, records, config); dropFieldsError != nil {
-		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
-	}
-
-	if GenerateHashedFieldsError := applyToRecords(GenerateHashedFields, records, config); GenerateHashedFieldsError != nil {
-		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", GenerateHashedFieldsError)
-	}
-
-	if GenerateSurrogateKeyFieldsError := applyToRecords(GenerateSurrogateKeyFields, records, config); GenerateSurrogateKeyFieldsError != nil {
-		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", GenerateSurrogateKeyFieldsError)
-	}
-
-	if reduceRecordsError := reduceRecords(records, state, config); reduceRecordsError != nil {
-		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceRecordsError)
-	}
-
-	log.Info(fmt.Sprintf(`%d records when processed at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
-
 	return nil
 }

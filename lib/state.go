@@ -11,31 +11,18 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
+// /////////////////////////////////////////////////////////
+// STATE.JSON
+// /////////////////////////////////////////////////////////
 type State struct {
 	Type  string `json:"Type"`
 	Value struct {
 		Bookmarks map[string]struct {
-			BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
+			BookmarkUpdatedAt string   `json:"last_extraction_at"`
 			DetectionBookmark []string `json:"detection_bookmark"`
-			PrimaryBookmark   string   `json:"primary_bookmark"`
+			Bookmark          string   `json:"bookmark"`
 		} `json:"bookmarks"`
 	} `json:"Value"`
-}
-
-func detectionSetContains(s []string, str string) bool {
-	sort.Strings(s)
-
-	index := sort.SearchStrings(s, str)
-	if index < len(s) && s[index] == str {
-		return true
-	}
-
-	return false
-}
-
-func writeStateJSON(state *State) {
-	result, _ := json.Marshal(state)
-	os.WriteFile("state.json", result, 0644)
 }
 
 // ///////////////////////////////////////////////////////////
@@ -46,20 +33,20 @@ func CreateStateJSON(config Config) {
 		Type: "STATE",
 		Value: struct {
 			Bookmarks map[string]struct {
-				BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
+				BookmarkUpdatedAt string   `json:"last_extraction_at"`
 				DetectionBookmark []string `json:"detection_bookmark"`
-				PrimaryBookmark   string   `json:"primary_bookmark"`
+				Bookmark          string   `json:"bookmark"`
 			} `json:"bookmarks"`
 		}{
 			Bookmarks: map[string]struct {
-				BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
+				BookmarkUpdatedAt string   `json:"last_extraction_at"`
 				DetectionBookmark []string `json:"detection_bookmark"`
-				PrimaryBookmark   string   `json:"primary_bookmark"`
+				Bookmark          string   `json:"bookmark"`
 			}{
 				*config.StreamName: {
 					BookmarkUpdatedAt: time.Now().UTC().Format(time.RFC3339),
 					DetectionBookmark: []string{},
-					PrimaryBookmark:   "",
+					Bookmark:          "",
 				},
 			},
 		},
@@ -95,8 +82,8 @@ func UpdateState(records []interface{}, state *State, config Config) {
 	// CURRENT
 	bookmarks := state.Value.Bookmarks[*config.StreamName]
 
-	if config.Records.PrimaryBookmarkPath != nil {
-		switch path := *config.Records.PrimaryBookmarkPath; {
+	if config.Records.BookmarkPath != nil {
+		switch path := *config.Records.BookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
 			latestDetectionSet := state.Value.Bookmarks[*config.StreamName].DetectionBookmark
 			for _, record := range records {
@@ -107,20 +94,36 @@ func UpdateState(records []interface{}, state *State, config Config) {
 			}
 			bookmarks.DetectionBookmark = latestDetectionSet
 		default:
-			latestBookmark := state.Value.Bookmarks[*config.StreamName].PrimaryBookmark
+			latestBookmark := state.Value.Bookmarks[*config.StreamName].Bookmark
 			for _, record := range records {
 				r, _ := record.(map[string]interface{})
-				if util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r) == nil {
+				if util.GetValueAtPath(*config.Records.BookmarkPath, r) == nil {
 					continue
-				} else if toString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r)) >= latestBookmark {
-					latestBookmark = toString(util.GetValueAtPath(*config.Records.PrimaryBookmarkPath, r))
+				} else if toString(util.GetValueAtPath(*config.Records.BookmarkPath, r)) >= latestBookmark {
+					latestBookmark = toString(util.GetValueAtPath(*config.Records.BookmarkPath, r))
 				}
 			}
-			bookmarks.PrimaryBookmark = latestBookmark
+			bookmarks.Bookmark = latestBookmark
 		}
 	}
 
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	state.Value.Bookmarks[*config.StreamName] = bookmarks
 	writeStateJSON(state)
+}
+
+func detectionSetContains(s []string, str string) bool {
+	sort.Strings(s)
+
+	index := sort.SearchStrings(s, str)
+	if index < len(s) && s[index] == str {
+		return true
+	}
+
+	return false
+}
+
+func writeStateJSON(state *State) {
+	result, _ := json.Marshal(state)
+	os.WriteFile("state.json", result, 0644)
 }

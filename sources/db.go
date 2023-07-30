@@ -52,15 +52,15 @@ func generateQuery(config lib.Config) (string, error) {
 	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *config.Database.Table))
 
 	// Add fields to SELECT statement
-	if config.Records.PrimaryBookmarkPath != nil && value.PrimaryBookmark != "" {
-		field := *config.Records.PrimaryBookmarkPath
+	if config.Records.BookmarkPath != nil && value.Bookmark != "" {
+		field := *config.Records.BookmarkPath
 		switch dbType {
 		case "postgres", "postgresql", "sqlite":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value.PrimaryBookmark))
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value.Bookmark))
 		case "mysql":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], value.PrimaryBookmark))
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], value.Bookmark))
 		case "sqlserver":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], value.PrimaryBookmark))
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], value.Bookmark))
 		default:
 			return "", fmt.Errorf("unsupported database type: %s", dbType)
 		}

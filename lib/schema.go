@@ -5,6 +5,26 @@ import (
 	"time"
 )
 
+// /////////////////////////////////////////////////////////
+// PROCESS SCHEMA
+// /////////////////////////////////////////////////////////
+func ProcessSchema(records *[]interface{}, config Config) error {
+	if len(*records) == 0 {
+		return nil
+	}
+
+	schema, generateSchemaError := generateSchema(*records)
+	if generateSchemaError != nil {
+		return fmt.Errorf("error CREATING SCHEMA: %w", generateSchemaError)
+	}
+
+	if generateSchemaMessageError := generateSchemaMessage(schema, config); generateSchemaMessageError != nil {
+		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
+	}
+
+	return nil
+}
+
 // ///////////////////////////////////////////////////////////
 // GENERATE SCHEMA
 // ///////////////////////////////////////////////////////////
@@ -62,24 +82,4 @@ func generateSchema(records []interface{}) (map[string]interface{}, error) {
 	schema["properties"] = properties
 	schema["type"] = "object"
 	return schema, nil
-}
-
-// /////////////////////////////////////////////////////////
-// PROCESS SCHEMA
-// /////////////////////////////////////////////////////////
-func ProcessSchema(records []interface{}, config Config) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	schema, generateSchemaError := generateSchema(records)
-	if generateSchemaError != nil {
-		return fmt.Errorf("error CREATING SCHEMA: %w", generateSchemaError)
-	}
-
-	if generateSchemaMessageError := GenerateSchemaMessage(schema, config); generateSchemaMessageError != nil {
-		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
-	}
-
-	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	xtkt "github.com/5amCurfew/xtkt/pkg"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -20,7 +19,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.SetFormatter(&log.JSONFormatter{})
 
-		cfg, cfgError := xtkt.ParseConfigJSON(args[0])
+		cfg, cfgError := parseConfigJSON(args[0])
 		if cfgError != nil {
 			log.WithFields(
 				log.Fields{
@@ -30,16 +29,15 @@ var rootCmd = &cobra.Command{
 		}
 
 		if *cfg.SourceType == "listen" {
-			xtkt.Listen(cfg)
-		} else {
-			extractError := xtkt.Extract(cfg)
-			if extractError != nil {
-				log.WithFields(
-					log.Fields{
-						"Error": fmt.Errorf("%w", extractError),
-					},
-				).Fatalln("failed to extract records")
-			}
+			startListening(cfg)
+		}
+		extractError := extract(cfg)
+		if extractError != nil {
+			log.WithFields(
+				log.Fields{
+					"Error": fmt.Errorf("%w", extractError),
+				},
+			).Fatalln("failed to extract records")
 		}
 	},
 }

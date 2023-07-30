@@ -6,6 +6,9 @@ import (
 	"os"
 )
 
+// /////////////////////////////////////////////////////////
+// MESSAGES
+// /////////////////////////////////////////////////////////
 type Message struct {
 	Type               string                 `json:"type"`
 	Record             map[string]interface{} `json:"record,omitempty"`
@@ -16,7 +19,7 @@ type Message struct {
 	BookmarkProperties []string               `json:"bookmark_properties,omitempty"`
 }
 
-func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
+func generateSchemaMessage(schema map[string]interface{}, config Config) error {
 	message := Message{
 		Type:          "SCHEMA",
 		Stream:        *config.StreamName,

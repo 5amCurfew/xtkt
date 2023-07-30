@@ -28,15 +28,15 @@
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-Both new **and updated** records (per `unique_key`) are sent to your target as new records (with subsequent unique key `_sdc_surrogate_key`).
+Both new **and updated** records (per `unique_key` at source) are sent to your target as new records (with subsequent unique key `_sdc_surrogate_key`).
 
-Determine which records are processed by `xtkt` and subsequently sent to your target by using a **bookmark**. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or set to *new-record-detection* (`records.primary_bookmark: [*]`, not advised for large data).
+Determine which records are processed by `xtkt` and subsequently sent to your target by using a **bookmark**. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or set to *new-record-detection* (`records.bookmark_path: [*]`, not advised for large data) (see examples below).
 
 In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
 
 Records can be filtered prior to being processed by `xtkt` using the `records.filter_field_paths` field in your JSON configuration file (see examples below).
 
-`xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target. Bookmarks are not considered when `"source_type": "listen"`.
+`xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target. Bookmarks and History are not considered when `"source_type": "listen"`.
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
@@ -107,7 +107,7 @@ $ xtkt config_github.json 2>&1 | jq .
     "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL, relative file path etc)
     "records": { // required <object>: describes handling of records
         "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
-        "primary_bookmark_path": ["<key_path_1>", "<key_path_1>", ...], // optional <array[string]>: path to bookmark within records
+        "bookmark_path": ["<key_path_1>", "<key_path_1>", ...], // optional <array[string]>: path to bookmark within records
         "drop_field_paths": [ // optional <array[array]>: paths to remove within records
             ["<key_path_1>", "<key_path_1>", ...], // required <array[string]>
             ...
@@ -202,7 +202,7 @@ No authentication required, records found in the response "results" array, pagin
     "url": "https://rickandmortyapi.com/api/character",
     "records": {
         "unique_key_path": ["id"],
-        "primary_bookmark_path": ["*"],
+        "bookmark_path": ["*"],
         "drop_field_paths": [
             ["episode"],
             ["origin", "url"]
@@ -245,7 +245,7 @@ Token authentication required, records returned immediately as an array, paginat
     "url": "https://api.github.com/repos/5amCurfew/xtkt/commits",
     "records": {
         "unique_key_path": ["sha"],
-        "primary_bookmark_path": ["commit", "author", "date"],
+        "bookmark_path": ["commit", "author", "date"],
         "drop_field_paths": [
             ["author"],
             ["committer", "avatar_url"],
@@ -289,7 +289,7 @@ Oauth authentication required, records returned immediately in an array, paginat
     "url": "https://www.strava.com/api/v3/athlete/activities",
     "records": {
         "unique_key_path": ["id"],
-        "primary_bookmark_path": ["start_date"]
+        "bookmark_path": ["start_date"]
     },
     "rest": {
         "auth": {
@@ -341,7 +341,7 @@ Oauth authentication required, records returned immediately in an array, paginat
     "url": "sqlite:///example.db",
     "records": {
         "unique_key_path": ["id"],
-        "primary_bookmark_path": ["updated_at"]
+        "bookmark_path": ["updated_at"]
     },
     "db": {
         "table": "customers"
