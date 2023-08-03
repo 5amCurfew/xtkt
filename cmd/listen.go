@@ -45,12 +45,11 @@ func handleIncomingRecords(recordStore *RecordStore, config lib.Config) http.Han
 		decoder := json.NewDecoder(req.Body)
 		if err := decoder.Decode(&record); err != nil {
 			// error parsing the JSON, return the original output
-			log.Info(fmt.Sprintf(`error JSON.UNMARSHAL REQUEST at %s, skipping`, time.Now().UTC().Format(time.RFC3339)))
+			log.Warning(fmt.Sprintf(`error JSON.UNMARSHAL REQUEST at %s, skipping`, time.Now().UTC().Format(time.RFC3339)))
 			return
 		}
 
 		recordStore.AddRecord(record)
-		//log.Info(fmt.Sprintf(`record added to recordStore at %s`, time.Now().UTC().Format(time.RFC3339)))
 	}
 }
 
@@ -90,11 +89,11 @@ func (rs *RecordStore) startTimer(config lib.Config) {
 			log.Info(fmt.Sprintf(`record cache cleared at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 			rs.Lock()
-			rs.timer.Stop() // Stop the timer before starting it again
-			rs.timer = nil  // Reset the timer to nil
+			rs.timer.Stop()
+			rs.timer = nil // Reset
 			rs.Unlock()
 
-			rs.startTimer(config) // Start the timer again
+			rs.startTimer(config) // Restart
 		}()
 	} else {
 		rs.timer.Stop() // Stop the timer before resetting it
@@ -105,32 +104,34 @@ func (rs *RecordStore) startTimer(config lib.Config) {
 func (rs *RecordStore) processRecords(config lib.Config) {
 	rs.Lock()
 	log.Info(fmt.Sprintf(`records stored at %s: %d`, time.Now().UTC().Format(time.RFC3339), len(*rs.records)))
-	log.Info(fmt.Sprintf(`records processing started at %s`, time.Now().UTC().Format(time.RFC3339)))
-
 	defer rs.Unlock()
 
-	if processRecordsError := lib.ProcessRecords(rs.records, &lib.State{}, config); processRecordsError != nil {
-		log.Error("error PROCESSING RECORDS: %w", processRecordsError)
-	}
+	// /////////////////////////////////////////////////////////
+	// PROCESS RECORDS
+	// /////////////////////////////////////////////////////////
+	if len(*rs.records) > 0 {
+		log.Info(fmt.Sprintf(`records processing started at %s`, time.Now().UTC().Format(time.RFC3339)))
 
-	if processSchemaError := lib.ProcessSchema(rs.records, config); processSchemaError != nil {
-		log.Error("error PROCESSING SCHEMA: %w", processSchemaError)
-	}
-
-	for _, record := range *rs.records {
-		r := (record).(map[string]interface{})
-		message := lib.Message{
-			Type:   "RECORD",
-			Record: r,
-			Stream: *config.StreamName,
+		if processRecordsError := lib.ProcessRecords(rs.records, &lib.State{}, config); processRecordsError != nil {
+			log.Errorf("error PROCESSING RECORDS (listen): %s", processRecordsError)
 		}
 
-		messageJson, err := json.Marshal(message)
-		if err != nil {
-			log.Error("Error marshaling message:", err)
-			continue
+		// /////////////////////////////////////////////////////////
+		// GENERATE SCHEMA, SCHEMA MESSAGE
+		// /////////////////////////////////////////////////////////
+		if schema, generateSchemaError := lib.GenerateSchema(*rs.records); generateSchemaError == nil {
+			if generateSchemaMessageError := lib.GenerateSchemaMessage(schema, config); generateSchemaMessageError != nil {
+				log.Errorf(`error GENERATING SCHEMA MESSAGES (listen) at %s`, generateSchemaMessageError)
+			}
 		}
 
-		fmt.Println(string(messageJson))
+		// /////////////////////////////////////////////////////////
+		// GENERATE RECORD MESSAGES
+		// /////////////////////////////////////////////////////////
+		for _, record := range *rs.records {
+			if generateRecordMessageError := lib.GenerateRecordMessage(record, &lib.State{}, config); generateRecordMessageError != nil {
+				log.Errorf("error GENERATING RECORD MESSAGE: %s", generateRecordMessageError)
+			}
+		}
 	}
 }

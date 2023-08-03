@@ -21,7 +21,7 @@ func extract(config lib.Config) error {
 	execution.ExecutionStart = time.Now().UTC()
 
 	// /////////////////////////////////////////////////////////
-	// GENERATSE state.json
+	// GENERATE state.json
 	// /////////////////////////////////////////////////////////
 	if _, err := os.Stat("state.json"); err != nil {
 		lib.CreateStateJSON(config)
@@ -36,7 +36,7 @@ func extract(config lib.Config) error {
 	}
 
 	// /////////////////////////////////////////////////////////
-	// GENERATSE RECORDS
+	// GENERATE RECORDS
 	// /////////////////////////////////////////////////////////
 	records, generateRecordsError := generateRecords(config)
 	if generateRecordsError != nil {
@@ -46,7 +46,7 @@ func extract(config lib.Config) error {
 	log.Info(fmt.Sprintf(`%d records extracted at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
 
 	// /////////////////////////////////////////////////////////
-	// PROCESS RECORD(s)
+	// PROCESS RECORDS
 	// /////////////////////////////////////////////////////////
 	if processRecordsError := lib.ProcessRecords(&records, state, config); processRecordsError != nil {
 		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
@@ -56,12 +56,14 @@ func extract(config lib.Config) error {
 	// /////////////////////////////////////////////////////////
 	// GENERATE SCHEMA, SCHEMA MESSAGE
 	// /////////////////////////////////////////////////////////
-	if processSchemaError := lib.ProcessSchema(&records, config); processSchemaError != nil {
-		return fmt.Errorf("error PROCESSING SCHEMA: %w", processSchemaError)
+	if schema, generateSchemaError := lib.GenerateSchema(records); generateSchemaError != nil {
+		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema, config); generateSchemaMessageError != nil {
+			return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
+		}
 	}
 
 	// /////////////////////////////////////////////////////////
-	// GENERATSE RECORD MESSAGE(s)
+	// GENERATE RECORD MESSAGES
 	// /////////////////////////////////////////////////////////
 	for _, record := range records {
 		if generateRecordMessageError := lib.GenerateRecordMessage(record, state, config); generateRecordMessageError != nil {
@@ -76,9 +78,9 @@ func extract(config lib.Config) error {
 	log.Info(fmt.Sprintf(`state.json updated at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	// /////////////////////////////////////////////////////////
-	// GENERATSE STATE MESSAGE
+	// GENERATE STATE MESSAGE
 	// /////////////////////////////////////////////////////////
-	if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
+	if generateStateMessageError := lib.GenerateStateMessage(state, config); generateStateMessageError != nil {
 		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
 	}
 

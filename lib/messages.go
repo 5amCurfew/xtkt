@@ -19,7 +19,7 @@ type Message struct {
 	BookmarkProperties []string               `json:"bookmark_properties,omitempty"`
 }
 
-func generateSchemaMessage(schema map[string]interface{}, config Config) error {
+func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 	message := Message{
 		Type:          "SCHEMA",
 		Stream:        *config.StreamName,
@@ -32,8 +32,13 @@ func generateSchemaMessage(schema map[string]interface{}, config Config) error {
 		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
 	}
 
-	os.Stdout.Write(messageJson)
-	os.Stdout.Write([]byte("\n"))
+	if *config.SourceType == "listen" {
+		fmt.Println(string(messageJson))
+	} else {
+		os.Stdout.Write(messageJson)
+		os.Stdout.Write([]byte("\n"))
+	}
+
 	return nil
 }
 
@@ -54,16 +59,21 @@ func GenerateRecordMessage(record interface{}, state *State, config Config) erro
 		return fmt.Errorf("error CREATING RECORD MESSAGE: %w", err)
 	}
 
-	os.Stdout.Write(messageJson)
-	os.Stdout.Write([]byte("\n"))
+	if *config.SourceType == "listen" {
+		fmt.Println(string(messageJson))
+	} else {
+		os.Stdout.Write(messageJson)
+		os.Stdout.Write([]byte("\n"))
+	}
 
 	return nil
 }
 
-func GenerateStateMessage(state *State) error {
+func GenerateStateMessage(state *State, config Config) error {
 	message := Message{
-		Type:  "STATE",
-		Value: state.Value,
+		Type:   "STATE",
+		Stream: *config.StreamName,
+		Value:  state.Value,
 	}
 
 	messageJson, err := json.Marshal(message)
@@ -71,7 +81,12 @@ func GenerateStateMessage(state *State) error {
 		return fmt.Errorf("error CREATING STATE MESSAGE: %w", err)
 	}
 
-	os.Stdout.Write(messageJson)
-	os.Stdout.Write([]byte("\n"))
+	if *config.SourceType == "listen" {
+		fmt.Println(string(messageJson))
+	} else {
+		os.Stdout.Write(messageJson)
+		os.Stdout.Write([]byte("\n"))
+	}
+
 	return nil
 }
