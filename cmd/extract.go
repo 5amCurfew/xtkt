@@ -9,13 +9,14 @@ import (
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	sources "github.com/5amCurfew/xtkt/sources"
+	util "github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
 )
 
 // /////////////////////////////////////////////////////////
 // EXTRACT
 // /////////////////////////////////////////////////////////
-func extract(config lib.Config) error {
+func extract(config lib.Config, saveSchema bool) error {
 	var execution lib.ExecutionMetric
 	execution.Stream = *config.StreamName
 	execution.ExecutionStart = time.Now().UTC()
@@ -56,10 +57,15 @@ func extract(config lib.Config) error {
 	// /////////////////////////////////////////////////////////
 	// GENERATE SCHEMA, SCHEMA MESSAGE
 	// /////////////////////////////////////////////////////////
-	if schema, generateSchemaError := lib.GenerateSchema(records); generateSchemaError != nil {
-		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema, config); generateSchemaMessageError != nil {
-			return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
-		}
+	schema, generateSchemaError := lib.GenerateSchema(records)
+	if generateSchemaError != nil {
+		return fmt.Errorf("error GENERATING SCHEMA: %w", generateSchemaError)
+	}
+	if generateSchemaMessageError := lib.GenerateSchemaMessage(schema, config); generateSchemaMessageError != nil {
+		return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
+	}
+	if saveSchema {
+		util.WriteJSON(fmt.Sprintf("schema_%s.json", time.Now().Format("20060102150405")), schema)
 	}
 
 	// /////////////////////////////////////////////////////////

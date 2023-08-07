@@ -10,6 +10,8 @@ import (
 
 var version = "0.0.85"
 
+var saveSchema bool
+
 var rootCmd = &cobra.Command{
 	Use:     "xtkt <PATH_TO_CONFIG_JSON>",
 	Version: version,
@@ -21,28 +23,19 @@ var rootCmd = &cobra.Command{
 
 		cfg, cfgError := parseConfigJSON(args[0])
 		if cfgError != nil {
-			log.WithFields(
-				log.Fields{
-					"Error": fmt.Errorf("%w", cfgError),
-				},
-			).Fatalln("failed to parse config JSON")
+			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", cfgError)}).Fatalln("failed to parse config JSON")
 		}
 
 		if *cfg.SourceType == "listen" {
 			startListening(cfg)
-		}
-		extractError := extract(cfg)
-		if extractError != nil {
-			log.WithFields(
-				log.Fields{
-					"Error": fmt.Errorf("%w", extractError),
-				},
-			).Fatalln("failed to extract records")
+		} else if extractError := extract(cfg, saveSchema); extractError != nil {
+			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", extractError)}).Fatalln("failed to extract records")
 		}
 	},
 }
 
 func Execute() {
+	rootCmd.Flags().BoolVarP(&saveSchema, "save-schema", "s", false, "save the schema to a file after extraction")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error using xtkt: '%s'", err)
 		os.Exit(1)

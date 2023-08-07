@@ -1,10 +1,17 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 )
+
+func WriteJSON(fileName string, state interface{}) {
+	result, _ := json.Marshal(state)
+	os.WriteFile(fileName, result, 0644)
+}
 
 func GetValueAtPath(path []string, input map[string]interface{}) interface{} {
 	if len(path) > 0 {

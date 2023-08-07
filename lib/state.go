@@ -51,7 +51,7 @@ func CreateStateJSON(config Config) {
 			},
 		},
 	}
-	writeStateJSON(&state)
+	util.WriteJSON("state.json", state)
 }
 
 // ///////////////////////////////////////////////////////////
@@ -109,7 +109,7 @@ func UpdateState(records []interface{}, state *State, config Config) {
 
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	state.Value.Bookmarks[*config.StreamName] = bookmarks
-	writeStateJSON(state)
+	util.WriteJSON("state.json", state)
 }
 
 func detectionSetContains(s []string, str string) bool {
@@ -121,9 +121,4 @@ func detectionSetContains(s []string, str string) bool {
 	}
 
 	return false
-}
-
-func writeStateJSON(state *State) {
-	result, _ := json.Marshal(state)
-	os.WriteFile("state.json", result, 0644)
 }
