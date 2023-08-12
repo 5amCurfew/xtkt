@@ -7,7 +7,7 @@ import (
 
 func main() {
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("pong!")
+		fmt.Println("pong! 🏓")
 		return
 	})
 	http.HandleFunc("/post", handlePost)
