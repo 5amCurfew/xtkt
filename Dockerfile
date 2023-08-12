@@ -23,6 +23,5 @@ WORKDIR /xtkt_api
 COPY api/main.go .
 # ------------------------------------
 WORKDIR /
-# Expose the port the API will run on
-EXPOSE 8000
+EXPOSE 8888
 CMD ["sh", "-c", "go run /xtkt_api/main.go"]
