@@ -1,5 +1,7 @@
 builds:
-  - binary: xtkt
+  - dir: .
+    main: ./cli
+    binary: xtkt
     goos:
       - darwin
       - linux
