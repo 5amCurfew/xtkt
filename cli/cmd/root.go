@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.0.86"
+var version = "0.0.861"
 
 var saveSchema bool
 
