@@ -1,6 +1,5 @@
 builds:
-  - main: ./cli/main.go
-    binary: xtkt
+  - binary: xtkt
     goos:
       - darwin
       - linux
