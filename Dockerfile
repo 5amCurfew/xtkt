@@ -19,9 +19,8 @@ RUN go build .
 # --
 RUN mv ./xtkt /usr/local/bin/
 # ------------------------------------
-WORKDIR /xtkt_api
-COPY api/main.go .
+WORKDIR /api
+COPY api/ .
 # ------------------------------------
 WORKDIR /
 EXPOSE 8888
-CMD ["sh", "-c", "go run /xtkt_api/main.go"]

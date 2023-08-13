@@ -1,0 +1,10 @@
+version: '3.3'
+services:
+  xtkt:
+    image: xtkt
+    container_name: api
+    ports:
+      - "3000:8888"
+    volumes:
+      - ./api:/api
+    command: ["go", "run", "api/main.go"]
