@@ -5,6 +5,7 @@ config_*
 data.*
 history.json
 index.html
+Makefile
 output.jsonl
 state.json
 target*

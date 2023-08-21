@@ -8,7 +8,7 @@ builds:
       - arm64
     env:
       - CGO_ENABLED=0
-    dir: ./cli
+    dir: .
 
 release:
   prerelease: auto
