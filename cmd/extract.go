@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -122,19 +121,4 @@ func generateRecords(config lib.Config) ([]interface{}, error) {
 	default:
 		return nil, fmt.Errorf("unsupported data source in GenerateRecords")
 	}
-}
-
-func parseConfigJSON(filePath string) (lib.Config, error) {
-	var cfg lib.Config
-
-	config, readConfigError := os.ReadFile(filePath)
-	if readConfigError != nil {
-		return cfg, fmt.Errorf("error parseConfigJson reading config.json: %w", readConfigError)
-	}
-
-	if jsonError := json.Unmarshal(config, &cfg); jsonError != nil {
-		return cfg, fmt.Errorf("error parseConfigJson unmarshlling config.json: %w", jsonError)
-	}
-
-	return cfg, nil
 }

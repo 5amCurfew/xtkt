@@ -24,17 +24,17 @@ func ProcessRecords(records *[]interface{}, state *State, config Config) error {
 	if dropFieldsError := applyToRecords(DropFields, records, config); dropFieldsError != nil {
 		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
 	}
-	log.Info(fmt.Sprintf(`DropFields applied to records at %s`, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`selected fields dropped from records at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	if GenerateHashedFieldsError := applyToRecords(GenerateHashedFields, records, config); GenerateHashedFieldsError != nil {
 		return fmt.Errorf("error GENERATING RECORD HASHED FIELD IN ProcessRecords: %v", GenerateHashedFieldsError)
 	}
-	log.Info(fmt.Sprintf(`GenerateHashedFields applied to records at %s`, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`selected fields hashed in records at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	if GenerateSurrogateKeyFieldsError := applyToRecords(GenerateSurrogateKeyFields, records, config); GenerateSurrogateKeyFieldsError != nil {
 		return fmt.Errorf("error GENERATING RECORD SURROGATE KEY IN ProcessRecords: %v", GenerateSurrogateKeyFieldsError)
 	}
-	log.Info(fmt.Sprintf(`surrogate keys generated at %s`, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`surrogate keys added to records at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	if reduceUsingBookmarkError := reduceUsingBookmark(records, state, config); reduceUsingBookmarkError != nil {
 		return fmt.Errorf("error REDUCING RECORDS IN ProcessRecords: %v", reduceUsingBookmarkError)

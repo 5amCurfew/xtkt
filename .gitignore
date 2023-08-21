@@ -2,10 +2,10 @@ _*
 *.db
 *.html
 config_*
+config.json
 data.*
 history.json
 index.html
-Makefile
 output.jsonl
 state.json
 target*
