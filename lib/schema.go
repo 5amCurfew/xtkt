@@ -15,7 +15,7 @@ func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
 	for _, record := range records {
 		r, err := record.(map[string]interface{})
 		if !err {
-			return nil, fmt.Errorf("error SCHEMA CREATION FROM RECORD")
+			return nil, fmt.Errorf("error parsing record as map[string]interface{} in GenerateSchema")
 		}
 
 		for key, value := range r {
@@ -37,7 +37,7 @@ func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
 					prop.(map[string]interface{})["type"] = []string{"object", "null"}
 					prop.(map[string]interface{})["properties"] = subProps["properties"]
 				} else {
-					return nil, fmt.Errorf("error SCHEMA RECURSION: %w", err)
+					return nil, fmt.Errorf("error schema generation recursion: %w", err)
 				}
 			case []interface{}:
 				prop.(map[string]interface{})["type"] = []string{"array", "null"}

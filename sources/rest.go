@@ -23,7 +23,7 @@ func callAPI(config lib.Config) ([]byte, error) {
 
 	req, err := http.NewRequest("GET", *config.URL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error GET REQUEST creation: %w", err)
+		return nil, fmt.Errorf("error creating get request: %w", err)
 	}
 
 	if *config.Rest.Auth.Required {
@@ -46,25 +46,25 @@ func callAPI(config lib.Config) ([]byte, error) {
 
 			authReq, err := http.NewRequest("POST", *config.Rest.Auth.Oauth.TokenURL, payload)
 			if err != nil {
-				return nil, fmt.Errorf("error POST REQUEST creation: %w", err)
+				return nil, fmt.Errorf("error creating auth post request: %w", err)
 			}
 			authReq.Header.Set("Content-Type", writer.FormDataContentType())
 
 			oauthTokenResp, err := client.Do(authReq)
 			if err != nil {
-				return nil, fmt.Errorf("error AUTH POST REQUEST: %w", err)
+				return nil, fmt.Errorf("error auth post request: %w", err)
 			}
 			defer oauthTokenResp.Body.Close()
 
 			var responseMap map[string]interface{}
 			oauthResp, err := io.ReadAll(oauthTokenResp.Body)
 			if err != nil {
-				return nil, fmt.Errorf("error reading RESP.BODY: %w", err)
+				return nil, fmt.Errorf("error reading response body: %w", err)
 			}
 			output := string(oauthResp)
 
 			if err := json.Unmarshal([]byte(output), &responseMap); err != nil {
-				return nil, fmt.Errorf("error JSON.UNMARSHAL: %w", err)
+				return nil, fmt.Errorf("error json.unmarshal of response: %w", err)
 			}
 			accesToken := util.GetValueAtPath([]string{"access_token"}, responseMap)
 
@@ -85,7 +85,11 @@ func callAPI(config lib.Config) ([]byte, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error CLIENT.DO(REQ): %w", err)
+		return nil, fmt.Errorf("error executing request: %w", err)
+	}
+	if resp.StatusCode >= 400 {
+		statusMsg, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error response: %d %s", resp.StatusCode, string(statusMsg))
 	}
 	defer resp.Body.Close()
 	URLsParsed = append(URLsParsed, *config.URL)
@@ -94,7 +98,7 @@ func callAPI(config lib.Config) ([]byte, error) {
 
 func GenerateRestRecords(config lib.Config) ([]interface{}, error) {
 	if config.Rest.Sleep != nil {
-		log.Info(fmt.Sprintf(`API call sleeping %d seconds`, *config.Rest.Sleep))
+		log.Info(fmt.Sprintf(`api call sleeping %d seconds`, *config.Rest.Sleep))
 		time.Sleep(time.Duration(*config.Rest.Sleep) * time.Second)
 	}
 	var responseMap map[string]interface{}
@@ -102,7 +106,7 @@ func GenerateRestRecords(config lib.Config) ([]interface{}, error) {
 	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
 	response, err := callAPI(config)
 	if err != nil {
-		return nil, fmt.Errorf("error calling API: %w", err)
+		return nil, fmt.Errorf("error calling api: %w", err)
 	}
 
 	var responseMapRecordsPath []string
@@ -113,7 +117,7 @@ func GenerateRestRecords(config lib.Config) ([]interface{}, error) {
 		var data interface{}
 		if err := json.Unmarshal([]byte(response), &data); err != nil {
 			// error parsing the JSON, return the original output
-			return nil, fmt.Errorf("error JSON.UNMARSHAL API RESPONSE: %w", err)
+			return nil, fmt.Errorf("error json.unmarshal of response: %w", err)
 		}
 
 		switch d := data.(type) {
@@ -136,7 +140,7 @@ func GenerateRestRecords(config lib.Config) ([]interface{}, error) {
 
 	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("error REST RESPONSE RECORDS PATH")
+		return nil, fmt.Errorf("error respone map does not contain records array at path: %v", responseMapRecordsPath)
 	}
 
 	if *config.Rest.Response.Pagination {
@@ -153,7 +157,7 @@ func GenerateRestRecords(config lib.Config) ([]interface{}, error) {
 				if newRecords, err := GenerateRestRecords(config); err == nil {
 					records = append(records, newRecords...)
 				} else {
-					return nil, fmt.Errorf("error PAGINATION NEXT CALL: %w", err)
+					return nil, fmt.Errorf("error pagination next at %s: %w", *config.URL, err)
 				}
 			}
 
@@ -173,7 +177,7 @@ func GenerateRestRecords(config lib.Config) ([]interface{}, error) {
 				if newRecords, err := GenerateRestRecords(config); err == nil {
 					records = append(records, newRecords...)
 				} else {
-					return nil, fmt.Errorf("error PAGINATION QUERY CALL: %w", err)
+					return nil, fmt.Errorf("error pagination query at %s: %w", *config.URL, err)
 				}
 			}
 		}

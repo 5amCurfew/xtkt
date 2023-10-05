@@ -10,8 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.0.872"
-var saveSchema bool
+var version = "0.0.873"
+var saveSchema, saveHistory bool
 
 var rootCmd = &cobra.Command{
 	Use:     "xtkt [PATH_TO_CONFIG_JSON]",
@@ -38,14 +38,16 @@ var rootCmd = &cobra.Command{
 
 		if *cfg.SourceType == "listen" {
 			startListening(cfg)
-		} else if extractError := extract(cfg, saveSchema); extractError != nil {
+		} else if extractError := extract(cfg, saveSchema, saveHistory); extractError != nil {
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", extractError)}).Fatalln("failed to extract records")
 		}
 	},
 }
 
 func Execute() {
-	rootCmd.Flags().BoolVarP(&saveSchema, "save-schema", "s", false, "save the schema to a file after extraction")
+	rootCmd.Flags().BoolVar(&saveSchema, "save-schema", false, "save the schema to a file after extraction")
+	rootCmd.Flags().BoolVar(&saveHistory, "save-history", false, "create history.json for execution metrics")
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error using xtkt: '%s'", err)
 		os.Exit(1)

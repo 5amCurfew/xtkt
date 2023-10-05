@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	log "github.com/sirupsen/logrus"
 )
 
 func extractDatabaseTypeFromUrl(config lib.Config) (string, error) {
@@ -38,12 +39,12 @@ func generateQuery(config lib.Config) (string, error) {
 
 	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {
-		return "", fmt.Errorf("error determining DATABASE TYPE: %w", err)
+		return "", fmt.Errorf("error determining database type: %w", err)
 	}
 
 	state, err := lib.ParseStateJSON(config)
 	if err != nil {
-		return "", fmt.Errorf("error parsing STATE for bookmark value: %w", err)
+		return "", fmt.Errorf("error parsing state for bookmark value: %w", err)
 	}
 
 	value := state.Value.Bookmarks[*config.StreamName]
@@ -72,18 +73,20 @@ func generateQuery(config lib.Config) (string, error) {
 func readDatabaseRows(db *sql.DB, config lib.Config) ([]interface{}, error) {
 	qry, err := generateQuery(config)
 	if err != nil {
-		return nil, fmt.Errorf("error generating QUERY: %w", err)
+		return nil, fmt.Errorf("error generating query: %w", err)
 	}
 
+	log.Info(fmt.Sprintf("executing query %s", *config.URL))
 	rows, err := db.Query(qry)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing SELECT: %w", err)
+		return nil, fmt.Errorf("error parsing select: %w", err)
 	}
+	log.Info(fmt.Sprintf("successful query execution %s", *config.URL))
 	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, fmt.Errorf("error parsing COLUMNS: %w", err)
+		return nil, fmt.Errorf("error parsing columns: %w", err)
 	}
 
 	result := make([]interface{}, 0)
@@ -93,7 +96,7 @@ func readDatabaseRows(db *sql.DB, config lib.Config) ([]interface{}, error) {
 			values[i] = new(interface{})
 		}
 		if err := rows.Scan(values...); err != nil {
-			return nil, fmt.Errorf("error ROWS SCAN: %w", err)
+			return nil, fmt.Errorf("error scanning rows: %w", err)
 		}
 
 		row := make(map[string]interface{})
@@ -124,7 +127,7 @@ func GenerateDatabaseRecords(config lib.Config) ([]interface{}, error) {
 	address := *config.URL
 	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {
-		return nil, fmt.Errorf("unsupported database URL: %w", err)
+		return nil, fmt.Errorf("unsupported database url: %w", err)
 	}
 
 	if dbType == "sqlite3" {

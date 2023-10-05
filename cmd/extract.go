@@ -15,7 +15,7 @@ import (
 // /////////////////////////////////////////////////////////
 // EXTRACT
 // /////////////////////////////////////////////////////////
-func extract(config lib.Config, saveSchema bool) error {
+func extract(config lib.Config, saveSchema bool, saveHistory bool) error {
 	var execution lib.ExecutionMetric
 	execution.Stream = *config.StreamName
 	execution.ExecutionStart = time.Now().UTC()
@@ -94,8 +94,12 @@ func extract(config lib.Config, saveSchema bool) error {
 	// /////////////////////////////////////////////////////////
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
-	if appendToHistoryError := lib.AppendToHistory(execution); appendToHistoryError != nil {
-		return fmt.Errorf("error GENERATING APPENDING EXECUTION TO HISTORY: %w", appendToHistoryError)
+	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
+
+	if saveHistory {
+		if appendToHistoryError := lib.AppendToHistory(execution); appendToHistoryError != nil {
+			return fmt.Errorf("error GENERATING APPENDING EXECUTION TO HISTORY: %w", appendToHistoryError)
+		}
 	}
 
 	return nil

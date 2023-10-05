@@ -10,12 +10,12 @@ import (
 // HISTORY.JSON
 // /////////////////////////////////////////////////////////
 type ExecutionMetric struct {
-	Stream            string
-	ExecutionStart    time.Time
-	ExecutionEnd      time.Time
-	ExecutionDuration time.Duration
-	RecordsExtracted  int
-	RecordsProcessed  int
+	Stream            string        `json:"stream,omitempty"`
+	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
+	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
+	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
+	RecordsExtracted  int           `json:"records_extracted"`
+	RecordsProcessed  int           `json:"records_processed"`
 }
 
 func AppendToHistory(metric ExecutionMetric) error {

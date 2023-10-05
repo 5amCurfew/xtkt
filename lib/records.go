@@ -55,7 +55,7 @@ func DropFields(record *interface{}, config Config) error {
 				util.DropFieldAtPath(path, r)
 			}
 		} else {
-			return fmt.Errorf("error PARSING RECORD in DropFields in record: %+v", r)
+			return fmt.Errorf("error parsing record in DropFields in record: %+v", r)
 		}
 	}
 	return nil
@@ -74,7 +74,7 @@ func GenerateHashedFields(record *interface{}, config Config) error {
 				}
 			}
 		} else {
-			return fmt.Errorf("error PARSING RECORD in GenerateHashedFields in record: %+v", r)
+			return fmt.Errorf("error parsing record in GenerateHashedFields in record: %+v", r)
 		}
 	}
 	return nil
@@ -92,7 +92,7 @@ func GenerateSurrogateKeyFields(record *interface{}, config Config) error {
 		r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
 		r["_sdc_time_extracted"] = time.Now().UTC().Format(time.RFC3339)
 	} else {
-		return fmt.Errorf("error PARSING RECORD in GenerateSurrogateKeyFields in record: %+v", r)
+		return fmt.Errorf("error parsing record in GenerateSurrogateKeyFields: %+v", r)
 	}
 	return nil
 }

@@ -65,7 +65,7 @@ func ParseStateJSON(config Config) (*State, error) {
 
 	var state State
 	if err := json.Unmarshal(stateFile, &state); err != nil {
-		return nil, fmt.Errorf("error unmarshaling state JSON: %w", err)
+		return nil, fmt.Errorf("error unmarshaling state json: %w", err)
 	}
 
 	if _, ok := state.Value.Bookmarks[*config.StreamName]; !ok {
