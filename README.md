@@ -21,8 +21,6 @@
   * [Postgres](#postgres)
   * [SQLite](#sqlite)
   * [File](#file)
-  * [Listen](#listen)
-  * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 
 `xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl).
 
