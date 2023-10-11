@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.0.873"
+var version = "0.0.88"
 var saveSchema, saveHistory bool
 
 var rootCmd = &cobra.Command{
@@ -36,9 +36,7 @@ var rootCmd = &cobra.Command{
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", cfgError)}).Fatalln("failed to parse config JSON - does it exist and is it valid?")
 		}
 
-		if *cfg.SourceType == "listen" {
-			startListening(cfg)
-		} else if extractError := extract(cfg, saveSchema, saveHistory); extractError != nil {
+		if extractError := extract(cfg, saveSchema, saveHistory); extractError != nil {
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", extractError)}).Fatalln("failed to extract records")
 		}
 	},

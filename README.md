@@ -24,29 +24,23 @@
   * [Listen](#listen)
   * [www.fifaindex.com/teams](#wwwfifaindexcomteams)
 
-`xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl). HTML scraping in beta.
+`xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl).
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-Both new **and updated** records (per `unique_key` at source) are sent to your target as new records (with subsequent unique key `_sdc_surrogate_key`).
+Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (identifier) and `_sdc_surrogate_key` (version key)).
 
 Determine which records are processed by `xtkt` and subsequently sent to your target by using a **bookmark**. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or set to *new-record-detection* (`records.bookmark_path: [*]`, not advised for large data) (see examples below).
 
-In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect hard-deletion in your data model (using `_sdc_time_extracted`).
-
-Records can be filtered prior to being processed by `xtkt` using the `records.filter_field_paths` field in your JSON configuration file (see examples below).
-
-`xtkt` can also listen for incoming messages (designed for webhooks) and continuously pipe them to your target. Bookmarks and History are not considered when `"source_type": "listen"`.
+In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect deletion in your data model (using `_sdc_time_extracted`).
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
 Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
 
-Intelligent data fields (REMOVED FOR NOW) can be added to your records using OpenAI LLM models using the `records.intelligent_fields` field in your JSON configuration file (see examples below, requires environment variable `OPENAI_API_KEY`).
-
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`.
 
-`xtkt` is still in development (currently v0.0.8)
+`xtkt` is still in development (currently v0.0.88)
 
 ### :computer: Installation
 
@@ -83,12 +77,12 @@ xtkt config.json | ./_targets/target-name/bin/target-name`
 
 For example:
 ```bash
-xtkt config_github.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c config_target_postgres.json 
+xtkt config.json | ./_targets/pipelinewise-target-postgres/bin/target-postgres -c config_target_postgres.json 
 ```
 
 I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages in development. For example:
 ```bash
-$ xtkt config_github.json 2>&1 | jq .
+$ xtkt config.json 2>&1 | jq .
 ```
 
 ### :floppy_disk: Metadata
@@ -114,14 +108,6 @@ $ xtkt config_github.json 2>&1 | jq .
             ["<key_path_1>", "<key_path_1>", ...], // required <array[string]>
             ...
         ],
-        "filter_field_paths": [ // optional <array[object]>
-            {
-                "field_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to field within records
-                "operation": "<operation>", // required <string>: one of equal_to, not_equal_to, greater_than, less_than
-                "value": "<value>" // required <string/number>: value to filter against
-            },
-            ...
-        ],
         "sensitive_field_paths": [ // optional <array[array]>: array of paths of fields to hash
             ["<sensitive_path_1_1>", "<sensitive_path_1_2>", ...], // required <array[string]>
             ...
@@ -130,25 +116,11 @@ $ xtkt config_github.json 2>&1 | jq .
     ...
 ```
 
-#### db, html and listen
+#### database
 ```javascript
     ...
     "db": { // optional <object>: required when "source_type": "db"
         "table": "<table>" // required <string>: table name in database
-    },
-    "html": { // optional <object>: required when "source_type": "html"
-        "elements_path": "<elements_path>", // required <string>: css identifier of elements parent
-        "elements": [ // required <array[object]>
-            {
-            "name": "<element_name>", // required <string>: resulting field name in record
-            "path": "<element_path>" // required <string>: css identifier of record
-            },
-            ...
-        ]
-    },
-    "listen": { // optional <object>: required when "source_type": "listen"
-        "collection_interval": "<collection_interval>", // required <int>: period of collection in seconds before emitting record messages
-        "port": "<port>" // required <string>: port declaration of xtkt API
     },
     ...
 ```
@@ -208,13 +180,6 @@ No authentication required, records found in the response "results" array, pagin
         "drop_field_paths": [
             ["episode"],
             ["origin", "url"]
-        ],
-        "filter_field_paths": [
-            {
-                "field_path": ["gender"],
-                "operation": "equal_to",
-                "value": "Female"
-            }
         ],
         "sensitive_field_paths": [
             ["name"],
@@ -360,63 +325,8 @@ Oauth authentication required, records returned immediately in an array, paginat
     "url": "_config_json/data.jsonl",
     "records": {
         "unique_key_path": ["id"],
-        "filter_field_paths": [
-            {
-                "field_path": ["sport"],
-                "operation": "not_equal_to",
-                "value": "Volleyball"
-            },
-            {
-                "field_path": ["championships_won"],
-                "operation": "greater_than",
-                "value": 0
-            }
-        ],
         "sensitive_field_paths": [
             ["location", "address"]
-        ]
-    }
-}
-```
-
-#### Listen
-`config.json` (e.g. `curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1","key2":"value2"}' http://localhost:8080/messages`)
-```json
-{
-    "stream_name": "listen_testing",
-    "source_type": "listen",
-    "url": "",
-    "records": {
-        "unique_key_path": ["key1"],
-        "sensitive_field_paths": [
-            ["key2"]
-        ]
-    },
-    "listen":{
-        "collection_interval": 10,
-        "port": "8080"
-    }
-}
-```
-
-#### [www.fifaindex.com/teams](https://www.fifaindex.com/teams/)
-Scrape team "overall" rating found within HTML table (beta)
-
-`config.json`
-```json
-{
-    "stream_name": "fifa_team_ratings",
-    "source_type": "html",
-    "url": "https://www.fifaindex.com/teams/",
-    "records": {
-        "unique_key_path": ["name"]
-    },
-    "html": {
-        "elements_path": "table.table-teams > tbody > tr",
-        "elements": [
-            {"name": "name", "path": "td[data-title='Name'] > a.link-team"},
-            {"name": "league", "path": "td[data-title='League'] > a.link-league"},
-            {"name": "overall", "path": "td[data-title='OVR'] > span.rating:nth-child(1)"}
         ]
     }
 }

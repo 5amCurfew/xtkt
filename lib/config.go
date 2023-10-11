@@ -33,17 +33,6 @@ type Config struct {
 	Database *struct {
 		Table *string `json:"table,omitempty"`
 	} `json:"db,omitempty"`
-	Html *struct {
-		ElementsPath *string `json:"elements_path,omitempty"`
-		Elements     *[]struct {
-			Name *string `json:"name,omitempty"`
-			Path *string `json:"path,omitempty"`
-		} `json:"elements,omitempty"`
-	} `json:"html,omitempty"`
-	Listen *struct {
-		CollectionInterval *int    `json:"collection_interval,omitempty"`
-		Port               *string `json:"port,omitempty"`
-	}
 	Rest *struct {
 		Sleep *int `json:"sleep,omitempty"`
 		Auth  *struct {

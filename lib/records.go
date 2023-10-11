@@ -16,11 +16,6 @@ import (
 // PROCESS RECORDS
 // /////////////////////////////////////////////////////////
 func ProcessRecords(records *[]interface{}, state *State, config Config) error {
-	if filterRecordsError := filterRecords(records, config); filterRecordsError != nil {
-		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", filterRecordsError)
-	}
-	log.Info(fmt.Sprintf(`%d records when filtered at %s`, len(*records), time.Now().UTC().Format(time.RFC3339)))
-
 	if dropFieldsError := applyToRecords(DropFields, records, config); dropFieldsError != nil {
 		return fmt.Errorf("error DROPPING FIELDS IN RECORD IN ProcessRecords: %v", dropFieldsError)
 	}
@@ -133,106 +128,6 @@ func applyToRecords(f func(*interface{}, Config) error, records *[]interface{}, 
 		}
 	}
 	return nil
-}
-
-// /////////////////////////////////////////////////////////
-// FILTER RECORDS
-// /////////////////////////////////////////////////////////
-func filterRecords(records *[]interface{}, config Config) error {
-	if config.Records.FilterFieldPaths != nil {
-		var (
-			filteredRecords []interface{}
-			wg              sync.WaitGroup
-			mu              sync.Mutex // Mutex to synchronize access to reducedRecords
-		)
-
-		// Launch goroutines to process the records
-		for _, record := range *records {
-			// Increment the wait group counter
-			wg.Add(1)
-			go func(record interface{}) {
-				defer wg.Done()
-
-				r := record.(map[string]interface{})
-				if !filterBreached(r, config) {
-					mu.Lock()
-					filteredRecords = append(filteredRecords, record)
-					mu.Unlock()
-				}
-			}(record)
-		}
-
-		wg.Wait()
-		*records = filteredRecords
-		return nil
-	}
-	return nil
-}
-
-func filterBreached(record map[string]interface{}, config Config) bool {
-	if config.Records.FilterFieldPaths == nil {
-		return false
-	} else {
-		for _, filter := range *config.Records.FilterFieldPaths {
-			if value := util.GetValueAtPath(filter.FieldPath, record); value != nil {
-
-				if !util.TypesMatch(value, filter.Value) {
-					log.Warn(fmt.Sprintf("record value of different type to filter.Value (%s): ignoring filter", filter))
-					return false
-				}
-
-				switch filter.Operation {
-				case "less_than":
-					switch value.(type) {
-					case int, int32, int64, float32, float64:
-						if floatValue, err := util.GetFloatValue(value); err == nil && floatValue >= filter.Value.(float64) {
-							return true
-						} else {
-							return false
-						}
-					case string:
-						if stringValue := value.(string); stringValue >= filter.Value.(string) {
-							return true
-						} else {
-							return false
-						}
-					default:
-						return false
-					}
-				case "greater_than":
-					switch value.(type) {
-					case int, int32, int64, float32, float64:
-						if floatValue, err := util.GetFloatValue(value); err == nil && floatValue <= filter.Value.(float64) {
-							return true
-						} else {
-							return false
-						}
-					case string:
-						if stringValue := value.(string); stringValue <= filter.Value.(string) {
-							return true
-						} else {
-							return false
-						}
-					default:
-						return false
-					}
-				case "equal_to":
-					if value != filter.Value {
-						return true
-					}
-				case "not_equal_to":
-					if value == filter.Value {
-						return true
-					}
-				default:
-					return false
-				}
-			} else {
-				return false
-			}
-		}
-		return false
-	}
 }
 
 // /////////////////////////////////////////////////////////

@@ -116,9 +116,6 @@ func generateRecords(config lib.Config) ([]interface{}, error) {
 	case "file":
 		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
 		return sources.GenerateFileRecords(config)
-	case "html":
-		log.Info(fmt.Sprintf(`generating records from HTML page %s`, *config.URL))
-		return sources.GenerateHtmlRecords(config)
 	case "rest":
 		log.Info(fmt.Sprintf(`generating records from REST-API %s`, *config.URL))
 		return sources.GenerateRestRecords(config)
