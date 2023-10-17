@@ -91,20 +91,3 @@ func GetFloatValue(value interface{}) (float64, error) {
 		return 0, fmt.Errorf("value cannot be converted to a numeric type")
 	}
 }
-
-func TypesMatch(a interface{}, b interface{}) bool {
-	switch a.(type) {
-	case int, int32, int64, float32, float64:
-		switch b.(type) {
-		case int, int32, int64, float32, float64:
-			return true
-		default:
-			return false
-		}
-	case string:
-		_, ok := b.(string)
-		return ok
-	default:
-		return false
-	}
-}
