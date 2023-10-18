@@ -12,11 +12,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type ExecutionMetric struct {
+	Stream            string        `json:"stream,omitempty"`
+	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
+	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
+	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
+}
+
 // /////////////////////////////////////////////////////////
 // EXTRACT
 // /////////////////////////////////////////////////////////
-func extract(config lib.Config, saveSchema bool, saveHistory bool) error {
-	var execution lib.ExecutionMetric
+func extract(config lib.Config, saveSchema bool) error {
+	var execution ExecutionMetric
 	execution.Stream = *config.StreamName
 	execution.ExecutionStart = time.Now().UTC()
 
@@ -38,20 +45,10 @@ func extract(config lib.Config, saveSchema bool, saveHistory bool) error {
 	// /////////////////////////////////////////////////////////
 	// GENERATE RECORDS
 	// /////////////////////////////////////////////////////////
-	records, generateRecordsError := generateRecords(config)
+	records, generateRecordsError := generateRecords(config, state)
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
-	execution.RecordsExtracted = len(records)
-	log.Info(fmt.Sprintf(`%d records extracted at %s`, len(records), time.Now().UTC().Format(time.RFC3339)))
-
-	// /////////////////////////////////////////////////////////
-	// PROCESS RECORDS
-	// /////////////////////////////////////////////////////////
-	if processRecordsError := lib.ProcessRecords(&records, state, config); processRecordsError != nil {
-		return fmt.Errorf("error PROCESSING RECORDS: %w", processRecordsError)
-	}
-	execution.RecordsProcessed = len(records)
 
 	// /////////////////////////////////////////////////////////
 	// GENERATE SCHEMA, SCHEMA MESSAGE
@@ -89,18 +86,9 @@ func extract(config lib.Config, saveSchema bool, saveHistory bool) error {
 		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
 	}
 
-	// /////////////////////////////////////////////////////////
-	// UPDATE history.json
-	// /////////////////////////////////////////////////////////
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
-
-	if saveHistory {
-		if appendToHistoryError := lib.AppendToHistory(execution); appendToHistoryError != nil {
-			return fmt.Errorf("error GENERATING APPENDING EXECUTION TO HISTORY: %w", appendToHistoryError)
-		}
-	}
 
 	return nil
 }
@@ -108,17 +96,20 @@ func extract(config lib.Config, saveSchema bool, saveHistory bool) error {
 // /////////////////////////////////////////////////////////
 // GENERATE RECORDS
 // /////////////////////////////////////////////////////////
-func generateRecords(config lib.Config) ([]interface{}, error) {
+func generateRecords(config lib.Config, state *lib.State) ([]interface{}, error) {
 	switch *config.SourceType {
 	case "db":
 		log.Info(fmt.Sprintf(`generating records from database %s`, strings.Split(*config.URL, "@")[0]))
-		return sources.GenerateDatabaseRecords(config)
-	case "file":
+		return lib.GatherRecords(sources.ParseDB, config, state)
+	case "csv":
 		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
-		return sources.GenerateFileRecords(config)
+		return lib.GatherRecords(sources.ParseCSV, config, state)
+	case "jsonl":
+		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
+		return lib.GatherRecords(sources.ParseJSONL, config, state)
 	case "rest":
 		log.Info(fmt.Sprintf(`generating records from REST-API %s`, *config.URL))
-		return sources.GenerateRestRecords(config)
+		return lib.GatherRecords(sources.ParseREST, config, state)
 	default:
 		return nil, fmt.Errorf("unsupported data source in GenerateRecords")
 	}
