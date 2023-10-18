@@ -101,12 +101,15 @@ func generateRecords(config lib.Config, state *lib.State) ([]interface{}, error)
 	case "db":
 		log.Info(fmt.Sprintf(`generating records from database %s`, strings.Split(*config.URL, "@")[0]))
 		return sources.GenerateDatabaseRecords(config)
-	case "file":
+	case "csv":
+		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
+		return sources.GenerateCSVRecords(config, state)
+	case "jsonl":
 		log.Info(fmt.Sprintf(`generating records from file at %s`, *config.URL))
 		return sources.GenerateJSONLRecords(config, state)
 	case "rest":
 		log.Info(fmt.Sprintf(`generating records from REST-API %s`, *config.URL))
-		return sources.GenerateRestRecords(config)
+		return sources.GenerateRESTRecords(config, state)
 	default:
 		return nil, fmt.Errorf("unsupported data source in GenerateRecords")
 	}

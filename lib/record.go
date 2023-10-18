@@ -3,8 +3,10 @@ package lib
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -12,9 +14,30 @@ import (
 )
 
 // /////////////////////////////////////////////////////////
+// PARSE RECORD
+// /////////////////////////////////////////////////////////
+func ParseRecord(record []byte, resultChan chan<- *interface{}, config Config, state *State, wg *sync.WaitGroup) {
+	defer wg.Done()
+	var data interface{}
+	if err := json.Unmarshal(record, &data); err == nil {
+		if processedData, err := processRecord(&data, state, config); err == nil && processedData != nil {
+			resultChan <- processedData
+		}
+	}
+}
+
+func CollectResults(resultChan <-chan *interface{}) []interface{} {
+	messages := []interface{}{}
+	for msg := range resultChan {
+		messages = append(messages, *msg)
+	}
+	return messages
+}
+
+// /////////////////////////////////////////////////////////
 // PROCESS RECORD
 // /////////////////////////////////////////////////////////
-func ProcessRecord(record *interface{}, state *State, config Config) (*interface{}, error) {
+func processRecord(record *interface{}, state *State, config Config) (*interface{}, error) {
 	if dropFieldsError := dropFields(record, config); dropFieldsError != nil {
 		return nil, fmt.Errorf("error dropping fields in ProcessRecord: %v", dropFieldsError)
 	}
