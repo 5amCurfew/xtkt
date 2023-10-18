@@ -9,11 +9,13 @@ import (
 	lib "github.com/5amCurfew/xtkt/lib"
 )
 
-func parseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
+// /////////////////////////////////////////////////////////
+// PARSE
+// /////////////////////////////////////////////////////////
+func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
 	defer wg.Done()
 	file, _ := os.Open(*config.URL)
 	defer file.Close()
-
 	reader := csv.NewReader(file)
 	records, _ := reader.ReadAll()
 	header := records[0]
@@ -38,26 +40,4 @@ func parseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.Stat
 	}
 
 	transformWG.Wait()
-}
-
-func GenerateCSVRecords(config lib.Config, state *lib.State) ([]interface{}, error) {
-	var wg sync.WaitGroup
-	resultChan := make(chan *interface{})
-
-	var results []interface{}
-	done := make(chan struct{})
-
-	// Start a goroutine to collect records from the result channel
-	go func() {
-		results = lib.CollectResults(resultChan)
-		close(done) // Signal completion
-	}()
-
-	wg.Add(1)
-	go parseCSV(resultChan, config, state, &wg)
-	wg.Wait()
-	close(resultChan)
-
-	<-done
-	return results, nil
 }

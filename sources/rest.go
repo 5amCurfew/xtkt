@@ -7,6 +7,8 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
@@ -14,10 +16,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func parseREST(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
+// /////////////////////////////////////////////////////////
+// PARSE
+// /////////////////////////////////////////////////////////
+func ParseREST(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	records := gatherRecords(config)
+	records, _ := requestRestRecords(config)
 
 	var transformWG sync.WaitGroup
 
@@ -34,31 +39,93 @@ func parseREST(resultChan chan<- *interface{}, config lib.Config, state *lib.Sta
 	transformWG.Wait()
 }
 
-func GenerateRESTRecords(config lib.Config, state *lib.State) ([]interface{}, error) {
-	var wg sync.WaitGroup
-	resultChan := make(chan *interface{})
+// /////////////////////////////////////////////////////////
+// REQUEST
+// /////////////////////////////////////////////////////////
+func requestRestRecords(config lib.Config) ([]interface{}, error) {
+	var responseMap map[string]interface{}
 
-	var results []interface{}
-	done := make(chan struct{})
+	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
+	response, _ := getRequest(config)
 
-	// Start a goroutine to collect records from the result channel
-	go func() {
-		results = lib.CollectResults(resultChan)
-		close(done) // Signal completion
-	}()
+	var responseMapRecordsPath []string
 
-	wg.Add(1)
-	go parseREST(resultChan, config, state, &wg)
-	wg.Wait()
-	close(resultChan)
+	if config.Rest.Response.RecordsPath == nil {
+		responseMapRecordsPath = []string{"results"}
 
-	<-done
+		var data interface{}
+		if err := json.Unmarshal([]byte(response), &data); err != nil {
+			return nil, fmt.Errorf("error json.unmarshal of response: %w", err)
+		}
 
-	return results, nil
+		switch d := data.(type) {
+		case []interface{}:
+			response, _ = json.Marshal(map[string]interface{}{
+				"results": d,
+			})
+		case map[string]interface{}:
+			response, _ = json.Marshal(map[string]interface{}{
+				"results": []interface{}{d},
+			})
+		default:
+			// the response is neither an array nor an object, but records_path provided
+		}
+	} else {
+		responseMapRecordsPath = *config.Rest.Response.RecordsPath
+	}
+
+	json.Unmarshal([]byte(response), &responseMap)
+
+	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error respone map does not contain records array at path: %v", responseMapRecordsPath)
+	}
+
+	if *config.Rest.Response.Pagination {
+		switch *config.Rest.Response.PaginationStrategy {
+
+		// PAGINATED, "next"
+		case "next":
+			nextURL := util.GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
+			if nextURL == nil || nextURL == "" {
+				return records, nil
+			} else {
+				*config.URL = nextURL.(string)
+
+				if newRecords, err := requestRestRecords(config); err == nil {
+					records = append(records, newRecords...)
+				} else {
+					return nil, fmt.Errorf("error pagination next at %s: %w", *config.URL, err)
+				}
+			}
+
+		// PAGINATED, "query"
+		case "query":
+			if len(records) == 0 {
+				return records, nil
+			} else {
+				parsedURL, _ := url.Parse(*config.URL)
+				query := parsedURL.Query()
+				query.Set(*config.Rest.Response.PaginationQuery.QueryParameter, strconv.Itoa(*config.Rest.Response.PaginationQuery.QueryValue))
+				parsedURL.RawQuery = query.Encode()
+
+				*config.URL = parsedURL.String()
+				*config.Rest.Response.PaginationQuery.QueryValue = *config.Rest.Response.PaginationQuery.QueryValue + *config.Rest.Response.PaginationQuery.QueryIncrement
+
+				if newRecords, err := requestRestRecords(config); err == nil {
+					records = append(records, newRecords...)
+				} else {
+					return nil, fmt.Errorf("error pagination query at %s: %w", *config.URL, err)
+				}
+			}
+		}
+	}
+
+	return records, nil
 }
 
 // /////////////////////////////////////////////////////////
-// REQUEST
+// REQUEST UTIL
 // /////////////////////////////////////////////////////////
 func getRequest(config lib.Config) ([]byte, error) {
 	client := http.DefaultClient
@@ -104,51 +171,6 @@ func getRequest(config lib.Config) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
-func gatherRecords(config lib.Config) []interface{} {
-	var responseMap map[string]interface{}
-
-	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
-	response, _ := getRequest(config)
-
-	var responseMapRecordsPath []string
-
-	if config.Rest.Response.RecordsPath == nil {
-		responseMapRecordsPath = []string{"results"}
-
-		var data interface{}
-		if err := json.Unmarshal([]byte(response), &data); err != nil {
-			fmt.Errorf("error json.unmarshal of response: %w", err)
-		}
-
-		switch d := data.(type) {
-		case []interface{}:
-			response, _ = json.Marshal(map[string]interface{}{
-				"results": d,
-			})
-		case map[string]interface{}:
-			response, _ = json.Marshal(map[string]interface{}{
-				"results": []interface{}{d},
-			})
-		default:
-			// the response is neither an array nor an object, but records_path provided
-		}
-	} else {
-		responseMapRecordsPath = *config.Rest.Response.RecordsPath
-	}
-
-	json.Unmarshal([]byte(response), &responseMap)
-
-	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
-	if !ok {
-		fmt.Errorf("error respone map does not contain records array at path: %v", responseMapRecordsPath)
-	}
-
-	return records
-}
-
-// /////////////////////////////////////////////////////////
-// REQUEST UTIL
-// /////////////////////////////////////////////////////////
 func getAccessToken(client *http.Client, config lib.Config) (interface{}, error) {
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
@@ -185,43 +207,3 @@ func getAccessToken(client *http.Client, config lib.Config) (interface{}, error)
 	}
 	return util.GetValueAtPath([]string{"access_token"}, responseMap), nil
 }
-
-//if *config.Rest.Response.Pagination {
-//	switch *config.Rest.Response.PaginationStrategy {
-//
-//	// PAGINATED, "next"
-//	case "next":
-//		nextURL := util.GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
-//		if nextURL == nil || nextURL == "" {
-//			return records, nil
-//		} else {
-//			*config.URL = nextURL.(string)
-//
-//			if newRecords, err := GenerateRestRecords(config); err == nil {
-//				records = append(records, newRecords...)
-//			} else {
-//				return nil, fmt.Errorf("error pagination next at %s: %w", *config.URL, err)
-//			}
-//		}
-//
-//	// PAGINATED, "query"
-//	case "query":
-//		if len(records) == 0 {
-//			return records, nil
-//		} else {
-//			parsedURL, _ := url.Parse(*config.URL)
-//			query := parsedURL.Query()
-//			query.Set(*config.Rest.Response.PaginationQuery.QueryParameter, strconv.Itoa(*config.Rest.Response.PaginationQuery.QueryValue))
-//			parsedURL.RawQuery = query.Encode()
-//
-//			*config.URL = parsedURL.String()
-//			*config.Rest.Response.PaginationQuery.QueryValue = *config.Rest.Response.PaginationQuery.QueryValue + *config.Rest.Response.PaginationQuery.QueryIncrement
-//
-//			if newRecords, err := GenerateRestRecords(config); err == nil {
-//				records = append(records, newRecords...)
-//			} else {
-//				return nil, fmt.Errorf("error pagination query at %s: %w", *config.URL, err)
-//			}
-//		}
-//	}
-//}

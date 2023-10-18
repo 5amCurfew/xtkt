@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -14,64 +15,46 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func extractDatabaseTypeFromUrl(config lib.Config) (string, error) {
-	splitUrl := strings.Split(*config.URL, "://")
-	if len(splitUrl) != 2 {
-		return "", fmt.Errorf("invalid db URL: %s", *config.URL)
+// /////////////////////////////////////////////////////////
+// PARSE
+// /////////////////////////////////////////////////////////
+func ParseDB(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	records, _ := requestDBRecords(config)
+
+	var transformWG sync.WaitGroup
+
+	for _, record := range records[1:] {
+		transformWG.Add(1)
+		go func(record interface{}) {
+			defer transformWG.Done()
+			jsonData, _ := json.Marshal(record)
+			wg.Add(1)
+			go lib.ParseRecord(jsonData, resultChan, config, state, wg)
+		}(record)
 	}
-	dbType := splitUrl[0]
-	switch dbType {
-	case "postgres", "postgresql":
-		return "postgres", nil
-	case "mysql":
-		return "mysql", nil
-	case "sqlite", "file":
-		return "sqlite3", nil
-	case "sqlserver":
-		return "mssql", nil
-	// add cases for other db types here...
-	default:
-		return "", fmt.Errorf("unsupported database type: %s", dbType)
-	}
+
+	transformWG.Wait()
 }
 
-func generateQuery(config lib.Config) (string, error) {
-
+// /////////////////////////////////////////////////////////
+// REQUEST
+// /////////////////////////////////////////////////////////
+func requestDBRecords(config lib.Config) ([]interface{}, error) {
+	address := *config.URL
 	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {
-		return "", fmt.Errorf("error determining database type: %w", err)
+		return nil, fmt.Errorf("unsupported database url: %w", err)
 	}
 
-	state, err := lib.ParseStateJSON(config)
-	if err != nil {
-		return "", fmt.Errorf("error parsing state for bookmark value: %w", err)
+	if dbType == "sqlite3" {
+		address = strings.Split(*config.URL, ":///")[1]
 	}
 
-	value := state.Value.Bookmarks[*config.StreamName]
+	db, err := sql.Open(dbType, address)
 
-	var query strings.Builder
-	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *config.Database.Table))
-
-	// Add fields to SELECT statement
-	if config.Records.BookmarkPath != nil && value.Bookmark != "" {
-		field := *config.Records.BookmarkPath
-		switch dbType {
-		case "postgres", "postgresql", "sqlite":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value.Bookmark))
-		case "mysql":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], value.Bookmark))
-		case "sqlserver":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], value.Bookmark))
-		default:
-			return "", fmt.Errorf("unsupported database type: %s", dbType)
-		}
-	}
-	query.WriteString(";")
-	return query.String(), nil
-}
-
-func readDatabaseRows(db *sql.DB, config lib.Config) ([]interface{}, error) {
-	qry, err := generateQuery(config)
+	qry, err := createQuery(config)
 	if err != nil {
 		return nil, fmt.Errorf("error generating query: %w", err)
 	}
@@ -123,27 +106,61 @@ func readDatabaseRows(db *sql.DB, config lib.Config) ([]interface{}, error) {
 	return result, nil
 }
 
-func GenerateDatabaseRecords(config lib.Config) ([]interface{}, error) {
-	address := *config.URL
+// /////////////////////////////////////////////////////////
+// REQUEST UTIL
+// /////////////////////////////////////////////////////////
+func extractDatabaseTypeFromUrl(config lib.Config) (string, error) {
+	splitUrl := strings.Split(*config.URL, "://")
+	if len(splitUrl) != 2 {
+		return "", fmt.Errorf("invalid db URL: %s", *config.URL)
+	}
+	dbType := splitUrl[0]
+	switch dbType {
+	case "postgres", "postgresql":
+		return "postgres", nil
+	case "mysql":
+		return "mysql", nil
+	case "sqlite", "file":
+		return "sqlite3", nil
+	case "sqlserver":
+		return "mssql", nil
+	// add cases for other db types here...
+	default:
+		return "", fmt.Errorf("unsupported database type: %s", dbType)
+	}
+}
+
+func createQuery(config lib.Config) (string, error) {
+
 	dbType, err := extractDatabaseTypeFromUrl(config)
 	if err != nil {
-		return nil, fmt.Errorf("unsupported database url: %w", err)
+		return "", fmt.Errorf("error determining database type: %w", err)
 	}
 
-	if dbType == "sqlite3" {
-		address = strings.Split(*config.URL, ":///")[1]
-	}
-
-	db, err := sql.Open(dbType, address)
+	state, err := lib.ParseStateJSON(config)
 	if err != nil {
-		return nil, fmt.Errorf("error opening database: %w", err)
-	}
-	defer db.Close()
-
-	records, err := readDatabaseRows(db, config)
-	if err != nil {
-		return nil, fmt.Errorf("error reading database rows: %w", err)
+		return "", fmt.Errorf("error parsing state for bookmark value: %w", err)
 	}
 
-	return records, nil
+	value := state.Value.Bookmarks[*config.StreamName]
+
+	var query strings.Builder
+	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *config.Database.Table))
+
+	// Add fields to SELECT statement
+	if config.Records.BookmarkPath != nil && value.Bookmark != "" {
+		field := *config.Records.BookmarkPath
+		switch dbType {
+		case "postgres", "postgresql", "sqlite":
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value.Bookmark))
+		case "mysql":
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], value.Bookmark))
+		case "sqlserver":
+			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], value.Bookmark))
+		default:
+			return "", fmt.Errorf("unsupported database type: %s", dbType)
+		}
+	}
+	query.WriteString(";")
+	return query.String(), nil
 }
