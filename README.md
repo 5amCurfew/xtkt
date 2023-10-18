@@ -38,7 +38,7 @@ Fields can be hashed within records prior to being sent to your target using the
 
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`.
 
-`xtkt` is still in development (currently v0.0.88)
+`xtkt` is still in development (currently v0.0.9)
 
 ### :computer: Installation
 
@@ -97,8 +97,8 @@ $ xtkt config.json 2>&1 | jq .
 ```javascript
 {
     "stream_name": "<stream_name>", // required, <string>: the name of your stream
-    "source_type": "<source_type>", // required, <string>: one of either db, file, html, rest or listen
-    "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL, relative file path etc)
+    "source_type": "<source_type>", // required, <string>: one of either csv, db, jsonl, html, rest
+    "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL or relative file path)
     "records": { // required <object>: describes handling of records
         "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
         "bookmark_path": ["<key_path_1>", "<key_path_1>", ...], // optional <array[string]>: path to bookmark within records
@@ -285,14 +285,14 @@ Oauth authentication required, records returned immediately in an array, paginat
 `config.json`
 ```json
 {
-    "stream_name": "rick_and_morty_characters_from_postgres",
+    "stream_name": "xtkt_github_commits_from_postgres",
     "source_type": "db",
     "url": "postgres://admin:admin@localhost:5432/postgres?sslmode=disable",
     "records": {
-        "unique_key_path": ["id"]
+        "unique_key_path": ["_sdc_natural_key"]
     },
     "db": {
-        "table": "rick_and_morty_characters"
+        "table": "xtkt_github_commits"
     }
 }
 ```
@@ -319,7 +319,7 @@ Oauth authentication required, records returned immediately in an array, paginat
 ```json
 {
     "stream_name": "xtkt_jsonl",
-    "source_type": "file",
+    "source_type": "jsonl",
     "url": "_config_json/data.jsonl",
     "records": {
         "unique_key_path": ["id"],
