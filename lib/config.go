@@ -12,14 +12,9 @@ type Config struct {
 	SourceType *string `json:"source_type,omitempty"`
 	URL        *string `json:"url,omitempty"`
 	Records    *struct {
-		UniqueKeyPath    *[]string   `json:"unique_key_path,omitempty"`
-		BookmarkPath     *[]string   `json:"bookmark_path,omitempty"`
-		DropFieldPaths   *[][]string `json:"drop_field_paths,omitempty"`
-		FilterFieldPaths *[]struct {
-			FieldPath []string    `json:"field_path"`
-			Operation string      `json:"operation"`
-			Value     interface{} `json:"value"`
-		} `json:"filter_field_paths"`
+		UniqueKeyPath       *[]string   `json:"unique_key_path,omitempty"`
+		BookmarkPath        *[]string   `json:"bookmark_path,omitempty"`
+		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
 		SensitiveFieldPaths *[][]string `json:"sensitive_field_paths,omitempty"`
 		IntelligentFields   *[]struct {
 			Prefix               *string   `json:"prefix,omitempty"`

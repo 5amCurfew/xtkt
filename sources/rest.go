@@ -78,7 +78,7 @@ func requestRestRecords(config lib.Config) ([]interface{}, error) {
 
 	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("error respone map does not contain records array at path: %v", responseMapRecordsPath)
+		return nil, fmt.Errorf("error response map does not contain records array at path: %v", responseMapRecordsPath)
 	}
 
 	if *config.Rest.Response.Pagination {
