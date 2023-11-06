@@ -32,12 +32,8 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
 	}
 
-	if *config.SourceType == "listen" {
-		fmt.Println(string(messageJson))
-	} else {
-		os.Stdout.Write(messageJson)
-		os.Stdout.Write([]byte("\n"))
-	}
+	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
 
 	return nil
 }
@@ -59,12 +55,8 @@ func GenerateRecordMessage(record interface{}, state *State, config Config) erro
 		return fmt.Errorf("error CREATING RECORD MESSAGE: %w", err)
 	}
 
-	if *config.SourceType == "listen" {
-		fmt.Println(string(messageJson))
-	} else {
-		os.Stdout.Write(messageJson)
-		os.Stdout.Write([]byte("\n"))
-	}
+	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
 
 	return nil
 }
@@ -81,12 +73,8 @@ func GenerateStateMessage(state *State, config Config) error {
 		return fmt.Errorf("error CREATING STATE MESSAGE: %w", err)
 	}
 
-	if *config.SourceType == "listen" {
-		fmt.Println(string(messageJson))
-	} else {
-		os.Stdout.Write(messageJson)
-		os.Stdout.Write([]byte("\n"))
-	}
+	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
 
 	return nil
 }
