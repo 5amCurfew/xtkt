@@ -3,7 +3,9 @@ package sources
 import (
 	"encoding/csv"
 	"encoding/json"
+	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
@@ -14,10 +16,21 @@ import (
 // /////////////////////////////////////////////////////////
 func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
 	defer wg.Done()
-	file, _ := os.Open(*config.URL)
-	defer file.Close()
-	reader := csv.NewReader(file)
-	records, _ := reader.ReadAll()
+
+	var records [][]string
+
+	if strings.HasPrefix(*config.URL, "http") {
+		response, _ := http.Get(*config.URL)
+		defer response.Body.Close()
+		reader := csv.NewReader(response.Body)
+		records, _ = reader.ReadAll()
+	} else {
+		file, _ := os.Open(*config.URL)
+		defer file.Close()
+		reader := csv.NewReader(file)
+		records, _ = reader.ReadAll()
+	}
+
 	header := records[0]
 
 	var transformWG sync.WaitGroup

@@ -52,7 +52,10 @@ func requestDBRecords(config lib.Config) ([]interface{}, error) {
 		address = strings.Split(*config.URL, ":///")[1]
 	}
 
-	db, err := sql.Open(dbType, address)
+	db, _ := sql.Open(dbType, address)
+	if err != nil {
+		return nil, fmt.Errorf("error connecting to database: %w", err)
+	}
 
 	qry, err := createQuery(config)
 	if err != nil {
