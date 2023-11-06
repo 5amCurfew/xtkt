@@ -2,7 +2,9 @@ package sources
 
 import (
 	"bufio"
+	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
@@ -13,10 +15,18 @@ import (
 // /////////////////////////////////////////////////////////
 func ParseJSONL(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
 	defer wg.Done()
-	file, _ := os.Open(*config.URL)
-	defer file.Close()
 
-	records := bufio.NewScanner(file)
+	var records *bufio.Scanner
+
+	if strings.HasPrefix(*config.URL, "http") {
+		response, _ := http.Get(*config.URL)
+		defer response.Body.Close()
+		records = bufio.NewScanner(response.Body)
+	} else {
+		file, _ := os.Open(*config.URL)
+		defer file.Close()
+		records = bufio.NewScanner(file)
+	}
 
 	for records.Scan() {
 		line := records.Bytes()
