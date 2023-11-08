@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
+	log "github.com/sirupsen/logrus"
 )
 
 // /////////////////////////////////////////////////////////
@@ -20,12 +21,18 @@ func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.Stat
 	var records [][]string
 
 	if strings.HasPrefix(*config.URL, "http") {
-		response, _ := http.Get(*config.URL)
+		response, err := http.Get(*config.URL)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseCSV: http.Get failed")
+		}
 		defer response.Body.Close()
 		reader := csv.NewReader(response.Body)
 		records, _ = reader.ReadAll()
 	} else {
-		file, _ := os.Open(*config.URL)
+		file, err := os.Open(*config.URL)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseCSV: os.Open failed")
+		}
 		defer file.Close()
 		reader := csv.NewReader(file)
 		records, _ = reader.ReadAll()

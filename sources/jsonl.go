@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
+	log "github.com/sirupsen/logrus"
 )
 
 // /////////////////////////////////////////////////////////
@@ -19,11 +20,17 @@ func ParseJSONL(resultChan chan<- *interface{}, config lib.Config, state *lib.St
 	var records *bufio.Scanner
 
 	if strings.HasPrefix(*config.URL, "http") {
-		response, _ := http.Get(*config.URL)
+		response, err := http.Get(*config.URL)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseJSONL: http.Get failed")
+		}
 		defer response.Body.Close()
 		records = bufio.NewScanner(response.Body)
 	} else {
-		file, _ := os.Open(*config.URL)
+		file, err := os.Open(*config.URL)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseJSONL: os.Open failed")
+		}
 		defer file.Close()
 		records = bufio.NewScanner(file)
 	}
