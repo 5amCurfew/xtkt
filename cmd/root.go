@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.0.93"
+var version = "0.0.94"
 var saveSchema bool
 
 var rootCmd = &cobra.Command{

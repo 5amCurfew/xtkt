@@ -12,7 +12,7 @@ import (
 )
 
 // /////////////////////////////////////////////////////////
-// STATE.JSON
+// STATE_<STREAM>.JSON
 // /////////////////////////////////////////////////////////
 type State struct {
 	Type  string `json:"Type"`
@@ -51,14 +51,14 @@ func CreateStateJSON(config Config) {
 			},
 		},
 	}
-	util.WriteJSON("state.json", state)
+	util.WriteJSON(fmt.Sprintf("state_%s.json", *config.StreamName), state)
 }
 
 // ///////////////////////////////////////////////////////////
-// PARSE STATE.JSON
+// PARSE state_<STREAM>.json
 // ///////////////////////////////////////////////////////////
 func ParseStateJSON(config Config) (*State, error) {
-	stateFile, err := os.ReadFile("state.json")
+	stateFile, err := os.ReadFile(fmt.Sprintf("state_%s.json", *config.StreamName))
 	if err != nil {
 		return nil, fmt.Errorf("error reading state file: %w", err)
 	}
@@ -109,7 +109,7 @@ func UpdateState(records []interface{}, state *State, config Config) {
 
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	state.Value.Bookmarks[*config.StreamName] = bookmarks
-	util.WriteJSON("state.json", state)
+	util.WriteJSON(fmt.Sprintf("state_%s.json", *config.StreamName), state)
 }
 
 func detectionSetContains(s []string, str string) bool {

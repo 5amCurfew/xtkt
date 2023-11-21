@@ -7,7 +7,7 @@ data.*
 history.json
 index.html
 output.jsonl
-state.json
+state_*
 target*
 schema_*
 xtkt

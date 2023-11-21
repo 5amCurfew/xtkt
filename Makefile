@@ -1,5 +1,5 @@
 clear:
-	rm -f state.json schema_*
+	rm -f state_* schema_*
 	go mod tidy
 	go mod vendor
 	go build .

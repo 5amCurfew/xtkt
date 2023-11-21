@@ -28,9 +28,9 @@ func extract(config lib.Config, saveSchema bool) error {
 	execution.ExecutionStart = time.Now().UTC()
 
 	// /////////////////////////////////////////////////////////
-	// GENERATE state.json
+	// GENERATE state_<STREAM>.json
 	// /////////////////////////////////////////////////////////
-	if _, err := os.Stat("state.json"); err != nil {
+	if _, err := os.Stat(fmt.Sprintf("state_%s.json", *config.StreamName)); err != nil {
 		lib.CreateStateJSON(config)
 	}
 
@@ -39,7 +39,7 @@ func extract(config lib.Config, saveSchema bool) error {
 	// /////////////////////////////////////////////////////////
 	state, parseStateError := lib.ParseStateJSON(config)
 	if parseStateError != nil {
-		return fmt.Errorf("error PARSING STATE.JSON %w", parseStateError)
+		return fmt.Errorf("error PARSING STATE JSON %w", parseStateError)
 	}
 
 	// /////////////////////////////////////////////////////////
@@ -74,10 +74,10 @@ func extract(config lib.Config, saveSchema bool) error {
 	}
 
 	// /////////////////////////////////////////////////////////
-	// UPDATE STATE (& state.json)
+	// UPDATE STATE (& state_<STREAM>.json)
 	// /////////////////////////////////////////////////////////
 	lib.UpdateState(records, state, config)
-	log.Info(fmt.Sprintf(`state.json updated at %s`, time.Now().UTC().Format(time.RFC3339)))
+	log.Info(fmt.Sprintf(`state json updated at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	// /////////////////////////////////////////////////////////
 	// GENERATE STATE MESSAGE
