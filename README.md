@@ -82,6 +82,24 @@ I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages
 $ xtkt config.json 2>&1 | jq .
 ```
 
+Note that `xtkt` can easily be used in a bash script to iterate over a template `config.json` file to create many data extractions. For example
+```bash
+#!/bin/bash
+
+# Loop from 2009 to 2019
+for year in {2009..2019}
+do
+    new_config="config_${year}.json"
+    sed "s/YYYY/${year}/g" config.json.template > $new_config
+    echo "Generated ${new_config}"
+    echo "Running xtkt on ${new_config}"
+    xtkt $new_config | ./_targets/target-name/bin/target-name -c config_target_name.json
+done
+
+rm -f state_* config_*
+
+```
+
 ### :floppy_disk: Metadata
 
 `xtkt` adds the following metadata to records
