@@ -7,8 +7,6 @@
                                   
 ```
 ![Release on Homebrew](https://github.com/5amCurfew/xtkt/actions/workflows/release.yml/badge.svg)
-![Commit activity (branch)](https://img.shields.io/github/commit-activity/m/5amCurfew/xtkt)
-[![Go Report Card](https://goreportcard.com/badge/github.com/5amCurfew/xtkt)](https://goreportcard.com/report/github.com/5amCurfew/xtkt)
 
 - [:computer: Installation](#computer-installation)
 - [:nut_and_bolt: Using with Singer.io Targets](#nut_and_bolt-using-with-singerio-targets)
@@ -38,7 +36,7 @@ Fields can be hashed within records prior to being sent to your target using the
 
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`.
 
-`xtkt` is still in development (currently v0.0.9)
+`xtkt` is still in development (currently v0.1.0)
 
 ### :computer: Installation
 
