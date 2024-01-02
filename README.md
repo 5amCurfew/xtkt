@@ -20,6 +20,8 @@
   * [SQLite](#sqlite)
   * [File](#file)
 
+**v0.1.1**
+
 `xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl).
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
@@ -35,8 +37,6 @@ Fields can be dropped from records prior to being sent to your target using the 
 Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
 
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`.
-
-`xtkt` is still in development (currently v0.1.0)
 
 ### :computer: Installation
 
@@ -80,7 +80,7 @@ I have been using [jq](https://github.com/stedolan/jq) to view `stdout` messages
 $ xtkt config.json 2>&1 | jq .
 ```
 
-Note that `xtkt` can easily be used in a bash script to iterate over a template `config.json` file to create many data extractions. For example
+`xtkt` can be used in a bash script to iterate over a template `config.json` file to create many data extractions. For example
 ```bash
 #!/bin/bash
 
