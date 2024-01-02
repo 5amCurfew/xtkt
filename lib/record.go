@@ -15,6 +15,7 @@ import (
 
 // /////////////////////////////////////////////////////////
 // PARSE RECORD
+// processRecord() and send to resultChan
 // /////////////////////////////////////////////////////////
 func ParseRecord(record []byte, resultChan chan<- *interface{}, config Config, state *State, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -26,16 +27,9 @@ func ParseRecord(record []byte, resultChan chan<- *interface{}, config Config, s
 	}
 }
 
-func CollectResults(resultChan <-chan *interface{}) []interface{} {
-	messages := []interface{}{}
-	for msg := range resultChan {
-		messages = append(messages, *msg)
-	}
-	return messages
-}
-
 // /////////////////////////////////////////////////////////
 // PROCESS RECORD
+// Drop fields, generate hashed fields, generate surrogate keys & apply bookmark on a record
 // /////////////////////////////////////////////////////////
 func processRecord(record *interface{}, state *State, config Config) (*interface{}, error) {
 	if dropFieldsError := dropFields(record, config); dropFieldsError != nil {

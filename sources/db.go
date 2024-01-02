@@ -21,7 +21,11 @@ import (
 func ParseDB(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	records, _ := requestDBRecords(config)
+	records, err := requestDBRecords(config)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Info("parseDB: requestDBLRecords failed")
+		return
+	}
 
 	var transformWG sync.WaitGroup
 

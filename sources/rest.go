@@ -22,7 +22,11 @@ import (
 func ParseREST(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	records, _ := requestRestRecords(config)
+	records, err := requestRESTRecords(config)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Info("parseREST: requestDBRecords failed")
+		return
+	}
 
 	var transformWG sync.WaitGroup
 
@@ -42,7 +46,7 @@ func ParseREST(resultChan chan<- *interface{}, config lib.Config, state *lib.Sta
 // /////////////////////////////////////////////////////////
 // REQUEST
 // /////////////////////////////////////////////////////////
-func requestRestRecords(config lib.Config) ([]interface{}, error) {
+func requestRESTRecords(config lib.Config) ([]interface{}, error) {
 	var responseMap map[string]interface{}
 
 	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
@@ -92,7 +96,7 @@ func requestRestRecords(config lib.Config) ([]interface{}, error) {
 			} else {
 				*config.URL = nextURL.(string)
 
-				if newRecords, err := requestRestRecords(config); err == nil {
+				if newRecords, err := requestRESTRecords(config); err == nil {
 					records = append(records, newRecords...)
 				} else {
 					return nil, fmt.Errorf("error pagination next at %s: %w", *config.URL, err)
@@ -112,7 +116,7 @@ func requestRestRecords(config lib.Config) ([]interface{}, error) {
 				*config.URL = parsedURL.String()
 				*config.Rest.Response.PaginationQuery.QueryValue = *config.Rest.Response.PaginationQuery.QueryValue + *config.Rest.Response.PaginationQuery.QueryIncrement
 
-				if newRecords, err := requestRestRecords(config); err == nil {
+				if newRecords, err := requestRESTRecords(config); err == nil {
 					records = append(records, newRecords...)
 				} else {
 					return nil, fmt.Errorf("error pagination query at %s: %w", *config.URL, err)

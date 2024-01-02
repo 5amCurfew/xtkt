@@ -6,6 +6,7 @@ import (
 
 // /////////////////////////////////////////////////////////
 // CONFIG.JSON
+// Parse config.json file to Config struct
 // /////////////////////////////////////////////////////////
 type Config struct {
 	StreamName *string `json:"stream_name,omitempty"`
@@ -16,14 +17,6 @@ type Config struct {
 		BookmarkPath        *[]string   `json:"bookmark_path,omitempty"`
 		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
 		SensitiveFieldPaths *[][]string `json:"sensitive_field_paths,omitempty"`
-		IntelligentFields   *[]struct {
-			Prefix               *string   `json:"prefix,omitempty"`
-			FieldPath            *[]string `json:"field_path,omitempty"`
-			Suffix               *string   `json:"suffix,omitempty"`
-			MaxTokens            *int      `json:"max_tokens,omitempty"`
-			Temperature          *float32  `json:"temperature,omitempty"`
-			IntelligentFieldName *string   `json:"intelligent_field_name,omitempty"`
-		} `json:"intelligent_fields,omitempty"`
 	} `json:"records,omitempty"`
 	Database *struct {
 		Table *string `json:"table,omitempty"`

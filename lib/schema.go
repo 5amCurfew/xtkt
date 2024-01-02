@@ -7,6 +7,7 @@ import (
 
 // ///////////////////////////////////////////////////////////
 // GENERATE SCHEMA
+// Infer the schema from records
 // ///////////////////////////////////////////////////////////
 func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
 	schema := make(map[string]interface{})

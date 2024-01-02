@@ -18,24 +18,10 @@ import (
 func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	var records [][]string
-
-	if strings.HasPrefix(*config.URL, "http") {
-		response, err := http.Get(*config.URL)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("parseCSV: http.Get failed")
-		}
-		defer response.Body.Close()
-		reader := csv.NewReader(response.Body)
-		records, _ = reader.ReadAll()
-	} else {
-		file, err := os.Open(*config.URL)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("parseCSV: os.Open failed")
-		}
-		defer file.Close()
-		reader := csv.NewReader(file)
-		records, _ = reader.ReadAll()
+	records, err := requestCSVRecords(config)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Info("parseCSV: requestCSVRecords failed")
+		return
 	}
 
 	header := records[0]
@@ -60,4 +46,31 @@ func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.Stat
 	}
 
 	transformWG.Wait()
+}
+
+// /////////////////////////////////////////////////////////
+// REQUEST
+// /////////////////////////////////////////////////////////
+func requestCSVRecords(config lib.Config) ([][]string, error) {
+	var records [][]string
+
+	if strings.HasPrefix(*config.URL, "http") {
+		response, err := http.Get(*config.URL)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseCSV: http.Get failed")
+		}
+		defer response.Body.Close()
+		reader := csv.NewReader(response.Body)
+		records, _ = reader.ReadAll()
+	} else {
+		file, err := os.Open(*config.URL)
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseCSV: os.Open failed")
+		}
+		defer file.Close()
+		reader := csv.NewReader(file)
+		records, _ = reader.ReadAll()
+	}
+
+	return records, nil
 }
