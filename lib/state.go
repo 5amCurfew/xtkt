@@ -11,6 +11,8 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
+var ParsedState *State
+
 // /////////////////////////////////////////////////////////
 // STATE_<STREAM>.JSON
 // /////////////////////////////////////////////////////////
@@ -28,7 +30,7 @@ type State struct {
 // ///////////////////////////////////////////////////////////
 // CREATE state_<STREAM>.json
 // ///////////////////////////////////////////////////////////
-func CreateStateJSON(config Config) {
+func CreateStateJSON() {
 	state := State{
 		Type: "STATE",
 		Value: struct {
@@ -43,7 +45,7 @@ func CreateStateJSON(config Config) {
 				DetectionBookmark []string `json:"detection_bookmark"`
 				Bookmark          string   `json:"bookmark"`
 			}{
-				*config.StreamName: {
+				*ParsedConfig.StreamName: {
 					BookmarkUpdatedAt: time.Now().UTC().Format(time.RFC3339),
 					DetectionBookmark: []string{},
 					Bookmark:          "",
@@ -51,14 +53,14 @@ func CreateStateJSON(config Config) {
 			},
 		},
 	}
-	util.WriteJSON(fmt.Sprintf("state_%s.json", *config.StreamName), state)
+	util.WriteJSON(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName), state)
 }
 
 // ///////////////////////////////////////////////////////////
 // PARSE state_<STREAM>.json
 // ///////////////////////////////////////////////////////////
-func ParseStateJSON(config Config) (*State, error) {
-	stateFile, err := os.ReadFile(fmt.Sprintf("state_%s.json", *config.StreamName))
+func ParseStateJSON() (*State, error) {
+	stateFile, err := os.ReadFile(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName))
 	if err != nil {
 		return nil, fmt.Errorf("error reading state file: %w", err)
 	}
@@ -68,8 +70,8 @@ func ParseStateJSON(config Config) (*State, error) {
 		return nil, fmt.Errorf("error unmarshaling state json: %w", err)
 	}
 
-	if _, ok := state.Value.Bookmarks[*config.StreamName]; !ok {
-		return nil, fmt.Errorf("stream %s does not exist in this state", *config.StreamName)
+	if _, ok := state.Value.Bookmarks[*ParsedConfig.StreamName]; !ok {
+		return nil, fmt.Errorf("stream %s does not exist in this state", *ParsedConfig.StreamName)
 	}
 
 	return &state, nil
@@ -78,14 +80,14 @@ func ParseStateJSON(config Config) (*State, error) {
 // ///////////////////////////////////////////////////////////
 // UPDATE state_<STREAM>.json
 // ///////////////////////////////////////////////////////////
-func UpdateState(records []interface{}, state *State, config Config) {
+func UpdateState(records []interface{}) {
 	// CURRENT
-	bookmarks := state.Value.Bookmarks[*config.StreamName]
+	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
 
-	if config.Records.BookmarkPath != nil {
-		switch path := *config.Records.BookmarkPath; {
+	if ParsedConfig.Records.BookmarkPath != nil {
+		switch path := *ParsedConfig.Records.BookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
-			latestDetectionSet := state.Value.Bookmarks[*config.StreamName].DetectionBookmark
+			latestDetectionSet := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark
 			for _, record := range records {
 				r, _ := record.(map[string]interface{})
 				if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"].(string)) {
@@ -94,13 +96,13 @@ func UpdateState(records []interface{}, state *State, config Config) {
 			}
 			bookmarks.DetectionBookmark = latestDetectionSet
 		default:
-			latestBookmark := state.Value.Bookmarks[*config.StreamName].Bookmark
+			latestBookmark := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
 			for _, record := range records {
 				r, _ := record.(map[string]interface{})
-				if util.GetValueAtPath(*config.Records.BookmarkPath, r) == nil {
+				if util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r) == nil {
 					continue
-				} else if toString(util.GetValueAtPath(*config.Records.BookmarkPath, r)) >= latestBookmark {
-					latestBookmark = toString(util.GetValueAtPath(*config.Records.BookmarkPath, r))
+				} else if toString(util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r)) >= latestBookmark {
+					latestBookmark = toString(util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r))
 				}
 			}
 			bookmarks.Bookmark = latestBookmark
@@ -108,8 +110,8 @@ func UpdateState(records []interface{}, state *State, config Config) {
 	}
 
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
-	state.Value.Bookmarks[*config.StreamName] = bookmarks
-	util.WriteJSON(fmt.Sprintf("state_%s.json", *config.StreamName), state)
+	ParsedState.Value.Bookmarks[*ParsedConfig.StreamName] = bookmarks
+	util.WriteJSON(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName), ParsedState)
 }
 
 func detectionSetContains(s []string, str string) bool {

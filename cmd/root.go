@@ -35,8 +35,9 @@ var rootCmd = &cobra.Command{
 		if cfgError != nil {
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", cfgError)}).Fatalln("failed to parse config JSON - does it exist and is it valid?")
 		}
+		lib.ParsedConfig = cfg
 
-		if extractError := extract(cfg, saveSchema); extractError != nil {
+		if extractError := extract(saveSchema); extractError != nil {
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", extractError)}).Fatalln("failed to extract records")
 		}
 	},

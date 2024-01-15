@@ -17,11 +17,11 @@ import (
 // PARSE RECORD
 // processRecord() and send to resultChan
 // /////////////////////////////////////////////////////////
-func ParseRecord(record []byte, resultChan chan<- *interface{}, config Config, state *State, wg *sync.WaitGroup) {
+func ParseRecord(record []byte, resultChan chan<- *interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var data interface{}
 	if err := json.Unmarshal(record, &data); err == nil {
-		if processedData, err := processRecord(&data, state, config); err == nil && processedData != nil {
+		if processedData, err := processRecord(&data); err == nil && processedData != nil {
 			resultChan <- processedData
 		}
 	}
@@ -31,20 +31,20 @@ func ParseRecord(record []byte, resultChan chan<- *interface{}, config Config, s
 // PROCESS RECORD
 // Drop fields, generate hashed fields, generate surrogate keys & apply bookmark on a record
 // /////////////////////////////////////////////////////////
-func processRecord(record *interface{}, state *State, config Config) (*interface{}, error) {
-	if dropFieldsError := dropFields(record, config); dropFieldsError != nil {
+func processRecord(record *interface{}) (*interface{}, error) {
+	if dropFieldsError := dropFields(record); dropFieldsError != nil {
 		return nil, fmt.Errorf("error dropping fields in ProcessRecord: %v", dropFieldsError)
 	}
 
-	if generateHashedFieldsError := generateHashedFields(record, config); generateHashedFieldsError != nil {
+	if generateHashedFieldsError := generateHashedFields(record); generateHashedFieldsError != nil {
 		return nil, fmt.Errorf("error generating hashed field in ProcessRecord: %v", generateHashedFieldsError)
 	}
 
-	if generateSurrogateKeyFieldsError := generateSurrogateKeyFields(record, config); generateSurrogateKeyFieldsError != nil {
+	if generateSurrogateKeyFieldsError := generateSurrogateKeyFields(record); generateSurrogateKeyFieldsError != nil {
 		return nil, fmt.Errorf("error generating surrogate keys in ProcessRecords: %v", generateSurrogateKeyFieldsError)
 	}
 
-	if keep, recordVersusBookmarkError := recordVersusBookmark(record, state, config); recordVersusBookmarkError != nil {
+	if keep, recordVersusBookmarkError := recordVersusBookmark(record, ParsedState); recordVersusBookmarkError != nil {
 		return nil, fmt.Errorf("error using bookmark in ProcessRecords: %v", recordVersusBookmarkError)
 	} else {
 		if keep {
@@ -57,10 +57,10 @@ func processRecord(record *interface{}, state *State, config Config) (*interface
 // /////////////////////////////////////////////////////////
 // TRANSFORM RECORD
 // /////////////////////////////////////////////////////////
-func dropFields(record *interface{}, config Config) error {
-	if config.Records.DropFieldPaths != nil {
+func dropFields(record *interface{}) error {
+	if ParsedConfig.Records.DropFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
-			for _, path := range *config.Records.DropFieldPaths {
+			for _, path := range *ParsedConfig.Records.DropFieldPaths {
 				util.DropFieldAtPath(path, r)
 			}
 		} else {
@@ -70,10 +70,10 @@ func dropFields(record *interface{}, config Config) error {
 	return nil
 }
 
-func generateHashedFields(record *interface{}, config Config) error {
-	if config.Records.SensitiveFieldPaths != nil {
+func generateHashedFields(record *interface{}) error {
+	if ParsedConfig.Records.SensitiveFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
-			for _, path := range *config.Records.SensitiveFieldPaths {
+			for _, path := range *ParsedConfig.Records.SensitiveFieldPaths {
 				if fieldValue := util.GetValueAtPath(path, r); fieldValue != nil {
 					hash := sha256.Sum256([]byte(fmt.Sprintf("%v", fieldValue)))
 					util.SetValueAtPath(path, r, hex.EncodeToString(hash[:]))
@@ -89,14 +89,14 @@ func generateHashedFields(record *interface{}, config Config) error {
 	return nil
 }
 
-func generateSurrogateKeyFields(record *interface{}, config Config) error {
+func generateSurrogateKeyFields(record *interface{}) error {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		h := sha256.New()
 		h.Write([]byte(toString(r)))
-		if util.GetValueAtPath(*config.Records.UniqueKeyPath, r) != nil {
-			r["_sdc_natural_key"] = util.GetValueAtPath(*config.Records.UniqueKeyPath, r)
+		if util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, r) != nil {
+			r["_sdc_natural_key"] = util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, r)
 		} else {
-			log.Warn(fmt.Sprintf("unique_key field path %s not found in record", *config.Records.UniqueKeyPath))
+			log.Warn(fmt.Sprintf("unique_key field path %s not found in record", *ParsedConfig.Records.UniqueKeyPath))
 		}
 		r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
 		r["_sdc_time_extracted"] = time.Now().UTC().Format(time.RFC3339)
@@ -109,19 +109,19 @@ func generateSurrogateKeyFields(record *interface{}, config Config) error {
 // /////////////////////////////////////////////////////////
 // APPLY BOOKMARK TO RECORD
 // /////////////////////////////////////////////////////////
-func recordVersusBookmark(record *interface{}, state *State, config Config) (bool, error) {
+func recordVersusBookmark(record *interface{}, state *State) (bool, error) {
 	bookmarkCondition := false
 	if r, parsed := (*record).(map[string]interface{}); parsed {
-		if config.Records.BookmarkPath != nil {
-			switch path := *config.Records.BookmarkPath; {
+		if ParsedConfig.Records.BookmarkPath != nil {
+			switch path := *ParsedConfig.Records.BookmarkPath; {
 			case reflect.DeepEqual(path, []string{"*"}):
 				bookmarkCondition = !detectionSetContains(
-					state.Value.Bookmarks[*config.StreamName].DetectionBookmark,
+					state.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark,
 					r["_sdc_surrogate_key"].(string),
 				)
 			default:
-				if BookmarkValue := util.GetValueAtPath(*config.Records.BookmarkPath, r); BookmarkValue != nil {
-					bookmarkCondition = toString(BookmarkValue) > state.Value.Bookmarks[*config.StreamName].Bookmark
+				if BookmarkValue := util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r); BookmarkValue != nil {
+					bookmarkCondition = toString(BookmarkValue) > state.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
 				} else {
 					bookmarkCondition = true
 				}

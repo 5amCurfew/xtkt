@@ -15,10 +15,10 @@ import (
 // /////////////////////////////////////////////////////////
 // PARSE
 // /////////////////////////////////////////////////////////
-func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
+func ParseCSV() {
 	defer wg.Done()
 
-	records, err := requestCSVRecords(config)
+	records, err := requestCSVRecords()
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Info("parseCSV: requestCSVRecords failed")
 		return
@@ -41,7 +41,7 @@ func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.Stat
 			jsonData, _ := json.Marshal(data)
 
 			wg.Add(1)
-			go lib.ParseRecord(jsonData, resultChan, config, state, wg)
+			go lib.ParseRecord(jsonData, resultChan, &wg)
 		}(record)
 	}
 
@@ -51,11 +51,11 @@ func ParseCSV(resultChan chan<- *interface{}, config lib.Config, state *lib.Stat
 // /////////////////////////////////////////////////////////
 // REQUEST
 // /////////////////////////////////////////////////////////
-func requestCSVRecords(config lib.Config) ([][]string, error) {
+func requestCSVRecords() ([][]string, error) {
 	var records [][]string
 
-	if strings.HasPrefix(*config.URL, "http") {
-		response, err := http.Get(*config.URL)
+	if strings.HasPrefix(*lib.ParsedConfig.URL, "http") {
+		response, err := http.Get(*lib.ParsedConfig.URL)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Info("parseCSV: http.Get failed")
 		}
@@ -63,7 +63,7 @@ func requestCSVRecords(config lib.Config) ([][]string, error) {
 		reader := csv.NewReader(response.Body)
 		records, _ = reader.ReadAll()
 	} else {
-		file, err := os.Open(*config.URL)
+		file, err := os.Open(*lib.ParsedConfig.URL)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Info("parseCSV: os.Open failed")
 		}

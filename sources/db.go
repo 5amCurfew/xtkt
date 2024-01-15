@@ -18,10 +18,10 @@ import (
 // /////////////////////////////////////////////////////////
 // PARSE
 // /////////////////////////////////////////////////////////
-func ParseDB(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
+func ParseDB() {
 	defer wg.Done()
 
-	records, err := requestDBRecords(config)
+	records, err := requestDBRecords()
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Info("parseDB: requestDBLRecords failed")
 		return
@@ -35,7 +35,7 @@ func ParseDB(resultChan chan<- *interface{}, config lib.Config, state *lib.State
 			defer transformWG.Done()
 			jsonData, _ := json.Marshal(record)
 			wg.Add(1)
-			go lib.ParseRecord(jsonData, resultChan, config, state, wg)
+			go lib.ParseRecord(jsonData, resultChan, &wg)
 		}(record)
 	}
 
@@ -45,15 +45,15 @@ func ParseDB(resultChan chan<- *interface{}, config lib.Config, state *lib.State
 // /////////////////////////////////////////////////////////
 // REQUEST
 // /////////////////////////////////////////////////////////
-func requestDBRecords(config lib.Config) ([]interface{}, error) {
-	address := *config.URL
-	dbType, err := extractDatabaseTypeFromUrl(config)
+func requestDBRecords() ([]interface{}, error) {
+	address := *lib.ParsedConfig.URL
+	dbType, err := extractDatabaseTypeFromUrl()
 	if err != nil {
 		return nil, fmt.Errorf("unsupported database url: %w", err)
 	}
 
 	if dbType == "sqlite3" {
-		address = strings.Split(*config.URL, ":///")[1]
+		address = strings.Split(*lib.ParsedConfig.URL, ":///")[1]
 	}
 
 	db, _ := sql.Open(dbType, address)
@@ -61,17 +61,17 @@ func requestDBRecords(config lib.Config) ([]interface{}, error) {
 		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}
 
-	qry, err := createQuery(config)
+	qry, err := createQuery()
 	if err != nil {
 		return nil, fmt.Errorf("error generating query: %w", err)
 	}
 
-	log.Info(fmt.Sprintf("executing query %s", *config.URL))
+	log.Info(fmt.Sprintf("executing query %s", *lib.ParsedConfig.URL))
 	rows, err := db.Query(qry)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing select: %w", err)
 	}
-	log.Info(fmt.Sprintf("successful query execution %s", *config.URL))
+	log.Info(fmt.Sprintf("successful query execution %s", *lib.ParsedConfig.URL))
 	defer rows.Close()
 
 	columns, err := rows.Columns()
@@ -116,10 +116,10 @@ func requestDBRecords(config lib.Config) ([]interface{}, error) {
 // /////////////////////////////////////////////////////////
 // REQUEST UTIL
 // /////////////////////////////////////////////////////////
-func extractDatabaseTypeFromUrl(config lib.Config) (string, error) {
-	splitUrl := strings.Split(*config.URL, "://")
+func extractDatabaseTypeFromUrl() (string, error) {
+	splitUrl := strings.Split(*lib.ParsedConfig.URL, "://")
 	if len(splitUrl) != 2 {
-		return "", fmt.Errorf("invalid db URL: %s", *config.URL)
+		return "", fmt.Errorf("invalid db URL: %s", *lib.ParsedConfig.URL)
 	}
 	dbType := splitUrl[0]
 	switch dbType {
@@ -137,26 +137,26 @@ func extractDatabaseTypeFromUrl(config lib.Config) (string, error) {
 	}
 }
 
-func createQuery(config lib.Config) (string, error) {
+func createQuery() (string, error) {
 
-	dbType, err := extractDatabaseTypeFromUrl(config)
+	dbType, err := extractDatabaseTypeFromUrl()
 	if err != nil {
 		return "", fmt.Errorf("error determining database type: %w", err)
 	}
 
-	state, err := lib.ParseStateJSON(config)
+	state, err := lib.ParseStateJSON()
 	if err != nil {
 		return "", fmt.Errorf("error parsing state for bookmark value: %w", err)
 	}
 
-	value := state.Value.Bookmarks[*config.StreamName]
+	value := state.Value.Bookmarks[*lib.ParsedConfig.StreamName]
 
 	var query strings.Builder
-	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *config.Database.Table))
+	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *lib.ParsedConfig.Database.Table))
 
 	// Add fields to SELECT statement
-	if config.Records.BookmarkPath != nil && value.Bookmark != "" {
-		field := *config.Records.BookmarkPath
+	if lib.ParsedConfig.Records.BookmarkPath != nil && value.Bookmark != "" {
+		field := *lib.ParsedConfig.Records.BookmarkPath
 		switch dbType {
 		case "postgres", "postgresql", "sqlite":
 			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value.Bookmark))

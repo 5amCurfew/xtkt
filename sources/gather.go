@@ -1,12 +1,19 @@
-package lib
+package sources
 
-import "sync"
+import (
+	"sync"
+)
+
+type sourceFunction = func()
+
+var resultChan = make(chan *interface{})
+var wg sync.WaitGroup
 
 // /////////////////////////////////////////////////////////
 // COLLECT RECORDS
 // Append messages from resultChan to slice
 // /////////////////////////////////////////////////////////
-func CollectResults(resultChan <-chan *interface{}) []interface{} {
+func CollectResults() []interface{} {
 	messages := []interface{}{}
 	for msg := range resultChan {
 		messages = append(messages, *msg)
@@ -18,10 +25,7 @@ func CollectResults(resultChan <-chan *interface{}) []interface{} {
 // GATHER
 // Gather processed records
 // /////////////////////////////////////////////////////////
-func GatherRecords(f func(resultChan chan<- *interface{}, config Config, state *State, wg *sync.WaitGroup), config Config, state *State) ([]interface{}, error) {
-	var wg sync.WaitGroup
-	resultChan := make(chan *interface{})
-
+func GatherRecords(f sourceFunction) ([]interface{}, error) {
 	var results []interface{}
 	completeSignal := make(chan struct{})
 
@@ -31,7 +35,7 @@ func GatherRecords(f func(resultChan chan<- *interface{}, config Config, state *
 	// Defer closing the channel until completion of all records (completeSignal)
 	// ///////////////////////////////////////////////////////
 	go func() {
-		results = CollectResults(resultChan)
+		results = CollectResults()
 		close(completeSignal)
 	}()
 
@@ -45,7 +49,7 @@ func GatherRecords(f func(resultChan chan<- *interface{}, config Config, state *
 	// see lib/record.go:processRecord()
 	// ///////////////////////////////////////////////////////
 	wg.Add(1)
-	go f(resultChan, config, state, &wg)
+	go f()
 	wg.Wait()
 	close(resultChan)
 

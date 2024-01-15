@@ -19,10 +19,10 @@ import (
 // /////////////////////////////////////////////////////////
 // PARSE
 // /////////////////////////////////////////////////////////
-func ParseREST(resultChan chan<- *interface{}, config lib.Config, state *lib.State, wg *sync.WaitGroup) {
+func ParseREST() {
 	defer wg.Done()
 
-	records, err := requestRESTRecords(config)
+	records, err := requestRESTRecords(lib.ParsedConfig)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Info("parseREST: requestDBRecords failed")
 		return
@@ -36,7 +36,7 @@ func ParseREST(resultChan chan<- *interface{}, config lib.Config, state *lib.Sta
 			defer transformWG.Done()
 			jsonData, _ := json.Marshal(r)
 			wg.Add(1)
-			go lib.ParseRecord(jsonData, resultChan, config, state, wg)
+			go lib.ParseRecord(jsonData, resultChan, &wg)
 		}(record)
 	}
 
@@ -50,7 +50,7 @@ func requestRESTRecords(config lib.Config) ([]interface{}, error) {
 	var responseMap map[string]interface{}
 
 	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
-	response, _ := getRequest(config)
+	response, _ := getRequest()
 
 	var responseMapRecordsPath []string
 
@@ -131,35 +131,35 @@ func requestRESTRecords(config lib.Config) ([]interface{}, error) {
 // /////////////////////////////////////////////////////////
 // REQUEST UTIL
 // /////////////////////////////////////////////////////////
-func getRequest(config lib.Config) ([]byte, error) {
+func getRequest() ([]byte, error) {
 	client := http.DefaultClient
 
-	req, err := http.NewRequest("GET", *config.URL, nil)
+	req, err := http.NewRequest("GET", *lib.ParsedConfig.URL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating get request: %w", err)
 	}
 
-	if *config.Rest.Auth.Required {
-		switch *config.Rest.Auth.Strategy {
+	if *lib.ParsedConfig.Rest.Auth.Required {
+		switch *lib.ParsedConfig.Rest.Auth.Strategy {
 		case "basic":
-			req.SetBasicAuth(*config.Rest.Auth.Basic.Username, *config.Rest.Auth.Basic.Password)
+			req.SetBasicAuth(*lib.ParsedConfig.Rest.Auth.Basic.Username, *lib.ParsedConfig.Rest.Auth.Basic.Password)
 		case "token":
-			req.Header.Add(*config.Rest.Auth.Token.Header, *config.Rest.Auth.Token.HeaderValue)
+			req.Header.Add(*lib.ParsedConfig.Rest.Auth.Token.Header, *lib.ParsedConfig.Rest.Auth.Token.HeaderValue)
 		case "oauth":
-			accessToken, _ := getAccessToken(client, config)
+			accessToken, _ := getAccessToken(client, lib.ParsedConfig)
 
 			header := "Authorization"
 			t := "Bearer " + accessToken.(string)
 
-			if config.Rest.Auth.Token == nil {
-				config.Rest.Auth.Token = &struct {
+			if lib.ParsedConfig.Rest.Auth.Token == nil {
+				lib.ParsedConfig.Rest.Auth.Token = &struct {
 					Header      *string `json:"header,omitempty"`
 					HeaderValue *string `json:"header_value,omitempty"`
 				}{Header: &header, HeaderValue: &t}
 			}
 
-			*config.Rest.Auth.Strategy = "token"
-			return getRequest(config)
+			*lib.ParsedConfig.Rest.Auth.Strategy = "token"
+			return getRequest()
 		}
 	}
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+var ParsedConfig Config
+
 // /////////////////////////////////////////////////////////
 // CONFIG.JSON
 // Parse config.json file to Config struct

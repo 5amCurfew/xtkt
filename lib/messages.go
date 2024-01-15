@@ -20,10 +20,10 @@ type Message struct {
 	BookmarkProperties []string               `json:"bookmark_properties,omitempty"`
 }
 
-func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
+func GenerateSchemaMessage(schema map[string]interface{}) error {
 	message := Message{
 		Type:          "SCHEMA",
-		Stream:        *config.StreamName,
+		Stream:        *ParsedConfig.StreamName,
 		Schema:        schema,
 		KeyProperties: []string{"_sdc_surrogate_key"},
 	}
@@ -39,7 +39,7 @@ func GenerateSchemaMessage(schema map[string]interface{}, config Config) error {
 	return nil
 }
 
-func GenerateRecordMessage(record interface{}, state *State, config Config) error {
+func GenerateRecordMessage(record interface{}) error {
 	r, parsed := record.(map[string]interface{})
 	if !parsed {
 		return fmt.Errorf("error PARSING RECORD IN GenerateRecordMessage: %v", r)
@@ -48,7 +48,7 @@ func GenerateRecordMessage(record interface{}, state *State, config Config) erro
 	message := Message{
 		Type:   "RECORD",
 		Record: r,
-		Stream: *config.StreamName,
+		Stream: *ParsedConfig.StreamName,
 	}
 
 	messageJson, err := json.Marshal(message)
@@ -62,10 +62,10 @@ func GenerateRecordMessage(record interface{}, state *State, config Config) erro
 	return nil
 }
 
-func GenerateStateMessage(state *State, config Config) error {
+func GenerateStateMessage(state *State) error {
 	message := Message{
 		Type:   "STATE",
-		Stream: *config.StreamName,
+		Stream: *ParsedConfig.StreamName,
 		Value:  state.Value,
 	}
 
