@@ -17,6 +17,7 @@ type ExecutionMetric struct {
 	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
 	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
 	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
+	NewRecords        uint64        `json:"new_records"`
 }
 
 // /////////////////////////////////////////////////////////
@@ -91,8 +92,13 @@ func extract(saveSchema bool) error {
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
+	if len(records) > 0 {
+		execution.NewRecords = uint64(len(records))
+	} else {
+		execution.NewRecords = uint64(0)
+	}
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
-
+	fmt.Println(execution.NewRecords)
 	return nil
 }
 
