@@ -40,7 +40,7 @@ Both integers and floats are sent as floats. All fields are considered `NULLABLE
 
 ### :computer: Installation
 
-Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `make xtkt`
+Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `make build`
 
 via Homebrew: `brew tap 5amCurfew/5amCurfew; brew install 5amCurfew/5amCurfew/xtkt`
 
