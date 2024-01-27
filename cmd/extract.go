@@ -75,12 +75,12 @@ func extract(saveSchema bool) error {
 		if generateRecordMessageError := lib.GenerateRecordMessage(record); generateRecordMessageError != nil {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
 		}
+		lib.UpdateState(record)
 	}
 
 	// /////////////////////////////////////////////////////////
 	// UPDATE STATE (& state_<STREAM>.json)
 	// /////////////////////////////////////////////////////////
-	lib.UpdateState(records)
 	log.Info(fmt.Sprintf(`state json updated at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	// /////////////////////////////////////////////////////////

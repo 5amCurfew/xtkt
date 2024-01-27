@@ -80,7 +80,7 @@ func ParseStateJSON() (*State, error) {
 // ///////////////////////////////////////////////////////////
 // UPDATE state_<STREAM>.json
 // ///////////////////////////////////////////////////////////
-func UpdateState(records []interface{}) {
+func UpdateState(record interface{}) {
 	// CURRENT
 	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
 
@@ -88,22 +88,16 @@ func UpdateState(records []interface{}) {
 		switch path := *ParsedConfig.Records.BookmarkPath; {
 		case reflect.DeepEqual(path, []string{"*"}):
 			latestDetectionSet := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark
-			for _, record := range records {
-				r, _ := record.(map[string]interface{})
-				if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"].(string)) {
-					latestDetectionSet = append(latestDetectionSet, r["_sdc_surrogate_key"].(string))
-				}
+			r, _ := record.(map[string]interface{})
+			if !detectionSetContains(latestDetectionSet, r["_sdc_surrogate_key"].(string)) {
+				latestDetectionSet = append(latestDetectionSet, r["_sdc_surrogate_key"].(string))
 			}
 			bookmarks.DetectionBookmark = latestDetectionSet
 		default:
 			latestBookmark := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
-			for _, record := range records {
-				r, _ := record.(map[string]interface{})
-				if util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r) == nil {
-					continue
-				} else if toString(util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r)) >= latestBookmark {
-					latestBookmark = toString(util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r))
-				}
+			r, _ := record.(map[string]interface{})
+			if toString(util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r)) >= latestBookmark {
+				latestBookmark = toString(util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r))
 			}
 			bookmarks.Bookmark = latestBookmark
 		}
