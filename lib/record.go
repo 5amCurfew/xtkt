@@ -44,7 +44,7 @@ func processRecord(record *interface{}) (*interface{}, error) {
 		return nil, fmt.Errorf("error generating surrogate keys in ProcessRecords: %v", generateSurrogateKeyFieldsError)
 	}
 
-	if keep, recordVersusBookmarkError := recordVersusBookmark(record, ParsedState); recordVersusBookmarkError != nil {
+	if keep, recordVersusBookmarkError := recordVersusBookmark(record); recordVersusBookmarkError != nil {
 		return nil, fmt.Errorf("error using bookmark in ProcessRecords: %v", recordVersusBookmarkError)
 	} else {
 		if keep {
@@ -109,19 +109,19 @@ func generateSurrogateKeyFields(record *interface{}) error {
 // /////////////////////////////////////////////////////////
 // APPLY BOOKMARK TO RECORD
 // /////////////////////////////////////////////////////////
-func recordVersusBookmark(record *interface{}, state *State) (bool, error) {
+func recordVersusBookmark(record *interface{}) (bool, error) {
 	bookmarkCondition := false
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		if ParsedConfig.Records.BookmarkPath != nil {
 			switch path := *ParsedConfig.Records.BookmarkPath; {
 			case reflect.DeepEqual(path, []string{"*"}):
 				bookmarkCondition = !detectionSetContains(
-					state.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark,
+					ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark,
 					r["_sdc_surrogate_key"].(string),
 				)
 			default:
 				if BookmarkValue := util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r); BookmarkValue != nil {
-					bookmarkCondition = toString(BookmarkValue) > state.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
+					bookmarkCondition = toString(BookmarkValue) > ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
 				} else {
 					bookmarkCondition = true
 				}
