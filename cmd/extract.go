@@ -98,7 +98,6 @@ func extract(saveSchema bool) error {
 		execution.NewRecords = uint64(0)
 	}
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
-	fmt.Println(execution.NewRecords)
 	return nil
 }
 
