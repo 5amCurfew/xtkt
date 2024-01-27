@@ -28,7 +28,7 @@
 
 Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (identifier) and `_sdc_surrogate_key` (version key)).
 
-Determine which records are processed by `xtkt` and subsequently sent to your target by using a **bookmark**. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or set to *new-record-detection* (`records.bookmark_path: [*]`, not advised for large data) (see examples below).
+Determine which records are processed by `xtkt` and subsequently sent to your target by using a **bookmark**. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or set to *new-record-detection* (`records.bookmark_path: [*]`, not advised for large data) (see examples below) (note that the bookmark field is currently always compared as a `string`).
 
 In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect deletion in your data model (using `_sdc_time_extracted`).
 
