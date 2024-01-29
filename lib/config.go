@@ -1,9 +1,5 @@
 package lib
 
-import (
-	"fmt"
-)
-
 var ParsedConfig Config
 
 // /////////////////////////////////////////////////////////
@@ -55,8 +51,4 @@ type Config struct {
 			} `json:"pagination_query,omitempty"`
 		} `json:"response,omitempty"`
 	} `json:"rest,omitempty"`
-}
-
-func toString(v interface{}) string {
-	return fmt.Sprintf("%v", v)
 }

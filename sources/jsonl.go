@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	log "github.com/sirupsen/logrus"
@@ -34,9 +35,15 @@ func ParseJSONL() {
 		records = bufio.NewScanner(file)
 	}
 
+	var parsingWG sync.WaitGroup
 	for records.Scan() {
 		line := records.Bytes()
-		wg.Add(1)
-		go lib.ParseRecord(line, resultChan, &wg)
+		parsingWG.Add(1)
+		go func() {
+			defer parsingWG.Done()
+			lib.ParseRecord(line, resultChan)
+		}()
 	}
+
+	parsingWG.Wait()
 }

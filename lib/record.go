@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"sync"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -17,8 +16,7 @@ import (
 // PARSE RECORD
 // processRecord() and send to resultChan
 // /////////////////////////////////////////////////////////
-func ParseRecord(record []byte, resultChan chan<- *interface{}, wg *sync.WaitGroup) {
-	defer wg.Done()
+func ParseRecord(record []byte, resultChan chan<- *interface{}) {
 	var data interface{}
 	if err := json.Unmarshal(record, &data); err == nil {
 		if processedData, err := processRecord(&data); err == nil && processedData != nil {
@@ -92,7 +90,7 @@ func generateHashedFields(record *interface{}) error {
 func generateSurrogateKeyFields(record *interface{}) error {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		h := sha256.New()
-		h.Write([]byte(toString(r)))
+		h.Write([]byte(util.ToString(r)))
 		if util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, r) != nil {
 			r["_sdc_natural_key"] = util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, r)
 		} else {
@@ -110,28 +108,31 @@ func generateSurrogateKeyFields(record *interface{}) error {
 // APPLY BOOKMARK TO RECORD
 // /////////////////////////////////////////////////////////
 func recordVersusBookmark(record *interface{}) (bool, error) {
-	bookmarkCondition := false
 	if r, parsed := (*record).(map[string]interface{}); parsed {
-		if ParsedConfig.Records.BookmarkPath != nil {
-			switch path := *ParsedConfig.Records.BookmarkPath; {
-			case reflect.DeepEqual(path, []string{"*"}):
-				bookmarkCondition = !detectionSetContains(
-					ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark,
-					r["_sdc_surrogate_key"].(string),
-				)
-			default:
-				if BookmarkValue := util.GetValueAtPath(*ParsedConfig.Records.BookmarkPath, r); BookmarkValue != nil {
-					bookmarkCondition = toString(BookmarkValue) > ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
-				} else {
-					bookmarkCondition = true
-				}
-			}
-
-		} else {
-			bookmarkCondition = true
+		if ParsedConfig.Records.BookmarkPath == nil {
+			return true, nil
 		}
-	} else {
-		return false, fmt.Errorf("error parsing record in recordVersusBookmark: %+v", r)
+
+		path := *ParsedConfig.Records.BookmarkPath
+
+		switch {
+		case reflect.DeepEqual(path, []string{"*"}):
+			key := r["_sdc_surrogate_key"].(string)
+			bookmarkCondition := !detectionSetContains(
+				ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark,
+				key,
+			)
+			return bookmarkCondition, nil
+
+		default:
+			BookmarkValue := util.GetValueAtPath(path, r)
+			if BookmarkValue != nil {
+				bookmarkCondition := util.ToString(BookmarkValue) > ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
+				return bookmarkCondition, nil
+			}
+			return true, nil
+		}
 	}
-	return bookmarkCondition, nil
+
+	return false, fmt.Errorf("error parsing record in recordVersusBookmark: %+v", *record)
 }

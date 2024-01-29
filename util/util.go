@@ -8,6 +8,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func ToString(v interface{}) string {
+	return fmt.Sprintf("%v", v)
+}
+
 func WriteJSON(fileName string, state interface{}) {
 	result, _ := json.Marshal(state)
 	os.WriteFile(fileName, result, 0644)

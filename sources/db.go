@@ -27,19 +27,17 @@ func ParseDB() {
 		return
 	}
 
-	var transformWG sync.WaitGroup
-
+	var parsingWG sync.WaitGroup
 	for _, record := range records[1:] {
-		transformWG.Add(1)
+		parsingWG.Add(1)
 		go func(record interface{}) {
-			defer transformWG.Done()
+			defer parsingWG.Done()
 			jsonData, _ := json.Marshal(record)
-			wg.Add(1)
-			go lib.ParseRecord(jsonData, resultChan, &wg)
+			lib.ParseRecord(jsonData, resultChan)
 		}(record)
 	}
 
-	transformWG.Wait()
+	parsingWG.Wait()
 }
 
 // /////////////////////////////////////////////////////////

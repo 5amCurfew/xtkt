@@ -54,9 +54,14 @@ func extract(saveSchema bool) error {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
 	}
 
-	if lib.ParsedConfig.Records.BookmarkPath != nil && !reflect.DeepEqual(*lib.ParsedConfig.Records.BookmarkPath, []string{"*"}) && len(records) > 0 {
+	// Sort records
+	if bookmarkPath := lib.ParsedConfig.Records.BookmarkPath; bookmarkPath != nil && len(records) > 0 {
 		sort.SliceStable(records, func(i, j int) bool {
-			return util.GetValueAtPath(*lib.ParsedConfig.Records.BookmarkPath, records[i].(map[string]interface{})).(string) < util.GetValueAtPath(*lib.ParsedConfig.Records.BookmarkPath, records[j].(map[string]interface{})).(string)
+			path := []string{"_sdc_surrogate_key"}
+			if !reflect.DeepEqual(*bookmarkPath, []string{"*"}) {
+				path = *bookmarkPath
+			}
+			return util.ToString(util.GetValueAtPath(path, records[i].(map[string]interface{}))) < util.ToString(util.GetValueAtPath(path, records[j].(map[string]interface{})))
 		})
 	}
 

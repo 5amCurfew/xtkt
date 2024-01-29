@@ -26,12 +26,11 @@ func ParseCSV() {
 
 	header := records[0]
 
-	var transformWG sync.WaitGroup
-
+	var parsingWG sync.WaitGroup
 	for _, record := range records[1:] {
-		transformWG.Add(1)
+		parsingWG.Add(1)
 		go func(record []string) {
-			defer transformWG.Done()
+			defer parsingWG.Done()
 
 			data := make(map[string]interface{})
 			for i, value := range record {
@@ -39,13 +38,10 @@ func ParseCSV() {
 			}
 
 			jsonData, _ := json.Marshal(data)
-
-			wg.Add(1)
-			go lib.ParseRecord(jsonData, resultChan, &wg)
+			lib.ParseRecord(jsonData, resultChan)
 		}(record)
 	}
-
-	transformWG.Wait()
+	parsingWG.Wait()
 }
 
 // /////////////////////////////////////////////////////////
