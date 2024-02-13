@@ -26,11 +26,7 @@
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (identifier) and `_sdc_surrogate_key` (version key)).
-
-Determine which records are processed by `xtkt` and subsequently sent to your target by using a **bookmark**. A bookmark can be either a field within the records indicating the latest record processed (e.g. `updated_at`) or set to *new-record-detection* (`records.bookmark_path: [*]`, not advised for large data) (see examples below) (note that the bookmark field is currently always compared as a `string`).
-
-In the absence of a bookmark, all records will be processed and sent to your target. This may be suitable if you want to detect deletion in your data model (using `_sdc_time_extracted`).
+Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (unique key) and `_sdc_surrogate_key` (version key)). Only new and updated records are sent to be processed by your target.
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
@@ -38,11 +34,13 @@ Fields can be hashed within records prior to being sent to your target using the
 
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`.
 
+Schema detection is naive using the first data type detected per field used.
+
 ### :computer: Installation
 
 Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `make build`
 
-via Homebrew: `brew tap 5amCurfew/5amCurfew; brew install 5amCurfew/5amCurfew/xtkt`
+via Homebrew : `brew tap 5amCurfew/5amCurfew; brew install 5amCurfew/5amCurfew/xtkt`
 
 ```bash
 $ xtkt --help
@@ -95,7 +93,6 @@ do
 done
 
 rm -f state_* config_*
-
 ```
 
 ### :floppy_disk: Metadata
@@ -116,7 +113,6 @@ rm -f state_* config_*
     "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL or relative file path)
     "records": { // required <object>: describes handling of records
         "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
-        "bookmark_path": ["<key_path_1>", "<key_path_1>", ...], // optional <array[string]>: path to bookmark within records
         "drop_field_paths": [ // optional <array[array]>: paths to remove within records
             ["<key_path_1>", "<key_path_1>", ...], // required <array[string]>
             ...
@@ -189,7 +185,6 @@ No authentication required, records found in the response "results" array, pagin
     "url": "https://rickandmortyapi.com/api/character",
     "records": {
         "unique_key_path": ["id"],
-        "bookmark_path": ["*"],
         "drop_field_paths": [
             ["episode"],
             ["origin", "url"]
@@ -225,7 +220,6 @@ Token authentication required, records returned immediately as an array, paginat
     "url": "https://api.github.com/repos/5amCurfew/xtkt/commits",
     "records": {
         "unique_key_path": ["sha"],
-        "bookmark_path": ["commit", "author", "date"],
         "drop_field_paths": [
             ["author"],
             ["committer", "avatar_url"],
@@ -268,8 +262,7 @@ Oauth authentication required, records returned immediately in an array, paginat
     "source_type": "rest",
     "url": "https://www.strava.com/api/v3/athlete/activities",
     "records": {
-        "unique_key_path": ["id"],
-        "bookmark_path": ["start_date"]
+        "unique_key_path": ["id"]
     },
     "rest": {
         "auth": {
@@ -320,8 +313,7 @@ Oauth authentication required, records returned immediately in an array, paginat
     "source_type": "db",
     "url": "sqlite:///example.db",
     "records": {
-        "unique_key_path": ["id"],
-        "bookmark_path": ["updated_at"]
+        "unique_key_path": ["id"]
     },
     "db": {
         "table": "customers"
