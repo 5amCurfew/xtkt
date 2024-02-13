@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
@@ -109,29 +108,12 @@ func generateSurrogateKeyFields(record *interface{}) error {
 // /////////////////////////////////////////////////////////
 func recordVersusBookmark(record *interface{}) (bool, error) {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
-		if ParsedConfig.Records.BookmarkPath == nil {
-			return true, nil
-		}
-
-		path := *ParsedConfig.Records.BookmarkPath
-
-		switch {
-		case reflect.DeepEqual(path, []string{"*"}):
-			key := r["_sdc_surrogate_key"].(string)
-			bookmarkCondition := !detectionSetContains(
-				ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].DetectionBookmark,
-				key,
-			)
-			return bookmarkCondition, nil
-
-		default:
-			BookmarkValue := util.GetValueAtPath(path, r)
-			if BookmarkValue != nil {
-				bookmarkCondition := util.ToString(BookmarkValue) > ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark
-				return bookmarkCondition, nil
-			}
-			return true, nil
-		}
+		key := r["_sdc_surrogate_key"].(string)
+		bookmarkCondition := !detectionSetContains(
+			ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark,
+			key,
+		)
+		return bookmarkCondition, nil
 	}
 
 	return false, fmt.Errorf("error parsing record in recordVersusBookmark: %+v", *record)

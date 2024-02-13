@@ -136,36 +136,7 @@ func extractDatabaseTypeFromUrl() (string, error) {
 }
 
 func createQuery() (string, error) {
-
-	dbType, err := extractDatabaseTypeFromUrl()
-	if err != nil {
-		return "", fmt.Errorf("error determining database type: %w", err)
-	}
-
-	state, err := lib.ParseStateJSON()
-	if err != nil {
-		return "", fmt.Errorf("error parsing state for bookmark value: %w", err)
-	}
-
-	value := state.Value.Bookmarks[*lib.ParsedConfig.StreamName]
-
 	var query strings.Builder
 	query.WriteString(fmt.Sprintf("SELECT * FROM %s", *lib.ParsedConfig.Database.Table))
-
-	// Add fields to SELECT statement
-	if lib.ParsedConfig.Records.BookmarkPath != nil && value.Bookmark != "" {
-		field := *lib.ParsedConfig.Records.BookmarkPath
-		switch dbType {
-		case "postgres", "postgresql", "sqlite":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS text) > '%s'`, field[0], value.Bookmark))
-		case "mysql":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS char) > '%s'`, field[0], value.Bookmark))
-		case "sqlserver":
-			query.WriteString(fmt.Sprintf(` WHERE CAST("%s" AS varchar) > '%s'`, field[0], value.Bookmark))
-		default:
-			return "", fmt.Errorf("unsupported database type: %s", dbType)
-		}
-	}
-	query.WriteString(";")
 	return query.String(), nil
 }

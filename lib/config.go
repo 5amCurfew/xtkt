@@ -12,7 +12,6 @@ type Config struct {
 	URL        *string `json:"url,omitempty"`
 	Records    *struct {
 		UniqueKeyPath       *[]string   `json:"unique_key_path,omitempty"`
-		BookmarkPath        *[]string   `json:"bookmark_path,omitempty"`
 		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
 		SensitiveFieldPaths *[][]string `json:"sensitive_field_paths,omitempty"`
 	} `json:"records,omitempty"`

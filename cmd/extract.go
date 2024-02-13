@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"reflect"
-	"sort"
 	"strings"
 	"time"
 
@@ -52,17 +50,6 @@ func extract(saveSchema bool) error {
 	records, generateRecordsError := generateRecords()
 	if generateRecordsError != nil {
 		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
-	}
-
-	// Sort records
-	if bookmarkPath := lib.ParsedConfig.Records.BookmarkPath; bookmarkPath != nil && len(records) > 0 {
-		sort.SliceStable(records, func(i, j int) bool {
-			path := []string{"_sdc_surrogate_key"}
-			if !reflect.DeepEqual(*bookmarkPath, []string{"*"}) {
-				path = *bookmarkPath
-			}
-			return util.ToString(util.GetValueAtPath(path, records[i].(map[string]interface{}))) < util.ToString(util.GetValueAtPath(path, records[j].(map[string]interface{})))
-		})
 	}
 
 	// /////////////////////////////////////////////////////////

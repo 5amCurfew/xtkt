@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
 	"sort"
 	"time"
 
@@ -17,12 +16,11 @@ var ParsedState *State
 // STATE_<STREAM>.JSON
 // /////////////////////////////////////////////////////////
 type State struct {
-	Type  string `json:"Type"`
+	Type  string `json:"type"`
 	Value struct {
 		Bookmarks map[string]struct {
-			BookmarkUpdatedAt string   `json:"last_extraction_at"`
-			DetectionBookmark []string `json:"detection_bookmark"`
-			Bookmark          string   `json:"bookmark"`
+			BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
+			Bookmark          []string `json:"bookmark"`
 		} `json:"bookmarks"`
 	} `json:"Value"`
 }
@@ -35,20 +33,17 @@ func CreateStateJSON() {
 		Type: "STATE",
 		Value: struct {
 			Bookmarks map[string]struct {
-				BookmarkUpdatedAt string   `json:"last_extraction_at"`
-				DetectionBookmark []string `json:"detection_bookmark"`
-				Bookmark          string   `json:"bookmark"`
+				BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
+				Bookmark          []string `json:"bookmark"`
 			} `json:"bookmarks"`
 		}{
 			Bookmarks: map[string]struct {
-				BookmarkUpdatedAt string   `json:"last_extraction_at"`
-				DetectionBookmark []string `json:"detection_bookmark"`
-				Bookmark          string   `json:"bookmark"`
+				BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
+				Bookmark          []string `json:"bookmark"`
 			}{
 				*ParsedConfig.StreamName: {
 					BookmarkUpdatedAt: time.Now().UTC().Format(time.RFC3339),
-					DetectionBookmark: []string{},
-					Bookmark:          "",
+					Bookmark:          []string{},
 				},
 			},
 		},
@@ -82,23 +77,11 @@ func ParseStateJSON() (*State, error) {
 // ///////////////////////////////////////////////////////////
 func UpdateState(record interface{}) {
 	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
+	r := record.(map[string]interface{})
+	key, _ := r["_sdc_surrogate_key"].(string)
 
-	if ParsedConfig.Records.BookmarkPath != nil {
-		path := *ParsedConfig.Records.BookmarkPath
-		r, _ := record.(map[string]interface{})
-
-		switch {
-		case reflect.DeepEqual(path, []string{"*"}):
-			key := r["_sdc_surrogate_key"].(string)
-			if !detectionSetContains(bookmarks.DetectionBookmark, key) {
-				bookmarks.DetectionBookmark = append(bookmarks.DetectionBookmark, key)
-			}
-		default:
-			bookmarkValue := util.ToString(util.GetValueAtPath(path, r))
-			if bookmarkValue >= bookmarks.Bookmark {
-				bookmarks.Bookmark = bookmarkValue
-			}
-		}
+	if !detectionSetContains(bookmarks.Bookmark, key) {
+		bookmarks.Bookmark = append(bookmarks.Bookmark, key)
 	}
 
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
