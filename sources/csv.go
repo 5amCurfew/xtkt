@@ -26,11 +26,21 @@ func ParseCSV() {
 
 	header := records[0]
 
+	// Introduce semaphore to limit concurrency
+	sem := make(chan struct{}, 10)
+
 	var parsingWG sync.WaitGroup
 	for _, record := range records[1:] {
 		parsingWG.Add(1)
+
+		// "Acquire" a slot in the semaphore channel
+		sem <- struct{}{}
+
 		go func(record []string) {
 			defer parsingWG.Done()
+
+			// Ensure to release the slot after the goroutine finishes
+			defer func() { <-sem }()
 
 			data := make(map[string]interface{})
 			for i, value := range record {
