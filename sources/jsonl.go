@@ -36,19 +36,24 @@ func ParseJSONL() {
 
 	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
 	for records.Scan() {
-		line := records.Bytes()
+		data := records.Bytes()
+		// Make a copy of data to avoid data races
+		dataCopy := make([]byte, len(data))
+		copy(dataCopy, data)
+
 		// "Acquire" a slot in the semaphore channel
 		sem <- struct{}{}
 		parsingWG.Add(1)
 
-		go func() {
+		go func(dataCopy []byte) {
 			defer parsingWG.Done()
 
 			// Ensure to release the slot after the goroutine finishes
 			defer func() { <-sem }()
 
-			lib.ParseRecord(line, resultChan)
-		}()
+			//jsonData, _ := json.Marshal(dataCopy)
+			lib.ParseRecord(dataCopy, resultChan)
+		}(dataCopy)
 	}
 
 	parsingWG.Wait()
