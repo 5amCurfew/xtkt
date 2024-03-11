@@ -29,10 +29,22 @@ func ParseREST() {
 	}
 
 	var parsingWG sync.WaitGroup
+
+	// Introduce semaphore to limit concurrency
+	sem := make(chan struct{}, maxConcurrency)
+
 	for _, record := range records {
 		parsingWG.Add(1)
+
+		// "Acquire" a slot in the semaphore channel
+		sem <- struct{}{}
+
 		go func(r interface{}) {
 			defer parsingWG.Done()
+
+			// Ensure to release the slot after the goroutine finishes
+			defer func() { <-sem }()
+
 			jsonData, _ := json.Marshal(r)
 			lib.ParseRecord(jsonData, resultChan)
 		}(record)

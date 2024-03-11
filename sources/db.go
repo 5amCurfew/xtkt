@@ -28,10 +28,22 @@ func ParseDB() {
 	}
 
 	var parsingWG sync.WaitGroup
+
+	// Introduce semaphore to limit concurrency
+	sem := make(chan struct{}, maxConcurrency)
+
 	for _, record := range records[1:] {
 		parsingWG.Add(1)
+
+		// "Acquire" a slot in the semaphore channel
+		sem <- struct{}{}
+
 		go func(record interface{}) {
 			defer parsingWG.Done()
+
+			// Ensure to release the slot after the goroutine finishes
+			defer func() { <-sem }()
+
 			jsonData, _ := json.Marshal(record)
 			lib.ParseRecord(jsonData, resultChan)
 		}(record)
@@ -54,7 +66,7 @@ func requestDBRecords() ([]interface{}, error) {
 		address = strings.Split(*lib.ParsedConfig.URL, ":///")[1]
 	}
 
-	db, _ := sql.Open(dbType, address)
+	db, err := sql.Open(dbType, address)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}

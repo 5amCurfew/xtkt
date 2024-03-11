@@ -10,8 +10,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.1.6"
+var version = "0.1.7"
 var saveSchema bool
+
+func Execute() {
+	rootCmd.Flags().BoolVar(&saveSchema, "save-schema", false, "save the schema to a file after extraction")
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "error using xtkt: '%s'", err)
+		os.Exit(1)
+	} else {
+		os.Exit(0)
+	}
+}
 
 var rootCmd = &cobra.Command{
 	Use:     "xtkt [PATH_TO_CONFIG_JSON]",
@@ -19,7 +29,7 @@ var rootCmd = &cobra.Command{
 	Short:   "xtkt - data extraction CLI",
 	Long:    `xtkt is a command line interface to extract data from a RESTful API, database or files to pipe to any target that meets the Singer.io specification`,
 	Args:    cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetFormatter(&log.JSONFormatter{})
 
 		var cfgPath string
@@ -34,21 +44,16 @@ var rootCmd = &cobra.Command{
 		cfg, cfgError := parseConfigJSON(cfgPath)
 		if cfgError != nil {
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", cfgError)}).Fatalln("failed to parse config JSON - does it exist and is it valid?")
+			return fmt.Errorf("error parsing config JSON")
 		}
 		lib.ParsedConfig = cfg
 
 		if extractError := extract(saveSchema); extractError != nil {
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", extractError)}).Fatalln("failed to extract records")
+			return fmt.Errorf("failed to extract records")
 		}
+		return nil
 	},
-}
-
-func Execute() {
-	rootCmd.Flags().BoolVar(&saveSchema, "save-schema", false, "save the schema to a file after extraction")
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "error using xtkt: '%s'", err)
-		os.Exit(1)
-	}
 }
 
 func parseConfigJSON(filePath string) (lib.Config, error) {

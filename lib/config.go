@@ -7,10 +7,11 @@ var ParsedConfig Config
 // Parse config.json file to Config struct
 // /////////////////////////////////////////////////////////
 type Config struct {
-	StreamName *string `json:"stream_name,omitempty"`
-	SourceType *string `json:"source_type,omitempty"`
-	URL        *string `json:"url,omitempty"`
-	Records    *struct {
+	StreamName     *string `json:"stream_name,omitempty"`
+	SourceType     *string `json:"source_type,omitempty"`
+	URL            *string `json:"url,omitempty"`
+	MaxConcurrency *int    `json:"max_concurrency,omitempty"`
+	Records        *struct {
 		UniqueKeyPath       *[]string   `json:"unique_key_path,omitempty"`
 		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
 		SensitiveFieldPaths *[][]string `json:"sensitive_field_paths,omitempty"`

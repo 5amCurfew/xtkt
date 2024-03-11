@@ -26,10 +26,11 @@ func ParseCSV() {
 
 	header := records[0]
 
-	// Introduce semaphore to limit concurrency
-	sem := make(chan struct{}, 10)
-
 	var parsingWG sync.WaitGroup
+
+	// Introduce semaphore to limit concurrency
+	sem := make(chan struct{}, maxConcurrency)
+
 	for _, record := range records[1:] {
 		parsingWG.Add(1)
 

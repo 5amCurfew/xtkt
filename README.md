@@ -20,7 +20,7 @@
   * [SQLite](#sqlite)
   * [File](#file)
 
-**v0.1.5**
+**v0.1.7**
 
 `xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl).
 
@@ -32,7 +32,9 @@ Fields can be dropped from records prior to being sent to your target using the 
 
 Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
 
-Both integers and floats are sent as floats. All fields are considered `NULLABLE`.
+Records are processed concurrently (once all records are gathered). Default ocncurrency is set to 1000 goroutines but can be set using the `max_concurrency` field in your JSON configuration file (see examples below).
+
+Both integers and floats are sent as floats. All fields are considered `NULLABLE`. All fields when extracting from CSV are considered strings for now.
 
 Schema detection is naive using the first data type detected per field used.
 
@@ -111,14 +113,16 @@ rm -f state_* config_*
     "stream_name": "<stream_name>", // required, <string>: the name of your stream
     "source_type": "<source_type>", // required, <string>: one of either csv, db, jsonl, html, rest
     "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL or relative file path)
+    "max_concurrency": "<max_thread_count>", // optional <int>: maximum number of records processed concurrently (default: 1000)
     "records": { // required <object>: describes handling of records
         "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
         "drop_field_paths": [ // optional <array[array]>: paths to remove within records
-            ["<key_path_1>", "<key_path_1>", ...], // required <array[string]>
+            ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>
             ...
         ],
         "sensitive_field_paths": [ // optional <array[array]>: array of paths of fields to hash
             ["<sensitive_path_1_1>", "<sensitive_path_1_2>", ...], // required <array[string]>
+            ["<sensitive_path_2_1>", "<sensitive_path_2_2>", ...],
             ...
         ],
     }
@@ -313,7 +317,7 @@ Oauth authentication required, records returned immediately in an array, paginat
     "source_type": "db",
     "url": "sqlite:///example.db",
     "records": {
-        "unique_key_path": ["id"]
+        "unique_key_path": ["id"],
     },
     "db": {
         "table": "customers"
@@ -327,11 +331,13 @@ Oauth authentication required, records returned immediately in an array, paginat
 {
     "stream_name": "xtkt_jsonl",
     "source_type": "jsonl",
-    "url": "_config_json/data.jsonl",
+    "url": "_config_json/data.jsonl/csv",
+    "max_concurrency": 50,
     "records": {
         "unique_key_path": ["id"],
         "sensitive_field_paths": [
-            ["location", "address"]
+            ["location", "address"],
+            ["age"]
         ]
     }
 }

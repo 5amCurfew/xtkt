@@ -13,7 +13,6 @@ import (
 )
 
 type ExecutionMetric struct {
-	Stream            string        `json:"stream,omitempty"`
 	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
 	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
 	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
@@ -25,7 +24,6 @@ type ExecutionMetric struct {
 // /////////////////////////////////////////////////////////
 func extract(saveSchema bool) error {
 	var execution ExecutionMetric
-	execution.Stream = *lib.ParsedConfig.StreamName
 	execution.ExecutionStart = time.Now().UTC()
 
 	// /////////////////////////////////////////////////////////
