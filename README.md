@@ -20,7 +20,7 @@
   * [SQLite](#sqlite)
   * [File](#file)
 
-**v0.1.8**
+**v0.1.9**
 
 `xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl).
 
