@@ -20,6 +20,8 @@ func ParseRecord(record []byte, resultChan chan<- *interface{}) {
 	if err := json.Unmarshal(record, &data); err == nil {
 		if processedData, err := processRecord(&data); err == nil && processedData != nil {
 			resultChan <- processedData
+		} else if err != nil {
+			log.Warn(fmt.Sprintf("error parsing record %s: %v", data, err))
 		}
 	}
 }
