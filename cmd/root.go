@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.1.7"
+var version = "0.1.8"
 var saveSchema bool
 var defaultConcurrency int = 1000
 
