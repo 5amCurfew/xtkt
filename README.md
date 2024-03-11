@@ -179,7 +179,7 @@ rm -f state_* config_*
 ### :rocket: Examples
 
 #### [Rick & Morty API](https://rickandmortyapi.com/)
-No authentication required, records found in the response "results" array, paginated using "next", *new-record-detection* used for bookmark
+No authentication required, records found in the response "results" array, paginated using "next"
 
 `config.json`
 ```json

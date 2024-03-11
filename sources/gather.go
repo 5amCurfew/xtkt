@@ -43,11 +43,12 @@ func GatherRecords(f sourceFunction) ([]interface{}, error) {
 	// ///////////////////////////////////////////////////////
 	// Start a goroutine applying the Parse<SOURCE>() function (f)
 	// Parse<SOURCE>() extracts records and starts a goroutine for each record applying the ParseRecord()
-	// ParseRecord() applies the processRecord function to each record and on success sends to the resultChan
-	// processRecord() applies transformations to a record and returns the transformed record
-	// See sources/<SOURCE>:Parse<SOURCE>
-	// See lib/record.go:ParseRecord()
-	// see lib/record.go:processRecord()
+	// Parse<SOURCE>()
+	// 	-> ParseRecord()
+	// 	 -> processRecord()
+	// See sources/<SOURCE>:Parse<SOURCE> : Parse<SOURCE>() creates the json encoding ([]byte) which is then parsed to ParseRecord()
+	// See lib/record.go:ParseRecord() : applies the processRecord function to each record and on success sends to the resultChan
+	// see lib/record.go:processRecord() : applies transformations to a record and returns the transformed record
 	// ///////////////////////////////////////////////////////
 	wg.Add(1)
 	go f()

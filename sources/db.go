@@ -49,7 +49,9 @@ func ParseDB() {
 // /////////////////////////////////////////////////////////
 // REQUEST
 // /////////////////////////////////////////////////////////
-func requestDBRecords() ([]interface{}, error) {
+func requestDBRecords() ([]map[string]interface{}, error) {
+	var records []map[string]interface{}
+
 	address := *lib.ParsedConfig.URL
 	dbType, err := extractDatabaseTypeFromUrl()
 	if err != nil {
@@ -83,7 +85,6 @@ func requestDBRecords() ([]interface{}, error) {
 		return nil, fmt.Errorf("error parsing columns: %w", err)
 	}
 
-	result := make([]interface{}, 0)
 	for rows.Next() {
 		values := make([]interface{}, len(columns))
 		for i := range columns {
@@ -111,10 +112,10 @@ func requestDBRecords() ([]interface{}, error) {
 			}
 		}
 
-		result = append(result, row)
+		records = append(records, row)
 	}
 
-	return result, nil
+	return records, nil
 }
 
 // /////////////////////////////////////////////////////////

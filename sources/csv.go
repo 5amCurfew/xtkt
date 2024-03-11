@@ -23,26 +23,19 @@ func ParseCSV() {
 		return
 	}
 
-	header := records[0]
-
 	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
 	for _, record := range records[1:] {
 		// "Acquire" a slot in the semaphore channel
 		sem <- struct{}{}
 		parsingWG.Add(1)
 
-		go func(record []string) {
+		go func(record interface{}) {
 			defer parsingWG.Done()
 
 			// Ensure to release the slot after the goroutine finishes
 			defer func() { <-sem }()
 
-			data := make(map[string]interface{})
-			for i, value := range record {
-				data[header[i]] = value
-			}
-
-			jsonData, _ := json.Marshal(data)
+			jsonData, _ := json.Marshal(record)
 			lib.ParseRecord(jsonData, resultChan)
 		}(record)
 	}
@@ -52,8 +45,9 @@ func ParseCSV() {
 // /////////////////////////////////////////////////////////
 // REQUEST
 // /////////////////////////////////////////////////////////
-func requestCSVRecords() ([][]string, error) {
-	var records [][]string
+func requestCSVRecords() ([]map[string]interface{}, error) {
+	var data [][]string
+	var records []map[string]interface{}
 
 	if strings.HasPrefix(*lib.ParsedConfig.URL, "http") {
 		response, err := http.Get(*lib.ParsedConfig.URL)
@@ -62,7 +56,7 @@ func requestCSVRecords() ([][]string, error) {
 		}
 		defer response.Body.Close()
 		reader := csv.NewReader(response.Body)
-		records, _ = reader.ReadAll()
+		data, _ = reader.ReadAll()
 	} else {
 		file, err := os.Open(*lib.ParsedConfig.URL)
 		if err != nil {
@@ -70,7 +64,16 @@ func requestCSVRecords() ([][]string, error) {
 		}
 		defer file.Close()
 		reader := csv.NewReader(file)
-		records, _ = reader.ReadAll()
+		data, _ = reader.ReadAll()
+	}
+
+	header := data[0]
+	for _, row := range data[1:] {
+		record := make(map[string]interface{})
+		for i, value := range row {
+			record[header[i]] = value
+		}
+		records = append(records, record)
 	}
 
 	return records, nil

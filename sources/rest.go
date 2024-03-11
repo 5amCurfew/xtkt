@@ -23,7 +23,7 @@ func ParseREST() {
 
 	records, err := requestRESTRecords(lib.ParsedConfig)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Info("parseREST: requestDBRecords failed")
+		log.WithFields(log.Fields{"error": err}).Info("parseREST: requestRESTRecords failed")
 		return
 	}
 
@@ -50,43 +50,55 @@ func ParseREST() {
 // /////////////////////////////////////////////////////////
 // REQUEST
 // /////////////////////////////////////////////////////////
-func requestRESTRecords(config lib.Config) ([]interface{}, error) {
+func requestRESTRecords(config lib.Config) ([]map[string]interface{}, error) {
+	var records []map[string]interface{}
+
 	var responseMap map[string]interface{}
 
 	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
 	response, _ := getRequest()
 
-	var responseMapRecordsPath []string
+	responseMapRecordsPath := []string{"results"}
 
-	if config.Rest.Response.RecordsPath == nil {
-		responseMapRecordsPath = []string{"results"}
+	var data interface{}
+	if err := json.Unmarshal(response, &data); err != nil {
+		return nil, fmt.Errorf("error json.unmarshal of response: %w", err)
+	}
 
-		var data interface{}
-		if err := json.Unmarshal([]byte(response), &data); err != nil {
-			return nil, fmt.Errorf("error json.unmarshal of response: %w", err)
-		}
-
-		switch d := data.(type) {
-		case []interface{}:
-			response, _ = json.Marshal(map[string]interface{}{
-				"results": d,
-			})
-		case map[string]interface{}:
+	switch d := data.(type) {
+	case []interface{}:
+		response, _ = json.Marshal(map[string]interface{}{
+			"results": d,
+		})
+	case map[string]interface{}:
+		if config.Rest.Response.RecordsPath == nil {
 			response, _ = json.Marshal(map[string]interface{}{
 				"results": []interface{}{d},
 			})
-		default:
-			// the response is neither an array nor an object, but records_path provided
+		} else {
+			response, _ = json.Marshal(data)
 		}
-	} else {
+	default:
+		response, _ = json.Marshal(data)
+	}
+
+	if config.Rest.Response.RecordsPath != nil {
 		responseMapRecordsPath = *config.Rest.Response.RecordsPath
 	}
 
-	json.Unmarshal([]byte(response), &responseMap)
+	json.Unmarshal(response, &responseMap)
 
-	records, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+	recordsInterfaceSlice, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("error response map does not contain records array at path: %v", responseMapRecordsPath)
+	}
+	// Convert the slice of interfaces to a slice of map[string]interface{}
+	for _, item := range recordsInterfaceSlice {
+		if recordMap, ok := item.(map[string]interface{}); ok {
+			records = append(records, recordMap)
+		} else {
+			return nil, fmt.Errorf("error encountered non-map element in records array")
+		}
 	}
 
 	if *config.Rest.Response.Pagination {
