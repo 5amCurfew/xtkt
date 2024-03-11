@@ -12,6 +12,7 @@ import (
 
 var version = "0.1.7"
 var saveSchema bool
+var defaultConcurrency int = 1000
 
 func Execute() {
 	rootCmd.Flags().BoolVar(&saveSchema, "save-schema", false, "save the schema to a file after extraction")
@@ -66,6 +67,11 @@ func parseConfigJSON(filePath string) (lib.Config, error) {
 
 	if jsonError := json.Unmarshal(config, &cfg); jsonError != nil {
 		return cfg, fmt.Errorf("error parseConfigJson unmarshlling config.json: %w", jsonError)
+	}
+
+	// Check if MaxConcurrency field is nil, set it to the default value
+	if cfg.MaxConcurrency == nil {
+		cfg.MaxConcurrency = &defaultConcurrency
 	}
 
 	return cfg, nil

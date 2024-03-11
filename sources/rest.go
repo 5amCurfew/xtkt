@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	util "github.com/5amCurfew/xtkt/util"
@@ -28,16 +27,11 @@ func ParseREST() {
 		return
 	}
 
-	var parsingWG sync.WaitGroup
-
-	// Introduce semaphore to limit concurrency
-	sem := make(chan struct{}, maxConcurrency)
-
+	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
 	for _, record := range records {
-		parsingWG.Add(1)
-
 		// "Acquire" a slot in the semaphore channel
 		sem <- struct{}{}
+		parsingWG.Add(1)
 
 		go func(r interface{}) {
 			defer parsingWG.Done()

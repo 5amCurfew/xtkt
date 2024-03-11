@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	_ "github.com/denisenkom/go-mssqldb"
@@ -27,16 +26,11 @@ func ParseDB() {
 		return
 	}
 
-	var parsingWG sync.WaitGroup
-
-	// Introduce semaphore to limit concurrency
-	sem := make(chan struct{}, maxConcurrency)
-
+	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
 	for _, record := range records[1:] {
-		parsingWG.Add(1)
-
 		// "Acquire" a slot in the semaphore channel
 		sem <- struct{}{}
+		parsingWG.Add(1)
 
 		go func(record interface{}) {
 			defer parsingWG.Done()

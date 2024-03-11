@@ -2,15 +2,13 @@ package sources
 
 import (
 	"sync"
-
-	lib "github.com/5amCurfew/xtkt/lib"
 )
 
 type sourceFunction = func()
 
-var maxConcurrency int
 var resultChan = make(chan *interface{})
 var wg sync.WaitGroup
+var parsingWG sync.WaitGroup
 
 // /////////////////////////////////////////////////////////
 // COLLECT RECORDS
@@ -31,11 +29,6 @@ func CollectResults() []interface{} {
 func GatherRecords(f sourceFunction) ([]interface{}, error) {
 	var results []interface{}
 	completeSignal := make(chan struct{})
-	if lib.ParsedConfig.MaxConcurrency != nil {
-		maxConcurrency = *lib.ParsedConfig.MaxConcurrency
-	} else {
-		maxConcurrency = 1000
-	}
 
 	// ///////////////////////////////////////////////////////
 	// Start a goroutine CollectResults()

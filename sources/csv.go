@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	log "github.com/sirupsen/logrus"
@@ -26,16 +25,11 @@ func ParseCSV() {
 
 	header := records[0]
 
-	var parsingWG sync.WaitGroup
-
-	// Introduce semaphore to limit concurrency
-	sem := make(chan struct{}, maxConcurrency)
-
+	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
 	for _, record := range records[1:] {
-		parsingWG.Add(1)
-
 		// "Acquire" a slot in the semaphore channel
 		sem <- struct{}{}
+		parsingWG.Add(1)
 
 		go func(record []string) {
 			defer parsingWG.Done()

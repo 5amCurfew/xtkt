@@ -83,15 +83,3 @@ func DropFieldAtPath(path []string, input map[string]interface{}) error {
 		return nil
 	}
 }
-
-// Helper function to convert value to float64
-func GetFloatValue(value interface{}) (float64, error) {
-	switch v := value.(type) {
-	case int, int32, int64, float32:
-		return v.(float64), nil
-	case float64:
-		return v, nil
-	default:
-		return 0, fmt.Errorf("value cannot be converted to a numeric type")
-	}
-}
