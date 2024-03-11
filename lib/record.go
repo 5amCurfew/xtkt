@@ -46,6 +46,8 @@ func processRecord(record *interface{}) (*interface{}, error) {
 	} else {
 		if keep {
 			return record, nil
+		} else {
+			*record = nil
 		}
 	}
 	return nil, nil
