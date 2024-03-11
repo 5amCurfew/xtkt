@@ -32,7 +32,7 @@ Fields can be dropped from records prior to being sent to your target using the 
 
 Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
 
-Records are processed concurrently (once all records are gathered). Default ocncurrency is set to 1000 goroutines but can be set using the `max_concurrency` field in your JSON configuration file (see examples below).
+Records are processed concurrently (once all records are gathered). Default concurrency is set to 1000 goroutines but can be set using the `max_concurrency` field in your JSON configuration file (see examples below).
 
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`. All fields when extracting from CSV are considered strings for now.
 
