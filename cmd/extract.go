@@ -3,12 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	sources "github.com/5amCurfew/xtkt/sources"
-	util "github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,44 +40,34 @@ func extract(saveSchema bool) error {
 	}
 	lib.ParsedState = state
 
-	// /////////////////////////////////////////////////////////
-	// GENERATE RECORDS
-	// /////////////////////////////////////////////////////////
-	records, generateRecordsError := generateRecords()
-	if generateRecordsError != nil {
-		return fmt.Errorf("error CREATING RECORDS: %w", generateRecordsError)
-	}
+	go func() {
+		log.Info(fmt.Sprintf(`generating records from %s`, *lib.ParsedConfig.URL))
 
-	// /////////////////////////////////////////////////////////
-	// GENERATE SCHEMA, SCHEMA MESSAGE
-	// /////////////////////////////////////////////////////////
-	if len(records) > 0 {
-		schema, generateSchemaError := lib.GenerateSchema(records)
-		if generateSchemaError != nil {
-			return fmt.Errorf("error GENERATING SCHEMA: %w", generateSchemaError)
+		switch *lib.ParsedConfig.SourceType {
+		case "db":
+			sources.ParseDB()
+		case "csv":
+			sources.ParseCSV()
+		case "jsonl":
+			sources.ParseJSONL()
+		case "rest":
+			sources.ParseREST()
+		default:
+			log.Info("unsupported data source")
 		}
-		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema); generateSchemaMessageError != nil {
-			return fmt.Errorf("error GENERATING SCHEMA MESSAGE: %w", generateSchemaMessageError)
-		}
-		if saveSchema {
-			util.WriteJSON(fmt.Sprintf("schema_%s.json", time.Now().Format("20060102150405")), schema)
-		}
-	}
 
-	// /////////////////////////////////////////////////////////
-	// GENERATE RECORD MESSAGES
-	// /////////////////////////////////////////////////////////
-	for _, record := range records {
-		if generateRecordMessageError := lib.GenerateRecordMessage(record); generateRecordMessageError != nil {
+		sources.ParsingWG.Wait()
+		close(sources.ResultChan)
+	}()
+
+	for record := range sources.ResultChan {
+		r := *record
+		if generateRecordMessageError := lib.GenerateRecordMessage(r); generateRecordMessageError != nil {
 			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
 		}
-		lib.UpdateState(record)
+		lib.UpdateState(r)
+		execution.NewRecords += 1
 	}
-
-	// /////////////////////////////////////////////////////////
-	// UPDATE STATE (& state_<STREAM>.json)
-	// /////////////////////////////////////////////////////////
-	log.Info(fmt.Sprintf(`state json updated at %s`, time.Now().UTC().Format(time.RFC3339)))
 
 	// /////////////////////////////////////////////////////////
 	// GENERATE STATE MESSAGE
@@ -90,33 +78,6 @@ func extract(saveSchema bool) error {
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
-	if len(records) > 0 {
-		execution.NewRecords = uint64(len(records))
-	} else {
-		execution.NewRecords = uint64(0)
-	}
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
 	return nil
-}
-
-// /////////////////////////////////////////////////////////
-// GENERATE RECORDS
-// /////////////////////////////////////////////////////////
-func generateRecords() ([]interface{}, error) {
-	switch *lib.ParsedConfig.SourceType {
-	case "db":
-		log.Info(fmt.Sprintf(`generating records from database %s`, strings.Split(*lib.ParsedConfig.URL, "@")[0]))
-		return sources.GatherRecords(sources.ParseDB)
-	case "csv":
-		log.Info(fmt.Sprintf(`generating records from file at %s`, *lib.ParsedConfig.URL))
-		return sources.GatherRecords(sources.ParseCSV)
-	case "jsonl":
-		log.Info(fmt.Sprintf(`generating records from file at %s`, *lib.ParsedConfig.URL))
-		return sources.GatherRecords(sources.ParseJSONL)
-	case "rest":
-		log.Info(fmt.Sprintf(`generating records from REST-API %s`, *lib.ParsedConfig.URL))
-		return sources.GatherRecords(sources.ParseREST)
-	default:
-		return nil, fmt.Errorf("unsupported data source in GenerateRecords")
-	}
 }

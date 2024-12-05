@@ -2,10 +2,7 @@ package lib
 
 var ParsedConfig Config
 
-// /////////////////////////////////////////////////////////
-// CONFIG.JSON
 // Parse config.json file to Config struct
-// /////////////////////////////////////////////////////////
 type Config struct {
 	StreamName     *string `json:"stream_name,omitempty"`
 	SourceType     *string `json:"source_type,omitempty"`

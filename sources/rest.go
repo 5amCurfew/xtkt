@@ -15,40 +15,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// /////////////////////////////////////////////////////////
-// PARSE
-// /////////////////////////////////////////////////////////
 func ParseREST() {
-	defer wg.Done()
-
 	records, err := requestRESTRecords(lib.ParsedConfig)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Info("parseREST: requestRESTRecords failed")
 		return
 	}
 
-	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
+	// Derive & Parse records
 	for _, record := range records {
-		// "Acquire" a slot in the semaphore channel
-		sem <- struct{}{}
-		parsingWG.Add(1)
-
-		go func(r interface{}) {
-			defer parsingWG.Done()
-
-			// Ensure to release the slot after the goroutine finishes
-			defer func() { <-sem }()
-
-			jsonData, _ := json.Marshal(r)
-			lib.ParseRecord(jsonData, resultChan)
-		}(record)
+		ParsingWG.Add(1)
+		go parse(record)
 	}
-
-	parsingWG.Wait()
 }
 
 // /////////////////////////////////////////////////////////
-// REQUEST
+// Util
 // /////////////////////////////////////////////////////////
 func requestRESTRecords(config lib.Config) ([]map[string]interface{}, error) {
 	var records []map[string]interface{}
@@ -145,7 +127,7 @@ func requestRESTRecords(config lib.Config) ([]map[string]interface{}, error) {
 }
 
 // /////////////////////////////////////////////////////////
-// REQUEST UTIL
+// Util
 // /////////////////////////////////////////////////////////
 func getRequest() ([]byte, error) {
 	client := http.DefaultClient

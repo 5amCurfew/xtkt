@@ -3,7 +3,6 @@ package lib
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -11,26 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// /////////////////////////////////////////////////////////
-// PARSE RECORD
-// processRecord() and send to resultChan
-// /////////////////////////////////////////////////////////
-func ParseRecord(record []byte, resultChan chan<- *interface{}) {
-	var data interface{}
-	if err := json.Unmarshal(record, &data); err == nil {
-		if processedData, err := processRecord(&data); err == nil && processedData != nil {
-			resultChan <- processedData
-		} else if err != nil {
-			log.Warn(fmt.Sprintf("error parsing record %s: %v", data, err))
-		}
-	}
-}
-
-// /////////////////////////////////////////////////////////
-// PROCESS RECORD
-// Drop fields, generate hashed fields, generate surrogate keys & apply bookmark on a record
-// /////////////////////////////////////////////////////////
-func processRecord(record *interface{}) (*interface{}, error) {
+// Transform record
+func ProcessRecord(record *interface{}) (*interface{}, error) {
 	if dropFieldsError := dropFields(record); dropFieldsError != nil {
 		return nil, fmt.Errorf("error dropping fields in ProcessRecord: %v", dropFieldsError)
 	}
@@ -53,9 +34,7 @@ func processRecord(record *interface{}) (*interface{}, error) {
 	return nil, nil
 }
 
-// /////////////////////////////////////////////////////////
-// TRANSFORM RECORD
-// /////////////////////////////////////////////////////////
+// Transform: drop specified fields from record
 func dropFields(record *interface{}) error {
 	if ParsedConfig.Records.DropFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
@@ -69,6 +48,7 @@ func dropFields(record *interface{}) error {
 	return nil
 }
 
+// Transform: hash specified fields in record
 func generateHashedFields(record *interface{}) error {
 	if ParsedConfig.Records.SensitiveFieldPaths != nil {
 		if r, parsed := (*record).(map[string]interface{}); parsed {
@@ -88,6 +68,7 @@ func generateHashedFields(record *interface{}) error {
 	return nil
 }
 
+// Transform: generate surrogate keys for record
 func generateSurrogateKeyFields(record *interface{}) error {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		h := sha256.New()
@@ -105,9 +86,7 @@ func generateSurrogateKeyFields(record *interface{}) error {
 	return nil
 }
 
-// /////////////////////////////////////////////////////////
-// APPLY BOOKMARK TO RECORD
-// /////////////////////////////////////////////////////////
+// Hold record against bookmark
 func recordVersusBookmark(record *interface{}) (bool, error) {
 	if r, parsed := (*record).(map[string]interface{}); parsed {
 		key := r["_sdc_surrogate_key"].(string)

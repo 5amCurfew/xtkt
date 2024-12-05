@@ -12,9 +12,6 @@ import (
 
 var ParsedState *State
 
-// /////////////////////////////////////////////////////////
-// STATE_<STREAM>.JSON
-// /////////////////////////////////////////////////////////
 type State struct {
 	Type  string `json:"type"`
 	Value struct {
@@ -25,9 +22,7 @@ type State struct {
 	} `json:"Value"`
 }
 
-// ///////////////////////////////////////////////////////////
-// CREATE state_<STREAM>.json
-// ///////////////////////////////////////////////////////////
+// Create state_<STREAM>.json
 func CreateStateJSON() {
 	state := State{
 		Type: "STATE",
@@ -51,9 +46,7 @@ func CreateStateJSON() {
 	util.WriteJSON(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName), state)
 }
 
-// ///////////////////////////////////////////////////////////
-// PARSE state_<STREAM>.json
-// ///////////////////////////////////////////////////////////
+// Parse state_<STREAM>.json
 func ParseStateJSON() (*State, error) {
 	stateFile, err := os.ReadFile(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName))
 	if err != nil {
@@ -72,9 +65,7 @@ func ParseStateJSON() (*State, error) {
 	return &state, nil
 }
 
-// ///////////////////////////////////////////////////////////
-// UPDATE state_<STREAM>.json
-// ///////////////////////////////////////////////////////////
+// Update state_<STREAM>.json
 func UpdateState(record interface{}) {
 	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
 	r := record.(map[string]interface{})

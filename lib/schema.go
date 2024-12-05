@@ -5,10 +5,7 @@ import (
 	"time"
 )
 
-// ///////////////////////////////////////////////////////////
-// GENERATE SCHEMA
-// Infer the schema from records
-// ///////////////////////////////////////////////////////////
+// Generate Schema message from record
 func GenerateSchema(records []interface{}) (map[string]interface{}, error) {
 	schema := make(map[string]interface{})
 	properties := make(map[string]interface{})

@@ -14,48 +14,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// /////////////////////////////////////////////////////////
-// PARSE
-// /////////////////////////////////////////////////////////
 func ParseDB() {
-	defer wg.Done()
-
-	records, err := requestDBRecords()
-	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Info("parseDB: requestDBLRecords failed")
-		return
-	}
-
-	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
-	for _, record := range records[1:] {
-		// "Acquire" a slot in the semaphore channel
-		sem <- struct{}{}
-		parsingWG.Add(1)
-
-		go func(record interface{}) {
-			defer parsingWG.Done()
-
-			// Ensure to release the slot after the goroutine finishes
-			defer func() { <-sem }()
-
-			jsonData, _ := json.Marshal(record)
-			lib.ParseRecord(jsonData, resultChan)
-		}(record)
-	}
-
-	parsingWG.Wait()
-}
-
-// /////////////////////////////////////////////////////////
-// REQUEST
-// /////////////////////////////////////////////////////////
-func requestDBRecords() ([]map[string]interface{}, error) {
-	var records []map[string]interface{}
-
 	address := *lib.ParsedConfig.URL
 	dbType, err := extractDatabaseTypeFromUrl()
 	if err != nil {
-		return nil, fmt.Errorf("unsupported database url: %w", err)
+		fmt.Errorf("unsupported database url: %w", err)
 	}
 
 	if dbType == "sqlite3" {
@@ -64,25 +27,25 @@ func requestDBRecords() ([]map[string]interface{}, error) {
 
 	db, err := sql.Open(dbType, address)
 	if err != nil {
-		return nil, fmt.Errorf("error connecting to database: %w", err)
+		fmt.Errorf("error connecting to database: %w", err)
 	}
 
 	qry, err := createQuery()
 	if err != nil {
-		return nil, fmt.Errorf("error generating query: %w", err)
+		fmt.Errorf("error generating query: %w", err)
 	}
 
 	log.Info(fmt.Sprintf("executing query %s", *lib.ParsedConfig.URL))
 	rows, err := db.Query(qry)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing select: %w", err)
+		fmt.Errorf("error parsing select: %w", err)
 	}
 	log.Info(fmt.Sprintf("successful query execution %s", *lib.ParsedConfig.URL))
 	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, fmt.Errorf("error parsing columns: %w", err)
+		fmt.Errorf("error parsing columns: %w", err)
 	}
 
 	for rows.Next() {
@@ -91,9 +54,10 @@ func requestDBRecords() ([]map[string]interface{}, error) {
 			values[i] = new(interface{})
 		}
 		if err := rows.Scan(values...); err != nil {
-			return nil, fmt.Errorf("error scanning rows: %w", err)
+			fmt.Errorf("error scanning rows: %w", err)
 		}
 
+		// Derive & Parse records
 		row := make(map[string]interface{})
 		for i, col := range columns {
 			val := *(values[i].(*interface{}))
@@ -112,14 +76,13 @@ func requestDBRecords() ([]map[string]interface{}, error) {
 			}
 		}
 
-		records = append(records, row)
+		ParsingWG.Add(1)
+		go parse(row)
 	}
-
-	return records, nil
 }
 
 // /////////////////////////////////////////////////////////
-// REQUEST UTIL
+// Util
 // /////////////////////////////////////////////////////////
 func extractDatabaseTypeFromUrl() (string, error) {
 	splitUrl := strings.Split(*lib.ParsedConfig.URL, "://")

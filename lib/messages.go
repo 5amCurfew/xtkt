@@ -6,10 +6,6 @@ import (
 	"os"
 )
 
-// /////////////////////////////////////////////////////////
-// MESSAGES
-// Generate schema, record & state messages
-// /////////////////////////////////////////////////////////
 type Message struct {
 	Type               string                 `json:"type"`
 	Record             map[string]interface{} `json:"record,omitempty"`

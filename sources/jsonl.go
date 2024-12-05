@@ -2,6 +2,7 @@ package sources
 
 import (
 	"bufio"
+	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
@@ -14,8 +15,6 @@ import (
 // PARSE
 // /////////////////////////////////////////////////////////
 func ParseJSONL() {
-	defer wg.Done()
-
 	var records *bufio.Scanner
 
 	if strings.HasPrefix(*lib.ParsedConfig.URL, "http") {
@@ -34,27 +33,17 @@ func ParseJSONL() {
 		records = bufio.NewScanner(file)
 	}
 
-	sem := make(chan struct{}, *lib.ParsedConfig.MaxConcurrency)
+	// Derive & Parse records
 	for records.Scan() {
 		data := records.Bytes()
 		// Make a copy of data to avoid data races
 		dataCopy := make([]byte, len(data))
 		copy(dataCopy, data)
 
-		// "Acquire" a slot in the semaphore channel
-		sem <- struct{}{}
-		parsingWG.Add(1)
+		record := make(map[string]interface{})
+		json.Unmarshal(dataCopy, &record)
 
-		go func(dataCopy []byte) {
-			defer parsingWG.Done()
-
-			// Ensure to release the slot after the goroutine finishes
-			defer func() { <-sem }()
-
-			//jsonData, _ := json.Marshal(dataCopy)
-			lib.ParseRecord(dataCopy, resultChan)
-		}(dataCopy)
+		ParsingWG.Add(1)
+		go parse(record)
 	}
-
-	parsingWG.Wait()
 }
