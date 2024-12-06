@@ -32,7 +32,7 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 		case float64:
 			prop.(map[string]interface{})["type"] = []string{"number", "null"}
 		case map[string]interface{}:
-			if subProps, err := GenerateSchema([]interface{}{value}); err == nil {
+			if subProps, err := GenerateSchema(value); err == nil {
 				prop.(map[string]interface{})["type"] = []string{"object", "null"}
 				prop.(map[string]interface{})["properties"] = subProps["properties"]
 			} else {
@@ -94,6 +94,5 @@ func UpdateSchema(existingSchema, newSchema map[string]interface{}) (map[string]
 	existingSchema["properties"] = properties
 	existingSchema["type"] = "object"
 
-	// Return the updated schema (including properties and type)
 	return existingSchema, nil
 }

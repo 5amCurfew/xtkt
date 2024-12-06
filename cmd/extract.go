@@ -81,24 +81,14 @@ func extract(discover bool) error {
 	// Run in discovery mode to create catalog.json
 	// /////////////////////////////////////////////////////////
 	if discover {
-		for record := range sources.ResultChan {
-			r := *record
-			recordSchema, _ := lib.GenerateSchema(r)
-
-			existingSchema := lib.ParsedCatalog.Streams[0].Schema
-
-			properties, _ := lib.UpdateSchema(existingSchema, recordSchema)
-			lib.ParsedCatalog.Streams[0].Schema = properties
-
-		}
-		lib.UpdateCatalogJSON()
+		discoverCatalog()
 	}
 
 	if !discover {
 
 		schema := lib.ParsedCatalog.Streams[0].Schema
 		if len(schema) == 0 {
-			return fmt.Errorf("error gathering schema from catalog - ensure catalog.json exists by running xtkt <CONFIG> --discover")
+			return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
 		}
 
 		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema); generateSchemaMessageError != nil {
@@ -118,12 +108,27 @@ func extract(discover bool) error {
 	// /////////////////////////////////////////////////////////
 	// Generate state message
 	// /////////////////////////////////////////////////////////
-	//if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
-	//	return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
-	//}
+	if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
+		return fmt.Errorf("error generating state message: %w", generateStateMessageError)
+	}
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
 	return nil
+}
+
+// /////////////////////////////////////////////////////////
+// Extract
+// /////////////////////////////////////////////////////////
+func discoverCatalog() {
+	for record := range sources.ResultChan {
+		r := *record
+		recordSchema, _ := lib.GenerateSchema(r)
+		existingSchema := lib.ParsedCatalog.Streams[0].Schema
+
+		properties, _ := lib.UpdateSchema(existingSchema, recordSchema)
+		lib.ParsedCatalog.Streams[0].Schema = properties
+	}
+	lib.UpdateCatalogJSON()
 }
