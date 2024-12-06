@@ -78,7 +78,7 @@ func extract(discover bool) error {
 	}()
 
 	// /////////////////////////////////////////////////////////
-	// Run in discovery mode to create catalog.json
+	// Run in discovery mode to create the catalog
 	// /////////////////////////////////////////////////////////
 	if discover {
 		discoverCatalog()
@@ -97,6 +97,11 @@ func extract(discover bool) error {
 
 		for record := range sources.ResultChan {
 			r := *record
+			//if valid := lib.ValidateRecordSchema(r); !valid {
+			//	log.Warn(fmt.Sprintf("record %s breaks schema in catalog - skipping...", r["_sdc_natural_key"]))
+			//	continue
+			//}
+
 			if generateRecordMessageError := lib.GenerateRecordMessage(r); generateRecordMessageError != nil {
 				return fmt.Errorf("error generating record message: %w", generateRecordMessageError)
 			}

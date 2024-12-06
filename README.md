@@ -43,15 +43,15 @@ via Homebrew : `brew tap 5amCurfew/5amCurfew; brew install 5amCurfew/5amCurfew/x
 
 ```bash
 $ xtkt --help
-xtkt is a command line interface to extract data from a RESTful API, database or files to pipe to any target that meets the Singer.io specification
+xtkt is a command line interface to extract data from a RESTful APIs, CSVs and JSONL files to pipe to any target that meets the Singer.io specification
 
 Usage:
   xtkt [PATH_TO_CONFIG_JSON] [flags]
 
 Flags:
-  -h, --help          help for xtkt
-      --save-schema   save the schema to a file after extraction
-  -v, --version       version for xtkt
+      --discover   run the tap in discovery mode, creating the catalog
+  -h, --help       help for xtkt
+  -v, --version    version for xtkt
 ```
 
 ### :nut_and_bolt: Using with [Singer.io](https://www.singer.io/) Targets

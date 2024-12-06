@@ -28,7 +28,7 @@ var rootCmd = &cobra.Command{
 	Use:     "xtkt [PATH_TO_CONFIG_JSON]",
 	Version: version,
 	Short:   "xtkt - data extraction CLI",
-	Long:    `xtkt is a command line interface to extract data from a RESTful API, database or files to pipe to any target that meets the Singer.io specification`,
+	Long:    `xtkt is a command line interface to extract data from a RESTful APIs, CSVs and JSONL files to pipe to any target that meets the Singer.io specification`,
 	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.SetFormatter(&log.JSONFormatter{})
