@@ -49,6 +49,8 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 			} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
 				prop.(map[string]interface{})["type"] = []string{"string", "null"}
 				prop.(map[string]interface{})["format"] = "date"
+			} else if key == "_sdc_surrogate_key" {
+				prop.(map[string]interface{})["type"] = "string"
 			} else {
 				prop.(map[string]interface{})["type"] = []string{"string", "null"}
 			}
@@ -59,6 +61,7 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 
 	schema["properties"] = properties
 	schema["type"] = "object"
+
 	return schema, nil
 }
 

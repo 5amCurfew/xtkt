@@ -82,6 +82,12 @@ func extract(discover bool) error {
 	// /////////////////////////////////////////////////////////
 	if discover {
 		discoverCatalog()
+
+		schema := lib.ParsedCatalog.Streams[0].Schema
+
+		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema); generateSchemaMessageError != nil {
+			return fmt.Errorf("error generating schema message: %w", generateSchemaMessageError)
+		}
 	}
 
 	if !discover {
@@ -124,7 +130,7 @@ func extract(discover bool) error {
 }
 
 // /////////////////////////////////////////////////////////
-// Extract
+// Util
 // /////////////////////////////////////////////////////////
 func discoverCatalog() {
 	for record := range sources.ResultChan {
@@ -135,5 +141,6 @@ func discoverCatalog() {
 		properties, _ := lib.UpdateSchema(existingSchema, recordSchema)
 		lib.ParsedCatalog.Streams[0].Schema = properties
 	}
+
 	lib.UpdateCatalogJSON()
 }

@@ -15,9 +15,10 @@ type Catalog struct {
 }
 
 type StreamCatalog struct {
-	Stream      string                 `json:"stream"`
-	TapStreamID string                 `json:"tap_stream_id"`
-	Schema      map[string]interface{} `json:"schema"`
+	Stream        string                 `json:"stream"`
+	TapStreamID   string                 `json:"tap_stream_id"`
+	KeyProperties []string               `json:"key_properties"`
+	Schema        map[string]interface{} `json:"schema"`
 }
 
 // Create <STREAM>_catalog.json
@@ -32,9 +33,10 @@ func CreateCatalogJSON() {
 	c := Catalog{
 		Streams: []StreamCatalog{
 			{
-				Stream:      streamName,
-				TapStreamID: streamName,
-				Schema:      map[string]interface{}{}, // Initialize as an empty map
+				Stream:        streamName,
+				TapStreamID:   streamName,
+				KeyProperties: []string{"_sdc_surrogate_key"},
+				Schema:        map[string]interface{}{}, // Initialize as an empty map
 			},
 		},
 	}
