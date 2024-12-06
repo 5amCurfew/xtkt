@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var parseRecordChan = make(chan map[string]interface{})
 var ResultChan = make(chan *interface{})
 var ParsingWG sync.WaitGroup
 

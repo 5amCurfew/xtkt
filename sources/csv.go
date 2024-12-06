@@ -2,6 +2,8 @@ package sources
 
 import (
 	"encoding/csv"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -11,35 +13,61 @@ import (
 )
 
 func ParseCSV() {
-	var data [][]string
+	go func() {
+		defer close(parseRecordChan)
+		if err := streamCSVRecords(*lib.ParsedConfig.URL); err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseCSV: streamCSVRecords failed")
+		}
+	}()
 
-	if strings.HasPrefix(*lib.ParsedConfig.URL, "http") {
-		response, err := http.Get(*lib.ParsedConfig.URL)
+	for record := range parseRecordChan {
+		ParsingWG.Add(1)
+		go parse(record)
+	}
+}
+
+func streamCSVRecords(url string) error {
+	var reader *csv.Reader
+	switch {
+	case strings.HasPrefix(url, "http"):
+		response, err := http.Get(url)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("parseCSV: http.Get failed")
+			return fmt.Errorf("http.Get failed: %w", err)
 		}
 		defer response.Body.Close()
-		reader := csv.NewReader(response.Body)
-		data, _ = reader.ReadAll()
-	} else {
-		file, err := os.Open(*lib.ParsedConfig.URL)
+		reader = csv.NewReader(response.Body)
+
+	default:
+		file, err := os.Open(url)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("parseCSV: os.Open failed")
+			return fmt.Errorf("os.Open failed: %w", err)
 		}
 		defer file.Close()
-		reader := csv.NewReader(file)
-		data, _ = reader.ReadAll()
+		reader = csv.NewReader(file)
 	}
 
-	// Derive & Parse records
-	header := data[0]
-	for _, row := range data[1:] {
+	// Read the header
+	header, err := reader.Read()
+	if err != nil {
+		return fmt.Errorf("failed to read header: %w", err)
+	}
+
+	// Stream records
+	for {
+		row, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error reading row: %w", err)
+		}
+
 		record := make(map[string]interface{})
 		for i, value := range row {
 			record[header[i]] = value
 		}
-
-		ParsingWG.Add(1)
-		go parse(record)
+		parseRecordChan <- record
 	}
+
+	return nil
 }

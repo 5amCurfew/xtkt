@@ -15,40 +15,51 @@ var ParsedState *State
 type State struct {
 	Type  string `json:"type"`
 	Value struct {
-		Bookmarks map[string]struct {
-			BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
-			Bookmark          []string `json:"bookmark"`
-		} `json:"bookmarks"`
-	} `json:"Value"`
+		Bookmarks map[string]Bookmark `json:"bookmarks"`
+	} `json:"value"`
 }
 
-// Create state_<STREAM>.json
+type Bookmark struct {
+	BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
+	Bookmark          []string `json:"bookmark"`
+}
+
+// CreateStateJSON creates a state JSON file for the stream
 func CreateStateJSON() {
+	// Ensure ParsedConfig is initialized and stream name is not nil
+	if ParsedConfig.StreamName == nil {
+		fmt.Println("Error: ParsedConfig.StreamName is nil")
+		return
+	}
+
+	streamName := *ParsedConfig.StreamName
+
+	// Initialize the state object
 	state := State{
 		Type: "STATE",
 		Value: struct {
-			Bookmarks map[string]struct {
-				BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
-				Bookmark          []string `json:"bookmark"`
-			} `json:"bookmarks"`
+			Bookmarks map[string]Bookmark `json:"bookmarks"`
 		}{
-			Bookmarks: map[string]struct {
-				BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
-				Bookmark          []string `json:"bookmark"`
-			}{
-				*ParsedConfig.StreamName: {
+			Bookmarks: map[string]Bookmark{
+				streamName: {
 					BookmarkUpdatedAt: time.Now().UTC().Format(time.RFC3339),
-					Bookmark:          []string{},
+					Bookmark:          []string{}, // Empty bookmark list
 				},
 			},
 		},
 	}
-	util.WriteJSON(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName), state)
+
+	// Write the state to a JSON file
+	fileName := fmt.Sprintf("%s_state.json", streamName)
+	err := util.WriteJSON(fileName, state)
+	if err != nil {
+		fmt.Printf("Error writing JSON: %v\n", err)
+	}
 }
 
-// Parse state_<STREAM>.json
+// Parse <STREAM>_state.json
 func ParseStateJSON() (*State, error) {
-	stateFile, err := os.ReadFile(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName))
+	stateFile, err := os.ReadFile(fmt.Sprintf("%s_state.json", *ParsedConfig.StreamName))
 	if err != nil {
 		return nil, fmt.Errorf("error reading state file: %w", err)
 	}
@@ -58,14 +69,10 @@ func ParseStateJSON() (*State, error) {
 		return nil, fmt.Errorf("error unmarshaling state json: %w", err)
 	}
 
-	if _, ok := state.Value.Bookmarks[*ParsedConfig.StreamName]; !ok {
-		return nil, fmt.Errorf("stream %s does not exist in this state", *ParsedConfig.StreamName)
-	}
-
 	return &state, nil
 }
 
-// Update state_<STREAM>.json
+// Update <STREAM>_state.json
 func UpdateState(record interface{}) {
 	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
 	r := record.(map[string]interface{})
@@ -77,7 +84,7 @@ func UpdateState(record interface{}) {
 
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	ParsedState.Value.Bookmarks[*ParsedConfig.StreamName] = bookmarks
-	util.WriteJSON(fmt.Sprintf("state_%s.json", *ParsedConfig.StreamName), ParsedState)
+	util.WriteJSON(fmt.Sprintf("%s_state.json", *ParsedConfig.StreamName), ParsedState)
 }
 
 func detectionSetContains(s []string, str string) bool {

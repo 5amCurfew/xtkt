@@ -12,9 +12,16 @@ func ToString(v interface{}) string {
 	return fmt.Sprintf("%v", v)
 }
 
-func WriteJSON(fileName string, state interface{}) {
-	result, _ := json.Marshal(state)
-	os.WriteFile(fileName, result, 0644)
+func WriteJSON(fileName string, data interface{}) error {
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
 }
 
 func GetValueAtPath(path []string, input map[string]interface{}) interface{} {

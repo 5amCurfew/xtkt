@@ -11,11 +11,11 @@ import (
 )
 
 var version = "0.2.1"
-var saveSchema bool
+var discover bool = false
 var defaultConcurrency int = 1000
 
 func Execute() {
-	rootCmd.Flags().BoolVar(&saveSchema, "save-schema", false, "save the schema to a file after extraction")
+	rootCmd.Flags().BoolVar(&discover, "discover", false, "run the tap in discovery mode, creating the catalog")
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "error using xtkt: '%s'", err)
 		os.Exit(1)
@@ -49,7 +49,7 @@ var rootCmd = &cobra.Command{
 		}
 		lib.ParsedConfig = cfg
 
-		if extractError := extract(saveSchema); extractError != nil {
+		if extractError := extract(discover); extractError != nil {
 			log.WithFields(log.Fields{"Error": fmt.Errorf("%w", extractError)}).Fatalln("failed to extract records")
 			return fmt.Errorf("failed to extract records")
 		}

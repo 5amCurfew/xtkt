@@ -18,34 +18,51 @@ type ExecutionMetric struct {
 }
 
 // /////////////////////////////////////////////////////////
-// EXTRACT
+// Extract
 // /////////////////////////////////////////////////////////
-func extract(saveSchema bool) error {
+func extract(discover bool) error {
 	var execution ExecutionMetric
 	execution.ExecutionStart = time.Now().UTC()
 
 	// /////////////////////////////////////////////////////////
-	// GENERATE state_<STREAM>.json
+	// Create <STREAM>_state.json
 	// /////////////////////////////////////////////////////////
-	if _, err := os.Stat(fmt.Sprintf("state_%s.json", *lib.ParsedConfig.StreamName)); err != nil {
+	if _, err := os.Stat(fmt.Sprintf("%s_state.json", *lib.ParsedConfig.StreamName)); err != nil {
 		lib.CreateStateJSON()
 	}
 
 	// /////////////////////////////////////////////////////////
-	// PARSE CURRENT STATE
+	// Create <STREAM>_catalog.json
+	// /////////////////////////////////////////////////////////
+	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", *lib.ParsedConfig.StreamName)); err != nil {
+		lib.CreateCatalogJSON()
+	}
+
+	// /////////////////////////////////////////////////////////
+	// Parse current state
 	// /////////////////////////////////////////////////////////
 	state, parseStateError := lib.ParseStateJSON()
 	if parseStateError != nil {
-		return fmt.Errorf("error PARSING STATE JSON %w", parseStateError)
+		return fmt.Errorf("error parsing state.json %w", parseStateError)
 	}
 	lib.ParsedState = state
 
+	// /////////////////////////////////////////////////////////
+	// Parse latest catalog
+	// /////////////////////////////////////////////////////////
+	catalog, parseCatalogError := lib.ParseCatalogJSON()
+	if parseCatalogError != nil {
+		return fmt.Errorf("error parsing catalog.json %w", parseCatalogError)
+	}
+	lib.ParsedCatalog = catalog
+
+	// /////////////////////////////////////////////////////////
+	// Extract records from source
+	// /////////////////////////////////////////////////////////
 	go func() {
 		log.Info(fmt.Sprintf(`generating records from %s`, *lib.ParsedConfig.URL))
 
 		switch *lib.ParsedConfig.SourceType {
-		case "db":
-			sources.ParseDB()
 		case "csv":
 			sources.ParseCSV()
 		case "jsonl":
@@ -60,21 +77,50 @@ func extract(saveSchema bool) error {
 		close(sources.ResultChan)
 	}()
 
-	for record := range sources.ResultChan {
-		r := *record
-		if generateRecordMessageError := lib.GenerateRecordMessage(r); generateRecordMessageError != nil {
-			return fmt.Errorf("error GENERATING RECORD MESSAGE: %w", generateRecordMessageError)
+	// /////////////////////////////////////////////////////////
+	// Run in discovery mode to create catalog.json
+	// /////////////////////////////////////////////////////////
+	if discover {
+		for record := range sources.ResultChan {
+			r := *record
+			recordSchema, _ := lib.GenerateSchema(r)
+
+			existingSchema := lib.ParsedCatalog.Streams[0].Schema
+
+			properties, _ := lib.UpdateSchema(existingSchema, recordSchema)
+			lib.ParsedCatalog.Streams[0].Schema = properties
+
 		}
-		lib.UpdateState(r)
-		execution.NewRecords += 1
+		lib.UpdateCatalogJSON()
+	}
+
+	if !discover {
+
+		schema := lib.ParsedCatalog.Streams[0].Schema
+		if len(schema) == 0 {
+			return fmt.Errorf("error gathering schema from catalog - ensure catalog.json exists by running xtkt <CONFIG> --discover")
+		}
+
+		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema); generateSchemaMessageError != nil {
+			return fmt.Errorf("error generating schema message: %w", generateSchemaMessageError)
+		}
+
+		for record := range sources.ResultChan {
+			r := *record
+			if generateRecordMessageError := lib.GenerateRecordMessage(r); generateRecordMessageError != nil {
+				return fmt.Errorf("error generating record message: %w", generateRecordMessageError)
+			}
+			lib.UpdateState(r)
+			execution.NewRecords += 1
+		}
 	}
 
 	// /////////////////////////////////////////////////////////
-	// GENERATE STATE MESSAGE
+	// Generate state message
 	// /////////////////////////////////////////////////////////
-	if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
-		return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
-	}
+	//if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
+	//	return fmt.Errorf("error GENERATING STATE MESSAGE: %w", generateStateMessageError)
+	//}
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)

@@ -16,23 +16,20 @@
   * [Rick & Morty API](#rick-&-morty-api)
   * [Github API](#github-api)
   * [Strava API](#strava-api)
-  * [Postgres](#postgres)
-  * [SQLite](#sqlite)
-  * [File](#file)
+  * [File csv](#file-csv)
+  * [File jsonl](#file-jsonl)
 
 **v0.2.1**
 
-`xtkt` ("extract") is an opinionated data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, databases and files (csv, jsonl).
+`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful-APIs, csv and jsonl.
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (unique key) and `_sdc_surrogate_key` (version key)). Only new and updated records are sent to be processed by your target.
+Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (unique key) and `_sdc_surrogate_key` (version key)). Only new and/or updated records are sent to be processed by your target.
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
 Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
-
-Records are processed concurrently (once all records are gathered). Default concurrency is set to 1000 goroutines but can be set using the `max_concurrency` field in your JSON configuration file (see examples below).
 
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`. All fields when extracting from CSV are considered strings for now.
 
@@ -126,15 +123,6 @@ rm -f state_* config_*
             ...
         ],
     }
-    ...
-```
-
-#### database
-```javascript
-    ...
-    "db": { // optional <object>: required when "source_type": "db"
-        "table": "<table>" // required <string>: table name in database
-    },
     ...
 ```
 
@@ -293,46 +281,29 @@ Oauth authentication required, records returned immediately in an array, paginat
 }
 ```
 
-#### Postgres
-`config.json`
+#### File csv
 ```json
 {
-    "stream_name": "xtkt_github_commits_from_postgres",
-    "source_type": "db",
-    "url": "postgres://admin:admin@localhost:5432/postgres?sslmode=disable",
+    "stream_name": "xtkt_csv",
+    "source_type": "csv",
+    "url": "_config/data.csv",
     "records": {
-        "unique_key_path": ["_sdc_natural_key"]
-    },
-    "db": {
-        "table": "xtkt_github_commits"
+        "unique_key_path": ["name"],
+        "sensitive_field_paths": [
+            ["age"],
+            ["city"]
+        ]
     }
 }
 ```
 
-#### SQLite
-`config.json`
-```json
-{
-    "stream_name": "sqlite_customers",
-    "source_type": "db",
-    "url": "sqlite:///example.db",
-    "records": {
-        "unique_key_path": ["id"],
-    },
-    "db": {
-        "table": "customers"
-    }
-}
-```
-
-#### File
+#### File jsonl
 `config.json`
 ```json
 {
     "stream_name": "xtkt_jsonl",
     "source_type": "jsonl",
-    "url": "_config_json/data.jsonl/csv",
-    "max_concurrency": 50,
+    "url": "_config_json/data.jsonl",
     "records": {
         "unique_key_path": ["id"],
         "sensitive_field_paths": [

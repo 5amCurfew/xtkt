@@ -16,114 +16,106 @@ import (
 )
 
 func ParseREST() {
-	records, err := requestRESTRecords(lib.ParsedConfig)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Info("parseREST: requestRESTRecords failed")
-		return
-	}
+	go func() {
+		defer close(parseRecordChan)
+		if err := streamRESTRecords(lib.ParsedConfig, parseRecordChan); err != nil {
+			log.WithFields(log.Fields{"error": err}).Info("parseREST: streamRESTRecords failed")
+		}
+	}()
 
-	// Derive & Parse records
-	for _, record := range records {
+	for record := range parseRecordChan {
 		ParsingWG.Add(1)
 		go parse(record)
 	}
 }
 
-// /////////////////////////////////////////////////////////
-// Util
-// /////////////////////////////////////////////////////////
-func requestRESTRecords(config lib.Config) ([]map[string]interface{}, error) {
-	var records []map[string]interface{}
-
+func streamRESTRecords(config lib.Config, resultChan chan map[string]interface{}) error {
 	var responseMap map[string]interface{}
-
-	log.Info(fmt.Sprintf(`page: %s`, *config.URL))
-	response, _ := getRequest()
-
 	responseMapRecordsPath := []string{"results"}
 
-	var data interface{}
-	if err := json.Unmarshal(response, &data); err != nil {
-		return nil, fmt.Errorf("error json.unmarshal of response: %w", err)
-	}
+	for {
+		log.Info(fmt.Sprintf(`page: %s`, *config.URL))
+		response, err := getRequest()
+		if err != nil {
+			return fmt.Errorf("getRequest failed: %w", err)
+		}
 
-	switch d := data.(type) {
-	case []interface{}:
-		response, _ = json.Marshal(map[string]interface{}{
-			"results": d,
-		})
-	case map[string]interface{}:
-		if config.Rest.Response.RecordsPath == nil {
+		var data interface{}
+		if err := json.Unmarshal(response, &data); err != nil {
+			return fmt.Errorf("error json.Unmarshal of response: %w", err)
+		}
+
+		switch d := data.(type) {
+		case []interface{}:
 			response, _ = json.Marshal(map[string]interface{}{
-				"results": []interface{}{d},
+				"results": d,
 			})
-		} else {
+		case map[string]interface{}:
+			if config.Rest.Response.RecordsPath == nil {
+				response, _ = json.Marshal(map[string]interface{}{
+					"results": []interface{}{d},
+				})
+			} else {
+				response, _ = json.Marshal(data)
+			}
+		default:
 			response, _ = json.Marshal(data)
 		}
-	default:
-		response, _ = json.Marshal(data)
-	}
 
-	if config.Rest.Response.RecordsPath != nil {
-		responseMapRecordsPath = *config.Rest.Response.RecordsPath
-	}
-
-	json.Unmarshal(response, &responseMap)
-
-	recordsInterfaceSlice, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("error response map does not contain records array at path: %v", responseMapRecordsPath)
-	}
-	// Convert the slice of interfaces to a slice of map[string]interface{}
-	for _, item := range recordsInterfaceSlice {
-		if recordMap, ok := item.(map[string]interface{}); ok {
-			records = append(records, recordMap)
-		} else {
-			return nil, fmt.Errorf("error encountered non-map element in records array")
+		if config.Rest.Response.RecordsPath != nil {
+			responseMapRecordsPath = *config.Rest.Response.RecordsPath
 		}
-	}
 
-	if *config.Rest.Response.Pagination {
-		switch *config.Rest.Response.PaginationStrategy {
+		if err := json.Unmarshal(response, &responseMap); err != nil {
+			return fmt.Errorf("error json.Unmarshal into responseMap: %w", err)
+		}
 
-		// PAGINATED, "next"
-		case "next":
-			nextURL := util.GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
-			if nextURL == nil || nextURL == "" {
-				return records, nil
+		recordsInterfaceSlice, ok := util.GetValueAtPath(responseMapRecordsPath, responseMap).([]interface{})
+		if !ok {
+			return fmt.Errorf("error: response map does not contain records array at path: %v", responseMapRecordsPath)
+		}
+
+		// Stream records
+		for _, item := range recordsInterfaceSlice {
+			if recordMap, ok := item.(map[string]interface{}); ok {
+				resultChan <- recordMap
 			} else {
+				log.WithFields(log.Fields{"item": item}).Warn("encountered non-map element in records array")
+			}
+		}
+
+		// Handle pagination
+		if *config.Rest.Response.Pagination {
+			switch *config.Rest.Response.PaginationStrategy {
+			case "next":
+				nextURL := util.GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
+				if nextURL == nil || nextURL == "" {
+					return nil
+				}
 				*config.URL = nextURL.(string)
 
-				if newRecords, err := requestRESTRecords(config); err == nil {
-					records = append(records, newRecords...)
-				} else {
-					return nil, fmt.Errorf("error pagination next at %s: %w", *config.URL, err)
+			case "query":
+				if len(recordsInterfaceSlice) == 0 {
+					return nil
 				}
-			}
-
-		// PAGINATED, "query"
-		case "query":
-			if len(records) == 0 {
-				return records, nil
-			} else {
-				parsedURL, _ := url.Parse(*config.URL)
+				parsedURL, err := url.Parse(*config.URL)
+				if err != nil {
+					return fmt.Errorf("failed to parse URL: %w", err)
+				}
 				query := parsedURL.Query()
 				query.Set(*config.Rest.Response.PaginationQuery.QueryParameter, strconv.Itoa(*config.Rest.Response.PaginationQuery.QueryValue))
 				parsedURL.RawQuery = query.Encode()
 
 				*config.URL = parsedURL.String()
-				*config.Rest.Response.PaginationQuery.QueryValue = *config.Rest.Response.PaginationQuery.QueryValue + *config.Rest.Response.PaginationQuery.QueryIncrement
-
-				if newRecords, err := requestRESTRecords(config); err == nil {
-					records = append(records, newRecords...)
-				} else {
-					return nil, fmt.Errorf("error pagination query at %s: %w", *config.URL, err)
-				}
+				*config.Rest.Response.PaginationQuery.QueryValue += *config.Rest.Response.PaginationQuery.QueryIncrement
 			}
+
+		} else {
+			break
 		}
 	}
 
-	return records, nil
+	return nil
 }
 
 // /////////////////////////////////////////////////////////

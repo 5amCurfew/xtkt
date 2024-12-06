@@ -1,14 +1,8 @@
 _*
 *.db
 *.html
-config_*
-config.json
+*.json
 data.*
-history.json
 index.html
-output.jsonl
-state_*
-target*
-schema_*
 xtkt
 vendor/
