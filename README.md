@@ -33,7 +33,7 @@ Fields can be hashed within records prior to being sent to your target using the
 
 Both integers and floats are sent as floats. All fields are considered `NULLABLE`. All fields when extracting from CSV are considered strings for now.
 
-Schema detection is naive using the first data type detected per field used.
+Schema detection is naive using the first non-null data type detected per field when generating the catalog.
 
 ### :computer: Installation
 
