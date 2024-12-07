@@ -108,9 +108,11 @@ func extract(discover bool) error {
 		for record := range sources.ResultChan {
 			r := *record
 			rMap, _ := r.(map[string]interface{})
-			if valid := lib.ValidateRecordSchema(rMap, schema); !valid {
-				log.Warn(fmt.Sprintf("record %s breaks schema in catalog - skipping...", rMap["_sdc_natural_key"]))
-				continue
+			if valid, validateRecordSchemaError := lib.ValidateRecordSchema(rMap, schema); !valid {
+				log.WithFields(log.Fields{
+					"_sdc_natural_key": rMap["_sdc_natural_key"],
+					"error":            validateRecordSchemaError,
+				}).Warn("record breaks schema in catalog")
 			}
 
 			if generateRecordMessageError := lib.GenerateRecordMessage(r); generateRecordMessageError != nil {
