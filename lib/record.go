@@ -87,7 +87,7 @@ func recordVersusBookmark(record map[string]interface{}) bool {
 	defer stateMutex.Unlock()
 
 	_, found := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark[key]
-	return !found
+	return !found // "keep" (true) if not found
 }
 
 // Validate record against Catalog
