@@ -57,7 +57,7 @@ func generateHashedFields(record map[string]interface{}) error {
 			hash := sha256.Sum256([]byte(fmt.Sprintf("%v", fieldValue)))
 			util.SetValueAtPath(path, record, hex.EncodeToString(hash[:]))
 		} else {
-			log.Warn(fmt.Sprintf("field path %s not found in record", path))
+			log.Warn(fmt.Sprintf("field path %s not found in record for hashing (sensitive fields)", path))
 			continue
 		}
 	}
@@ -82,14 +82,14 @@ func generateSurrogateKeyFields(record map[string]interface{}) error {
 // Hold record against bookmark
 func recordVersusBookmark(record map[string]interface{}) bool {
 	key := record["_sdc_surrogate_key"].(string)
-	bookmarkCondition := !detectionSetContains(
+	notSeen := !detectionSetContains(
 		ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark,
 		key,
 	)
-	return bookmarkCondition
+	return notSeen
 }
 
 // Validate record against Catalog
-func ValidateRecordSchema(record interface{}) bool {
+func ValidateRecordSchema(record map[string]interface{}, schema map[string]interface{}) bool {
 	return true
 }

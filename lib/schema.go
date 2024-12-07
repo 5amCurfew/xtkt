@@ -3,60 +3,55 @@ package lib
 import (
 	"fmt"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 )
 
-// Generate Schema message from record
+// GenerateSchema generates a JSON schema from a record
 func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 	schema := make(map[string]interface{})
 	properties := make(map[string]interface{})
 
-	r, err := record.(map[string]interface{})
-	if !err {
+	r, ok := record.(map[string]interface{})
+	if !ok {
 		return nil, fmt.Errorf("error parsing record as map[string]interface{} in GenerateSchema")
 	}
 
 	for key, value := range r {
-		prop, exists := properties[key]
-		if !exists {
-			prop = make(map[string]interface{})
-			properties[key] = prop
-		}
-
-		switch value.(type) {
+		prop := make(map[string]interface{})
+		switch v := value.(type) {
 		case bool:
-			prop.(map[string]interface{})["type"] = []string{"boolean", "null"}
-		case int:
-			prop.(map[string]interface{})["type"] = []string{"number", "null"}
-		case float64:
-			prop.(map[string]interface{})["type"] = []string{"number", "null"}
+			prop["type"] = []string{"boolean", "null"}
+		case int, int32, int64, float32, float64:
+			prop["type"] = []string{"number", "null"}
 		case map[string]interface{}:
-			if subProps, err := GenerateSchema(value); err == nil {
-				prop.(map[string]interface{})["type"] = []string{"object", "null"}
-				prop.(map[string]interface{})["properties"] = subProps["properties"]
-			} else {
+			// Recursive call for nested objects
+			subSchema, err := GenerateSchema(v)
+			if err != nil {
 				return nil, fmt.Errorf("error schema generation recursion: %w", err)
 			}
+			prop["type"] = []string{"object", "null"}
+			prop["properties"] = subSchema["properties"]
 		case []interface{}:
-			prop.(map[string]interface{})["type"] = []string{"array", "null"}
+			// Type array doesn't require `properties`
+			prop["type"] = []string{"array", "null"}
 		case nil:
-			continue // wait for first non-null value for field
+			// Skip null fields; wait for a first non-null value
+			continue
 		case string:
-			if _, err := time.Parse(time.RFC3339, value.(string)); err == nil {
-				prop.(map[string]interface{})["type"] = []string{"string", "null"}
-				prop.(map[string]interface{})["format"] = "date-time"
-			} else if _, err := time.Parse("2006-01-02", value.(string)); err == nil {
-				prop.(map[string]interface{})["type"] = []string{"string", "null"}
-				prop.(map[string]interface{})["format"] = "date"
+			if _, err := time.Parse(time.RFC3339, v); err == nil {
+				prop["type"] = []string{"string", "null"}
+				prop["format"] = "date-time"
+			} else if _, err := time.Parse("2006-01-02", v); err == nil {
+				prop["type"] = []string{"string", "null"}
+				prop["format"] = "date"
 			} else if key == "_sdc_surrogate_key" {
-				prop.(map[string]interface{})["type"] = "string"
+				prop["type"] = "string"
 			} else {
-				prop.(map[string]interface{})["type"] = []string{"string", "null"}
+				prop["type"] = []string{"string", "null"}
 			}
 		default:
-			prop.(map[string]interface{})["type"] = []string{"string", "null"}
+			prop["type"] = []string{"string", "null"}
 		}
+		properties[key] = prop
 	}
 
 	schema["properties"] = properties
@@ -66,16 +61,14 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 }
 
 // UpdateSchema merges the new schema into the existing schema
-// and initializes "properties" if it doesn't exist.
 func UpdateSchema(existingSchema, newSchema map[string]interface{}) (map[string]interface{}, error) {
 	if existingSchema == nil {
 		existingSchema = make(map[string]interface{})
 	}
 
-	// Check if the existing schema has a "properties" field
+	// Ensure "properties" exists in the existing schema
 	properties, ok := existingSchema["properties"].(map[string]interface{})
 	if !ok {
-		// If "properties" doesn't exist, initialize it as an empty map
 		properties = make(map[string]interface{})
 		existingSchema["properties"] = properties
 	}
@@ -83,14 +76,25 @@ func UpdateSchema(existingSchema, newSchema map[string]interface{}) (map[string]
 	// Extract "properties" from the new schema
 	newProperties, ok := newSchema["properties"].(map[string]interface{})
 	if !ok {
-		log.Warn("newSchema does not contain 'properties' field of type map[string]interface{}")
+		return existingSchema, nil
 	}
 
-	// Iterate through new properties and add them to the existing schema if they don't exist already
-	for key, value := range newProperties {
-		// If the property doesn't exist in the existing schema, add it
-		if _, exists := properties[key]; !exists {
-			properties[key] = value
+	// Iterate through new properties and merge them into the existing schema
+	for key, newValue := range newProperties {
+		if existingValue, exists := properties[key]; exists {
+			// If both values are objects, merge them recursively
+			existingValueMap, existingIsMap := existingValue.(map[string]interface{})
+			newValueMap, newIsMap := newValue.(map[string]interface{})
+			if existingIsMap && newIsMap {
+				// Recursive call for nested objects
+				mergedValue, err := UpdateSchema(existingValueMap, newValueMap)
+				if err != nil {
+					return nil, err
+				}
+				properties[key] = mergedValue
+			}
+		} else {
+			properties[key] = newValue
 		}
 	}
 

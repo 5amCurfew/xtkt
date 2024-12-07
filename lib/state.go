@@ -73,14 +73,12 @@ func ParseStateJSON() (*State, error) {
 }
 
 // Update <STREAM>_state.json
-func UpdateState(record interface{}) {
+func UpdateStateBookmark(record interface{}) {
 	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
 	r := record.(map[string]interface{})
 	key, _ := r["_sdc_surrogate_key"].(string)
 
-	if !detectionSetContains(bookmarks.Bookmark, key) {
-		bookmarks.Bookmark = append(bookmarks.Bookmark, key)
-	}
+	bookmarks.Bookmark = append(bookmarks.Bookmark, key)
 
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	ParsedState.Value.Bookmarks[*ParsedConfig.StreamName] = bookmarks

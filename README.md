@@ -130,7 +130,6 @@ rm -f state_* config_*
 ```javascript
     ...
     "rest": { // optional <object>: required when "source_type": "rest"
-        "sleep": "<sleep>", // required <int>: number of seconds between pagination requests
         "auth": { // optional <object>: describe the authorisation strategy
             "required": "<required>", // required <boolean>: is authorisation required?
             "strategy": "<strategy>", // optional <string>: required if "required": true, one of either basic, token or oauth
@@ -187,7 +186,6 @@ No authentication required, records found in the response "results" array, pagin
         ]
     },
     "rest": {
-        "sleep": 0,
         "auth": {
             "required": false
         },
@@ -267,7 +265,6 @@ Oauth authentication required, records returned immediately in an array, paginat
                 "token_url": "https://www.strava.com/oauth/token"
             }
         },
-        "sleep": 1,
         "response": {
             "pagination": true,
             "pagination_strategy": "query",

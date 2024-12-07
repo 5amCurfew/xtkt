@@ -84,6 +84,9 @@ func extract(discover bool) error {
 		discoverCatalog()
 
 		schema := lib.ParsedCatalog.Streams[0].Schema
+		if len(schema) == 0 {
+			return fmt.Errorf("error gathering schema from source")
+		}
 
 		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema); generateSchemaMessageError != nil {
 			return fmt.Errorf("error generating schema message: %w", generateSchemaMessageError)
@@ -103,15 +106,17 @@ func extract(discover bool) error {
 
 		for record := range sources.ResultChan {
 			r := *record
-			//if valid := lib.ValidateRecordSchema(r); !valid {
-			//	log.Warn(fmt.Sprintf("record %s breaks schema in catalog - skipping...", r["_sdc_natural_key"]))
-			//	continue
-			//}
+			rMap, _ := r.(map[string]interface{})
+			if valid := lib.ValidateRecordSchema(rMap, schema); !valid {
+				log.Warn(fmt.Sprintf("record %s breaks schema in catalog - skipping...", rMap["_sdc_natural_key"]))
+				continue
+			}
 
 			if generateRecordMessageError := lib.GenerateRecordMessage(r); generateRecordMessageError != nil {
 				return fmt.Errorf("error generating record message: %w", generateRecordMessageError)
 			}
-			lib.UpdateState(r)
+
+			lib.UpdateStateBookmark(r)
 			execution.NewRecords += 1
 		}
 	}
@@ -119,9 +124,9 @@ func extract(discover bool) error {
 	// /////////////////////////////////////////////////////////
 	// Generate state message
 	// /////////////////////////////////////////////////////////
-	if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
-		return fmt.Errorf("error generating state message: %w", generateStateMessageError)
-	}
+	//if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
+	//	return fmt.Errorf("error generating state message: %w", generateStateMessageError)
+	//}
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
