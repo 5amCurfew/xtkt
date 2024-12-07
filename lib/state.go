@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"sync"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 var stateMutex sync.Mutex
 var ParsedState *State
 
+// TODO MOVE BOOKMARKS TO MAP OF SEEN KEYS
 type State struct {
 	Type  string `json:"type"`
 	Value struct {
@@ -22,8 +22,8 @@ type State struct {
 }
 
 type Bookmark struct {
-	BookmarkUpdatedAt string   `json:"bookmark_updated_at"`
-	Bookmark          []string `json:"bookmark"`
+	BookmarkUpdatedAt string              `json:"bookmark_updated_at"`
+	Bookmark          map[string]struct{} `json:"bookmark"`
 }
 
 // CreateStateJSON creates a state JSON file for the stream
@@ -45,7 +45,7 @@ func CreateStateJSON() {
 			Bookmarks: map[string]Bookmark{
 				streamName: {
 					BookmarkUpdatedAt: time.Now().UTC().Format(time.RFC3339),
-					Bookmark:          []string{}, // Empty bookmark list
+					Bookmark:          map[string]struct{}{},
 				},
 			},
 		},
@@ -76,8 +76,8 @@ func ParseStateJSON() (*State, error) {
 
 // Update <STREAM>_state.json
 func UpdateStateBookmark(record interface{}) {
-	stateMutex.Lock()         // Lock the mutex to ensure exclusive access to the map
-	defer stateMutex.Unlock() // Ensure the mutex is unlocked when the function returns
+	stateMutex.Lock() // Prevent concurrent read/writes to state
+	defer stateMutex.Unlock()
 
 	// Access and modify the map
 	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
@@ -85,20 +85,9 @@ func UpdateStateBookmark(record interface{}) {
 	key, _ := r["_sdc_surrogate_key"].(string)
 
 	// Modify the state
-	bookmarks.Bookmark = append(bookmarks.Bookmark, key)
+	bookmarks.Bookmark[key] = struct{}{}
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 
 	// Update the map
 	ParsedState.Value.Bookmarks[*ParsedConfig.StreamName] = bookmarks
-}
-
-func detectionSetContains(s []string, str string) bool {
-	sort.Strings(s)
-
-	index := sort.SearchStrings(s, str)
-	if index < len(s) && s[index] == str {
-		return true
-	}
-
-	return false
 }

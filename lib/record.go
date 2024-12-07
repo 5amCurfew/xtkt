@@ -82,11 +82,12 @@ func generateSurrogateKeyFields(record map[string]interface{}) error {
 // Hold record against bookmark
 func recordVersusBookmark(record map[string]interface{}) bool {
 	key := record["_sdc_surrogate_key"].(string)
-	notSeen := !detectionSetContains(
-		ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark,
-		key,
-	)
-	return notSeen
+
+	stateMutex.Lock() // Prevent concurrent read/writes to state
+	defer stateMutex.Unlock()
+
+	_, found := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark[key]
+	return !found
 }
 
 // Validate record against Catalog
