@@ -94,6 +94,9 @@ func extract(discover bool) error {
 		}
 	}
 
+	// /////////////////////////////////////////////////////////
+	// Extract using existing catalog
+	// /////////////////////////////////////////////////////////
 	if !discover {
 
 		schema := lib.ParsedCatalog.Streams[0].Schema

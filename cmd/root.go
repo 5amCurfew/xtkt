@@ -10,9 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.2.1"
+var version = "0.3.0"
 var discover bool = false
-var defaultConcurrency int = 1000
 
 func Execute() {
 	rootCmd.Flags().BoolVar(&discover, "discover", false, "run the tap in discovery mode, creating the catalog")
@@ -67,11 +66,6 @@ func parseConfigJSON(filePath string) (lib.Config, error) {
 
 	if jsonError := json.Unmarshal(config, &cfg); jsonError != nil {
 		return cfg, fmt.Errorf("error parseConfigJson unmarshlling config.json: %w", jsonError)
-	}
-
-	// Check if MaxConcurrency field is nil, set it to the default value
-	if cfg.MaxConcurrency == nil {
-		cfg.MaxConcurrency = &defaultConcurrency
 	}
 
 	return cfg, nil
