@@ -7,6 +7,7 @@ import (
 
 	lib "github.com/5amCurfew/xtkt/lib"
 	sources "github.com/5amCurfew/xtkt/sources"
+	"github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -120,6 +121,8 @@ func extract(discover bool) error {
 			execution.NewRecords += 1
 		}
 	}
+
+	util.WriteJSON(fmt.Sprintf("%s_state.json", *lib.ParsedConfig.StreamName), lib.ParsedState)
 
 	// /////////////////////////////////////////////////////////
 	// Generate state message

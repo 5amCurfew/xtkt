@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"sync"
 	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
 
+var stateMutex sync.Mutex
 var ParsedState *State
 
 type State struct {
@@ -74,15 +76,20 @@ func ParseStateJSON() (*State, error) {
 
 // Update <STREAM>_state.json
 func UpdateStateBookmark(record interface{}) {
+	stateMutex.Lock()         // Lock the mutex to ensure exclusive access to the map
+	defer stateMutex.Unlock() // Ensure the mutex is unlocked when the function returns
+
+	// Access and modify the map
 	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
 	r := record.(map[string]interface{})
 	key, _ := r["_sdc_surrogate_key"].(string)
 
+	// Modify the state
 	bookmarks.Bookmark = append(bookmarks.Bookmark, key)
-
 	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
+
+	// Update the map
 	ParsedState.Value.Bookmarks[*ParsedConfig.StreamName] = bookmarks
-	util.WriteJSON(fmt.Sprintf("%s_state.json", *ParsedConfig.StreamName), ParsedState)
 }
 
 func detectionSetContains(s []string, str string) bool {
