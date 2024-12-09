@@ -18,6 +18,7 @@
   * [Rick & Morty API](#rick-&-morty-api)
   * [Github API](#github-api)
   * [Strava API](#strava-api)
+  * [Salesforce API](#salesforce-api)
   * [File csv](#file-csv)
   * [File jsonl](#file-jsonl)
 
@@ -106,8 +107,7 @@ $ xtkt config.json 2>&1 | jq .
 {
     "stream_name": "<stream_name>", // required, <string>: the name of your stream
     "source_type": "<source_type>", // required, <string>: one of either csv, db, jsonl, html, rest
-    "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address, database connection URL or relative file path)
-    "max_concurrency": "<max_thread_count>", // optional <int>: maximum number of records processed concurrently (default: 1000)
+    "url": "<url>", // required, <string>: address of the data source (e.g. REST-ful API address or relative file path)
     "records": { // required <object>: describes handling of records
         "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
         "drop_field_paths": [ // optional <array[array]>: paths to remove within records
@@ -197,7 +197,7 @@ No authentication required, records found in the response "results" array, pagin
 ```
 
 #### [Github API](https://docs.github.com/en/rest?apiVersion=2022-11-28)
-Token authentication required, records returned immediately as an array, pagination using query parameter, bookmark'd using "commit.author.date" in record
+Token authentication required, records returned immediately as an array, pagination using query parameter
 
 `config.json`
 ```json
@@ -240,7 +240,7 @@ Token authentication required, records returned immediately as an array, paginat
 ```
 
 #### [Strava API](https://developers.strava.com/docs/reference/)
-Oauth authentication required, records returned immediately in an array, paginated using query parameter, bookmark'd using "start_date" in record
+Oauth authentication required, records returned immediately in an array, paginated using query parameter
 
 `config.json`
 ```json
@@ -270,6 +270,36 @@ Oauth authentication required, records returned immediately in an array, paginat
                 "query_value": 2,
                 "query_increment": 1
             }
+        }
+    }
+}
+```
+
+#### Salesforce API
+Oauth authentication required, records found in the response "records" array, no pagination
+
+```json
+{
+    "stream_name": "salesforce_accounts",
+    "source_type": "rest",
+    "url": "https://livescore.my.salesforce.com/services/data/v62.0/query/?q=SELECT+name,id+from+Account",
+    "records": {
+        "unique_key_path": ["Id"]
+    },
+    "rest": {
+        "auth": {
+            "required": true,
+            "strategy": "oauth",
+            "oauth": {
+                "client_id": "<YOUR_CONSUMER_KEY>",
+                "client_secret": "<YOUR_CONSUMER_SECRET>",
+                "refresh_token": "<YOUR_REFRESH_TOKEN>",
+                "token_url": "https://login.salesforce.com/services/oauth2/token"
+            }
+        },
+        "response": {
+            "records_path": ["records"],
+            "pagination": false
         }
     }
 }
