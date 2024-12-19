@@ -22,7 +22,7 @@
   * [File csv](#file-csv)
   * [File jsonl](#file-jsonl)
 
-**v0.3.0**
+**v0.3.1**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 

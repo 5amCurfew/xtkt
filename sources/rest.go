@@ -18,7 +18,7 @@ import (
 func ParseREST() {
 	go func() {
 		defer close(parseRecordChan)
-		if err := streamRESTRecords(lib.ParsedConfig, parseRecordChan); err != nil {
+		if err := streamRESTRecords(lib.ParsedConfig); err != nil {
 			log.WithFields(log.Fields{"error": err}).Info("parseREST: streamRESTRecords failed")
 		}
 	}()
@@ -29,7 +29,7 @@ func ParseREST() {
 	}
 }
 
-func streamRESTRecords(config lib.Config, resultChan chan map[string]interface{}) error {
+func streamRESTRecords(config lib.Config) error {
 	var responseMap map[string]interface{}
 	responseMapRecordsPath := []string{"results"}
 
@@ -78,7 +78,7 @@ func streamRESTRecords(config lib.Config, resultChan chan map[string]interface{}
 		// Stream records
 		for _, item := range recordsInterfaceSlice {
 			if recordMap, ok := item.(map[string]interface{}); ok {
-				resultChan <- recordMap
+				parseRecordChan <- recordMap
 			} else {
 				log.WithFields(log.Fields{"item": item}).Warn("encountered non-map element in records array")
 			}

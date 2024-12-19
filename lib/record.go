@@ -61,6 +61,7 @@ func generateHashedFields(record map[string]interface{}) error {
 		} else {
 			log.WithFields(log.Fields{
 				"sensitive_field_path": path,
+				"_sdc_natural_key":     util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, record),
 			}).Warn("field path not found in record for hashing (sensitive fields)")
 			continue
 		}

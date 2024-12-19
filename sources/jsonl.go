@@ -15,7 +15,7 @@ import (
 func ParseJSONL() {
 	go func() {
 		defer close(parseRecordChan)
-		if err := streamJSONLRecords(*lib.ParsedConfig.URL, parseRecordChan); err != nil {
+		if err := streamJSONLRecords(*lib.ParsedConfig.URL); err != nil {
 			log.WithFields(log.Fields{"error": err}).Info("parseJSONL: streamJSONLRecords failed")
 		}
 	}()
@@ -26,7 +26,7 @@ func ParseJSONL() {
 	}
 }
 
-func streamJSONLRecords(url string, resultChan chan map[string]interface{}) error {
+func streamJSONLRecords(url string) error {
 	var scanner *bufio.Scanner
 
 	switch {
@@ -61,7 +61,7 @@ func streamJSONLRecords(url string, resultChan chan map[string]interface{}) erro
 			continue
 		}
 
-		resultChan <- record
+		parseRecordChan <- record
 	}
 
 	if err := scanner.Err(); err != nil {
