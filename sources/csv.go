@@ -9,24 +9,11 @@ import (
 	"strings"
 
 	lib "github.com/5amCurfew/xtkt/lib"
-	log "github.com/sirupsen/logrus"
 )
 
-func ParseCSV() {
-	go func() {
-		defer close(parseRecordChan)
-		if err := streamCSVRecords(*lib.ParsedConfig.URL); err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("parseCSV: streamCSVRecords failed")
-		}
-	}()
+func StreamCSVRecords(config lib.Config) error {
+	url := *lib.ParsedConfig.URL
 
-	for record := range parseRecordChan {
-		ParsingWG.Add(1)
-		go parse(record)
-	}
-}
-
-func streamCSVRecords(url string) error {
 	var reader *csv.Reader
 	switch {
 	case strings.HasPrefix(url, "http"):

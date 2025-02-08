@@ -12,21 +12,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ParseJSONL() {
-	go func() {
-		defer close(parseRecordChan)
-		if err := streamJSONLRecords(*lib.ParsedConfig.URL); err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("parseJSONL: streamJSONLRecords failed")
-		}
-	}()
+func StreamJSONLRecords(config lib.Config) error {
+	url := *lib.ParsedConfig.URL
 
-	for record := range parseRecordChan {
-		ParsingWG.Add(1)
-		go parse(record)
-	}
-}
-
-func streamJSONLRecords(url string) error {
 	var scanner *bufio.Scanner
 
 	switch {

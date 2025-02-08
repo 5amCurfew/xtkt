@@ -15,21 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ParseREST() {
-	go func() {
-		defer close(parseRecordChan)
-		if err := streamRESTRecords(lib.ParsedConfig); err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("parseREST: streamRESTRecords failed")
-		}
-	}()
-
-	for record := range parseRecordChan {
-		ParsingWG.Add(1)
-		go parse(record)
-	}
-}
-
-func streamRESTRecords(config lib.Config) error {
+func StreamRESTRecords(config lib.Config) error {
 	var responseMap map[string]interface{}
 	responseMapRecordsPath := []string{"results"}
 

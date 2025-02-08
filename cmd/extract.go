@@ -18,58 +18,46 @@ type ExecutionMetric struct {
 	NewRecords        uint64        `json:"new_records"`
 }
 
-// /////////////////////////////////////////////////////////
-// Extract
-// /////////////////////////////////////////////////////////
+// Extract: root function for extracting data from source, requires disccover flag
 func extract(discover bool) error {
 	var execution ExecutionMetric
 	execution.ExecutionStart = time.Now().UTC()
 
-	// /////////////////////////////////////////////////////////
 	// Create <STREAM>_state.json
-	// /////////////////////////////////////////////////////////
 	if _, err := os.Stat(fmt.Sprintf("%s_state.json", *lib.ParsedConfig.StreamName)); err != nil {
 		lib.CreateStateJSON()
 	}
 
-	// /////////////////////////////////////////////////////////
 	// Create <STREAM>_catalog.json
-	// /////////////////////////////////////////////////////////
 	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", *lib.ParsedConfig.StreamName)); err != nil {
 		lib.CreateCatalogJSON()
 	}
 
-	// /////////////////////////////////////////////////////////
 	// Parse current state
-	// /////////////////////////////////////////////////////////
 	state, parseStateError := lib.ParseStateJSON()
 	if parseStateError != nil {
 		return fmt.Errorf("error parsing state.json %w", parseStateError)
 	}
 	lib.ParsedState = state
 
-	// /////////////////////////////////////////////////////////
 	// Parse latest catalog
-	// /////////////////////////////////////////////////////////
 	catalog, parseCatalogError := lib.ParseCatalogJSON()
 	if parseCatalogError != nil {
 		return fmt.Errorf("error parsing catalog.json %w", parseCatalogError)
 	}
 	lib.ParsedCatalog = catalog
 
-	// /////////////////////////////////////////////////////////
-	// Extract records from source
-	// /////////////////////////////////////////////////////////
+	// Initiate goroutine to begin extracting and parsing records
 	go func() {
 		log.Info(fmt.Sprintf(`generating records from %s`, *lib.ParsedConfig.URL))
 
 		switch *lib.ParsedConfig.SourceType {
 		case "csv":
-			sources.ParseCSV()
+			sources.ParseRecords(sources.StreamCSVRecords)
 		case "jsonl":
-			sources.ParseJSONL()
+			sources.ParseRecords(sources.StreamJSONLRecords)
 		case "rest":
-			sources.ParseREST()
+			sources.ParseRecords(sources.StreamRESTRecords)
 		default:
 			log.Info("unsupported data source")
 		}
@@ -78,9 +66,7 @@ func extract(discover bool) error {
 		close(sources.ResultChan)
 	}()
 
-	// /////////////////////////////////////////////////////////
-	// Run in discovery mode to create the catalog
-	// /////////////////////////////////////////////////////////
+	// Run in discovery mode to create the catalog by listening for parsed records on ResultsChan
 	if discover {
 		discoverCatalog()
 
@@ -94,9 +80,7 @@ func extract(discover bool) error {
 		}
 	}
 
-	// /////////////////////////////////////////////////////////
-	// Extract using existing catalog
-	// /////////////////////////////////////////////////////////
+	// If the catalog exists, begin listening for parsed records on ResultsChan
 	if !discover {
 
 		schema := lib.ParsedCatalog.Streams[0].Schema
@@ -129,22 +113,13 @@ func extract(discover bool) error {
 
 	util.WriteJSON(fmt.Sprintf("%s_state.json", *lib.ParsedConfig.StreamName), lib.ParsedState)
 
-	// /////////////////////////////////////////////////////////
-	// Generate state message
-	// /////////////////////////////////////////////////////////
-	//if generateStateMessageError := lib.GenerateStateMessage(state); generateStateMessageError != nil {
-	//	return fmt.Errorf("error generating state message: %w", generateStateMessageError)
-	//}
-
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
 	return nil
 }
 
-// /////////////////////////////////////////////////////////
-// Util
-// /////////////////////////////////////////////////////////
+// infers the catalog by listening for all parsed records on ResultsChan
 func discoverCatalog() {
 	for record := range sources.ResultChan {
 		r := *record

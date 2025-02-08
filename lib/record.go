@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Transform record
+// Transform record including dropping fields, hashing sensitive fields, and validating against bookmark
 func ProcessRecord(record *interface{}) (*interface{}, error) {
 
 	r, parsed := (*record).(map[string]interface{})
@@ -52,7 +52,7 @@ func dropFields(record map[string]interface{}) error {
 	return nil
 }
 
-// Transform: hash specified fields in record
+// Transform: hash specified sensitive fields in record
 func generateHashedFields(record map[string]interface{}) error {
 	for _, path := range *ParsedConfig.Records.SensitiveFieldPaths {
 		if fieldValue := util.GetValueAtPath(path, record); fieldValue != nil {
@@ -69,7 +69,7 @@ func generateHashedFields(record map[string]interface{}) error {
 	return nil
 }
 
-// Transform: generate surrogate keys for record
+// Transform: generate surrogate keys for record following transformations
 func generateSurrogateKeyFields(record map[string]interface{}) error {
 	h := sha256.New()
 	h.Write([]byte(util.ToString(record)))
@@ -93,8 +93,8 @@ func recordVersusBookmark(record map[string]interface{}) bool {
 	stateMutex.Lock() // Prevent concurrent read/writes to state
 	defer stateMutex.Unlock()
 
-	_, found := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark[key]
-	return !found // "keep" (true) if not found
+	_, foundInBookmark := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark[key]
+	return !foundInBookmark // "keep" (true) if not found
 }
 
 // Validate record against Catalog
