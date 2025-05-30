@@ -18,59 +18,59 @@ type ExecutionMetric struct {
 	NewRecords        uint64        `json:"new_records"`
 }
 
-// Extract: root function for extracting data from source, requires disccover flag
-func extract(discover bool) error {
+// Root function for extracting data from source, requires disccover flag
+func Extract(discover bool) error {
 	var execution ExecutionMetric
 	execution.ExecutionStart = time.Now().UTC()
 
-	// Create <STREAM>_state.json
+	// Create state.json
 	if _, err := os.Stat(fmt.Sprintf("%s_state.json", *lib.ParsedConfig.StreamName)); err != nil {
 		lib.CreateStateJSON()
 	}
 
-	// Create <STREAM>_catalog.json
+	// Create catalog.json
 	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", *lib.ParsedConfig.StreamName)); err != nil {
 		lib.CreateCatalogJSON()
 	}
 
-	// Parse current state
-	state, parseStateError := lib.ParseStateJSON()
+	// Read current state
+	state, parseStateError := lib.ReadStateJSON()
 	if parseStateError != nil {
 		return fmt.Errorf("error parsing state.json %w", parseStateError)
 	}
 	lib.ParsedState = state
 
-	// Parse latest catalog
-	catalog, parseCatalogError := lib.ParseCatalogJSON()
+	// Read latest catalog
+	catalog, parseCatalogError := lib.ReadCatalogJSON()
 	if parseCatalogError != nil {
 		return fmt.Errorf("error parsing catalog.json %w", parseCatalogError)
 	}
-	lib.ParsedCatalog = catalog
+	lib.DerivedCatalog = catalog
 
-	// Initiate goroutine to begin extracting and parsing records
+	// Initiate goroutine to begin extracting and processing records
 	go func() {
+		defer close(sources.ResultChan)
 		log.Info(fmt.Sprintf(`generating records from %s`, *lib.ParsedConfig.URL))
 
 		switch *lib.ParsedConfig.SourceType {
 		case "csv":
-			sources.ParseRecords(sources.StreamCSVRecords)
+			sources.ExtractRecords(sources.StreamCSVRecords)
 		case "jsonl":
-			sources.ParseRecords(sources.StreamJSONLRecords)
+			sources.ExtractRecords(sources.StreamJSONLRecords)
 		case "rest":
-			sources.ParseRecords(sources.StreamRESTRecords)
+			sources.ExtractRecords(sources.StreamRESTRecords)
 		default:
 			log.Info("unsupported data source")
 		}
 
-		sources.ParsingWG.Wait()
-		close(sources.ResultChan)
+		sources.ProcessingWG.Wait()
 	}()
 
 	// Run in discovery mode to create the catalog by listening for parsed records on ResultsChan
 	if discover {
 		discoverCatalog()
 
-		schema := lib.ParsedCatalog.Streams[0].Schema
+		schema := lib.DerivedCatalog.Streams[0].Schema
 		if len(schema) == 0 {
 			return fmt.Errorf("error gathering schema from source")
 		}
@@ -83,7 +83,7 @@ func extract(discover bool) error {
 	// If the catalog exists, begin listening for parsed records on ResultsChan
 	if !discover {
 
-		schema := lib.ParsedCatalog.Streams[0].Schema
+		schema := lib.DerivedCatalog.Streams[0].Schema
 		if len(schema) == 0 {
 			return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
 		}
@@ -93,20 +93,18 @@ func extract(discover bool) error {
 		}
 
 		for record := range sources.ResultChan {
-			r := *record
-			rMap, _ := r.(map[string]interface{})
-			if valid, validateRecordSchemaError := lib.ValidateRecordSchema(rMap, schema); !valid {
+			if valid, validateRecordSchemaError := lib.ValidateRecordSchema(record, schema); !valid {
 				log.WithFields(log.Fields{
-					"_sdc_natural_key": rMap["_sdc_natural_key"],
+					"_sdc_natural_key": record["_sdc_natural_key"],
 					"error":            validateRecordSchemaError,
 				}).Warn("record breaks schema in catalog")
 			}
 
-			if generateRecordMessageError := lib.GenerateRecordMessage(r); generateRecordMessageError != nil {
+			if generateRecordMessageError := lib.GenerateRecordMessage(record); generateRecordMessageError != nil {
 				return fmt.Errorf("error generating record message: %w", generateRecordMessageError)
 			}
 
-			lib.UpdateStateBookmark(r)
+			lib.UpdateState(record)
 			execution.NewRecords += 1
 		}
 	}
@@ -119,15 +117,14 @@ func extract(discover bool) error {
 	return nil
 }
 
-// infers the catalog by listening for all parsed records on ResultsChan
+// infers the catalog by listening for all processed records on ResultsChan
 func discoverCatalog() {
 	for record := range sources.ResultChan {
-		r := *record
-		recordSchema, _ := lib.GenerateSchema(r)
-		existingSchema := lib.ParsedCatalog.Streams[0].Schema
+		recordSchema, _ := lib.GenerateSchema(record)
+		existingSchema := lib.DerivedCatalog.Streams[0].Schema
 
 		properties, _ := lib.UpdateSchema(existingSchema, recordSchema)
-		lib.ParsedCatalog.Streams[0].Schema = properties
+		lib.DerivedCatalog.Streams[0].Schema = properties
 	}
 
 	lib.UpdateCatalogJSON()

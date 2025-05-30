@@ -21,7 +21,7 @@ func GenerateSchemaMessage(schema map[string]interface{}) error {
 		Type:          "SCHEMA",
 		Stream:        *ParsedConfig.StreamName,
 		Schema:        schema,
-		KeyProperties: ParsedCatalog.Streams[0].KeyProperties,
+		KeyProperties: DerivedCatalog.Streams[0].KeyProperties,
 	}
 
 	messageJson, err := json.Marshal(message)

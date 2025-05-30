@@ -59,8 +59,8 @@ func CreateStateJSON() {
 	}
 }
 
-// Parse <STREAM>_state.json
-func ParseStateJSON() (*State, error) {
+// Reads <STREAM_NAME>_state.json
+func ReadStateJSON() (*State, error) {
 	stateFile, err := os.ReadFile(fmt.Sprintf("%s_state.json", *ParsedConfig.StreamName))
 	if err != nil {
 		return nil, fmt.Errorf("error reading state file: %w", err)
@@ -75,7 +75,7 @@ func ParseStateJSON() (*State, error) {
 }
 
 // Update <STREAM>_state.json
-func UpdateStateBookmark(record interface{}) {
+func UpdateState(record interface{}) {
 	stateMutex.Lock() // Prevent concurrent read/writes to state
 	defer stateMutex.Unlock()
 

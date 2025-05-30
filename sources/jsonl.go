@@ -49,7 +49,7 @@ func StreamJSONLRecords(config lib.Config) error {
 			continue
 		}
 
-		parseRecordChan <- record
+		ExtractedChan <- record
 	}
 
 	if err := scanner.Err(); err != nil {

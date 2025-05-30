@@ -13,9 +13,6 @@ type Config struct {
 		DropFieldPaths      *[][]string `json:"drop_field_paths,omitempty"`
 		SensitiveFieldPaths *[][]string `json:"sensitive_field_paths,omitempty"`
 	} `json:"records,omitempty"`
-	Database *struct {
-		Table *string `json:"table,omitempty"`
-	} `json:"db,omitempty"`
 	Rest *struct {
 		Auth *struct {
 			Required *bool   `json:"required,omitempty"`

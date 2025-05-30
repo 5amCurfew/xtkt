@@ -8,7 +8,7 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-var ParsedCatalog *Catalog
+var DerivedCatalog *Catalog
 
 type Catalog struct {
 	Streams []StreamCatalog `json:"streams"`
@@ -50,7 +50,7 @@ func CreateCatalogJSON() {
 }
 
 // Parse <STREAM>_catalog.json
-func ParseCatalogJSON() (*Catalog, error) {
+func ReadCatalogJSON() (*Catalog, error) {
 	catalogFile, err := os.ReadFile(fmt.Sprintf("%s_catalog.json", *ParsedConfig.StreamName))
 	if err != nil {
 		return nil, fmt.Errorf("error reading catalog file: %w", err)
@@ -65,5 +65,5 @@ func ParseCatalogJSON() (*Catalog, error) {
 }
 
 func UpdateCatalogJSON() {
-	util.WriteJSON(fmt.Sprintf("%s_catalog.json", *ParsedConfig.StreamName), ParsedCatalog)
+	util.WriteJSON(fmt.Sprintf("%s_catalog.json", *ParsedConfig.StreamName), DerivedCatalog)
 }

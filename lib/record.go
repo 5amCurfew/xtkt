@@ -13,30 +13,24 @@ import (
 )
 
 // Transform record including dropping fields, hashing sensitive fields, and validating against bookmark
-func ProcessRecord(record *interface{}) (*interface{}, error) {
-
-	r, parsed := (*record).(map[string]interface{})
-	if !parsed {
-		return nil, fmt.Errorf("error parsing record as map[string]interface{} in ProcessRecord")
-	}
-
+func ProcessRecord(record map[string]interface{}) (map[string]interface{}, error) {
 	if ParsedConfig.Records.DropFieldPaths != nil {
-		if dropFieldsError := dropFields(r); dropFieldsError != nil {
+		if dropFieldsError := dropFields(record); dropFieldsError != nil {
 			return nil, fmt.Errorf("error dropping fields in ProcessRecord: %v", dropFieldsError)
 		}
 	}
 
 	if ParsedConfig.Records.SensitiveFieldPaths != nil {
-		if generateHashedFieldsError := generateHashedFields(r); generateHashedFieldsError != nil {
+		if generateHashedFieldsError := generateHashedFields(record); generateHashedFieldsError != nil {
 			return nil, fmt.Errorf("error generating hashed field in ProcessRecord: %v", generateHashedFieldsError)
 		}
 	}
 
-	if generateSurrogateKeyFieldsError := generateSurrogateKeyFields(r); generateSurrogateKeyFieldsError != nil {
+	if generateSurrogateKeyFieldsError := generateSurrogateKeyFields(record); generateSurrogateKeyFieldsError != nil {
 		return nil, fmt.Errorf("error generating surrogate keys in ProcessRecords: %v", generateSurrogateKeyFieldsError)
 	}
 
-	if keep := recordVersusBookmark(r); keep {
+	if keep := recordVersusBookmark(record); keep {
 		return record, nil
 	}
 
@@ -94,7 +88,7 @@ func recordVersusBookmark(record map[string]interface{}) bool {
 	defer stateMutex.Unlock()
 
 	_, foundInBookmark := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark[key]
-	return !foundInBookmark // "keep" (true) if not found
+	return !foundInBookmark // "keep" (true if not found)
 }
 
 // Validate record against Catalog

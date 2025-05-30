@@ -22,19 +22,19 @@
   * [File csv](#file-csv)
   * [File jsonl](#file-jsonl)
 
-**v0.3.2**
+**v0.4.0**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (unique key) and `_sdc_surrogate_key` (version key)). Only new and/or updated records are sent to be processed by your target. 
+Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (unique key) and `_sdc_surrogate_key` (version key)). Only new and updated records are sent to be processed by your target. 
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
 Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
 
-Both integers and floats are sent as floats. All fields except the generated `_sdc_surrogate_key` field are considered `NULLABLE`.
+Both integers and floats are sent as floats. All fields except the generated `_sdc_surrogate_key` and `_sdc_natural_key` (`records.unique_key_path`) field are considered `NULLABLE`.
 
 Schema detection is naive using the first non-null data type detected per field when generating the catalog.
 
