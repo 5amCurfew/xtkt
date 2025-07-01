@@ -23,27 +23,35 @@ func Extract(discover bool) error {
 	var execution ExecutionMetric
 	execution.ExecutionStart = time.Now().UTC()
 
+	streamName := *lib.ParsedConfig.StreamName
+
 	// Create state.json
-	if _, err := os.Stat(fmt.Sprintf("%s_state.json", *lib.ParsedConfig.StreamName)); err != nil {
-		lib.CreateStateJSON()
+	if _, err := os.Stat(fmt.Sprintf("%s_state.json", streamName)); err != nil {
+		err := lib.CreateStateJSON()
+		if err != nil {
+			return fmt.Errorf("error creating state.json: %w", err)
+		}
 	}
 
 	// Create catalog.json
-	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", *lib.ParsedConfig.StreamName)); err != nil {
-		lib.CreateCatalogJSON()
+	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", streamName)); err != nil {
+		err := lib.CreateCatalogJSON()
+		if err != nil {
+			return fmt.Errorf("error creating catalog.json: %w", err)
+		}
 	}
 
 	// Read current state
-	state, parseStateError := lib.ReadStateJSON()
-	if parseStateError != nil {
-		return fmt.Errorf("error parsing state.json %w", parseStateError)
+	state, err := lib.ReadStateJSON()
+	if err != nil {
+		return fmt.Errorf("error reading state.json %w", err)
 	}
 	lib.ParsedState = state
 
 	// Read latest catalog
-	catalog, parseCatalogError := lib.ReadCatalogJSON()
-	if parseCatalogError != nil {
-		return fmt.Errorf("error parsing catalog.json %w", parseCatalogError)
+	catalog, err := lib.ReadCatalogJSON()
+	if err != nil {
+		return fmt.Errorf("error reading catalog.json %w", err)
 	}
 	lib.DerivedCatalog = catalog
 
@@ -66,7 +74,7 @@ func Extract(discover bool) error {
 		sources.ProcessingWG.Wait()
 	}()
 
-	// Run in discovery mode to create the catalog by listening for parsed records on ResultsChan
+	// Run in discovery mode to create the catalog by listening for extracted records on ResultsChan
 	if discover {
 		discoverCatalog()
 
@@ -80,7 +88,7 @@ func Extract(discover bool) error {
 		}
 	}
 
-	// If the catalog exists, begin listening for parsed records on ResultsChan
+	// If the catalog exists, begin listening for extracted records on ResultsChan
 	if !discover {
 
 		schema := lib.DerivedCatalog.Streams[0].Schema

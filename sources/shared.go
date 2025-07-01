@@ -18,7 +18,7 @@ func ExtractRecords(streamFunc func(lib.Config) error) {
 	go func() {
 		defer close(ExtractedChan)
 		if err := streamFunc(lib.ParsedConfig); err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("ParseRecords: stream function failed")
+			log.WithFields(log.Fields{"error": err}).Info("ExtractRecords: stream function failed")
 		}
 	}()
 
@@ -36,6 +36,6 @@ func process(record map[string]interface{}) {
 	if processedData, err := lib.ProcessRecord(record); err == nil && processedData != nil {
 		ResultChan <- processedData
 	} else if err != nil {
-		log.Warn(fmt.Sprintf("error parsing record %s: %v", record, err))
+		log.Warn(fmt.Sprintf("error processing record %s: %v", record, err))
 	}
 }

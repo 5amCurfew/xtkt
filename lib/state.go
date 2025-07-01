@@ -26,11 +26,10 @@ type Bookmark struct {
 }
 
 // CreateStateJSON creates a state JSON file for the stream
-func CreateStateJSON() {
+func CreateStateJSON() error {
 	// Ensure ParsedConfig is initialized and stream name is not nil
 	if ParsedConfig.StreamName == nil {
-		fmt.Println("Error: ParsedConfig.StreamName is nil")
-		return
+		return fmt.Errorf("state json ParsedConfig.StreamName is nil")
 	}
 
 	streamName := *ParsedConfig.StreamName
@@ -54,8 +53,10 @@ func CreateStateJSON() {
 	fileName := fmt.Sprintf("%s_state.json", streamName)
 	err := util.WriteJSON(fileName, state)
 	if err != nil {
-		fmt.Printf("Error writing JSON: %v\n", err)
+		return fmt.Errorf("state json writing to json file error: %v", err)
 	}
+
+	return nil
 }
 
 // Reads <STREAM_NAME>_state.json
