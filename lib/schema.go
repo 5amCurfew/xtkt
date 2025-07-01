@@ -39,16 +39,16 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 			// Skip null fields; wait for a first non-null value
 			continue
 		case string:
-			if _, err := time.Parse(time.RFC3339, v); err == nil {
+			if key == "_sdc_surrogate_key" {
+				// Required and non-empty
+				prop["type"] = "string" // non-nullable
+				prop["minLength"] = 1   // must be non-empty
+			} else if _, err := time.Parse(time.RFC3339, v); err == nil {
 				prop["type"] = []string{"string", "null"}
 				prop["format"] = "date-time"
 			} else if _, err := time.Parse("2006-01-02", v); err == nil {
 				prop["type"] = []string{"string", "null"}
 				prop["format"] = "date"
-			} else if key == "_sdc_surrogate_key" || key == "_sdc_natural_key" {
-				// Required and non-empty
-				prop["type"] = "string" // non-nullable
-				prop["minLength"] = 1   // must be non-empty
 			} else {
 				prop["type"] = []string{"string", "null"}
 			}
