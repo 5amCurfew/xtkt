@@ -22,10 +22,9 @@ type StreamCatalog struct {
 }
 
 // Create <STREAM>_catalog.json
-func CreateCatalogJSON() {
+func CreateCatalogJSON() error {
 	if ParsedConfig.StreamName == nil {
-		fmt.Println("Error: ParsedConfig.StreamName is nil")
-		return
+		return fmt.Errorf("error creating catalog file stream name is nil")
 	}
 
 	streamName := *ParsedConfig.StreamName // Ensure ParsedConfig.StreamName is initialized
@@ -45,8 +44,10 @@ func CreateCatalogJSON() {
 	fileName := fmt.Sprintf("%s_catalog.json", streamName)
 	err := util.WriteJSON(fileName, c)
 	if err != nil {
-		fmt.Printf("Error writing JSON: %v\n", err)
+		return fmt.Errorf("error writing catalog.json: %v", err)
 	}
+
+	return nil
 }
 
 // Parse <STREAM>_catalog.json

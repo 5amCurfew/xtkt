@@ -1,7 +1,9 @@
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -104,4 +106,24 @@ func UpdateSchema(existingSchema, newSchema map[string]interface{}) (map[string]
 	existingSchema["type"] = "object"
 
 	return existingSchema, nil
+}
+
+// ProduceSchemaMessage generates a schema message from the derived catalog
+func ProduceSchemaMessage(schema map[string]interface{}) error {
+	message := Message{
+		Type:          "SCHEMA",
+		Stream:        *ParsedConfig.StreamName,
+		Schema:        schema,
+		KeyProperties: DerivedCatalog.Streams[0].KeyProperties,
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
+	}
+
+	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
+
+	return nil
 }

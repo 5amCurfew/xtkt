@@ -75,8 +75,8 @@ func Extract(discover bool) error {
 			return fmt.Errorf("error gathering schema from source")
 		}
 
-		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema); generateSchemaMessageError != nil {
-			return fmt.Errorf("error generating schema message: %w", generateSchemaMessageError)
+		if produceSchemaMessageError := lib.ProduceSchemaMessage(schema); produceSchemaMessageError != nil {
+			return fmt.Errorf("error generating schema message: %w", produceSchemaMessageError)
 		}
 	}
 
@@ -88,8 +88,8 @@ func Extract(discover bool) error {
 			return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
 		}
 
-		if generateSchemaMessageError := lib.GenerateSchemaMessage(schema); generateSchemaMessageError != nil {
-			return fmt.Errorf("error generating schema message: %w", generateSchemaMessageError)
+		if produceSchemaMessageError := lib.ProduceSchemaMessage(schema); produceSchemaMessageError != nil {
+			return fmt.Errorf("error generating schema message: %w", produceSchemaMessageError)
 		}
 
 		for record := range sources.ResultChan {
@@ -97,11 +97,11 @@ func Extract(discover bool) error {
 				log.WithFields(log.Fields{
 					"_sdc_natural_key": record["_sdc_natural_key"],
 					"error":            validateRecordSchemaError,
-				}).Warn("record breaks schema in catalog")
+				}).Warn("record violates schema constraints in catalog")
 			}
 
-			if generateRecordMessageError := lib.GenerateRecordMessage(record); generateRecordMessageError != nil {
-				return fmt.Errorf("error generating record message: %w", generateRecordMessageError)
+			if produceRecordMessageError := lib.ProduceRecordMessage(record); produceRecordMessageError != nil {
+				return fmt.Errorf("error generating record message: %w", produceRecordMessageError)
 			}
 
 			lib.UpdateState(record)

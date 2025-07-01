@@ -3,7 +3,9 @@ package lib
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/xeipuuv/gojsonschema"
@@ -106,4 +108,28 @@ func ValidateRecordSchema(record map[string]interface{}, schema map[string]inter
 	}
 
 	return false, fmt.Errorf("%s", result.Errors())
+}
+
+// ProduceRecordMessage generates a message with the schema of the record
+func ProduceRecordMessage(record interface{}) error {
+	r, parsed := record.(map[string]interface{})
+	if !parsed {
+		return fmt.Errorf("error PARSING RECORD IN ProduceRecordMessage: %v", r)
+	}
+
+	message := Message{
+		Type:   "RECORD",
+		Record: r,
+		Stream: *ParsedConfig.StreamName,
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("error CREATING RECORD MESSAGE: %w", err)
+	}
+
+	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
+
+	return nil
 }

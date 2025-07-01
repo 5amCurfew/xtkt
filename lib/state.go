@@ -13,7 +13,6 @@ import (
 var stateMutex sync.Mutex
 var ParsedState *State
 
-// TODO MOVE BOOKMARKS TO MAP OF SEEN KEYS
 type State struct {
 	Type  string `json:"type"`
 	Value struct {
@@ -90,4 +89,23 @@ func UpdateState(record interface{}) {
 
 	// Update the map
 	ParsedState.Value.Bookmarks[*ParsedConfig.StreamName] = bookmarks
+}
+
+// ProduceStateMessage generates a message with the current state
+func ProduceStateMessage(state *State) error {
+	message := Message{
+		Type:   "STATE",
+		Stream: *ParsedConfig.StreamName,
+		Value:  state.Value,
+	}
+
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("error creating state message: %w", err)
+	}
+
+	os.Stdout.Write(messageJson)
+	os.Stdout.Write([]byte("\n"))
+
+	return nil
 }
