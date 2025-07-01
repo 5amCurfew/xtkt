@@ -14,15 +14,15 @@ var stateMutex sync.Mutex
 var ParsedState *State
 
 type State struct {
-	Type  string `json:"type"`
-	Value struct {
-		Bookmarks map[string]Bookmark `json:"bookmarks"`
-	} `json:"value"`
+	Type     string   `json:"type"`
+	Stream   string   `json:"stream"`
+	Bookmark Bookmark `json:"bookmark"`
 }
 
 type Bookmark struct {
-	BookmarkUpdatedAt string              `json:"bookmark_updated_at"`
-	Bookmark          map[string]struct{} `json:"bookmark"`
+	UpdatedAt  string              `json:"updated_at"`
+	Seen       map[string]struct{} `json:"seen"`
+	Quarantine map[string]struct{} `json:"quarantine"`
 }
 
 // CreateStateJSON creates a state JSON file for the stream
@@ -36,16 +36,12 @@ func CreateStateJSON() error {
 
 	// Initialize the state object
 	state := State{
-		Type: "STATE",
-		Value: struct {
-			Bookmarks map[string]Bookmark `json:"bookmarks"`
-		}{
-			Bookmarks: map[string]Bookmark{
-				streamName: {
-					BookmarkUpdatedAt: time.Now().UTC().Format(time.RFC3339),
-					Bookmark:          map[string]struct{}{},
-				},
-			},
+		Type:   "STATE",
+		Stream: *ParsedConfig.StreamName,
+		Bookmark: Bookmark{
+			UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
+			Seen:       map[string]struct{}{},
+			Quarantine: map[string]struct{}{},
 		},
 	}
 
@@ -80,16 +76,16 @@ func UpdateState(record interface{}) {
 	defer stateMutex.Unlock()
 
 	// Access and modify the map
-	bookmarks := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName]
+	bookmark := ParsedState.Bookmark
 	r := record.(map[string]interface{})
 	key, _ := r["_sdc_surrogate_key"].(string)
 
 	// Modify the state
-	bookmarks.Bookmark[key] = struct{}{}
-	bookmarks.BookmarkUpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	bookmark.Seen[key] = struct{}{}
+	bookmark.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 
 	// Update the map
-	ParsedState.Value.Bookmarks[*ParsedConfig.StreamName] = bookmarks
+	ParsedState.Bookmark = bookmark
 }
 
 // ProduceStateMessage generates a message with the current state
@@ -97,7 +93,7 @@ func ProduceStateMessage(state *State) error {
 	message := Message{
 		Type:   "STATE",
 		Stream: *ParsedConfig.StreamName,
-		Value:  state.Value,
+		Value:  state.Bookmark,
 	}
 
 	messageJson, err := json.Marshal(message)

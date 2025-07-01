@@ -89,7 +89,7 @@ func recordVersusBookmark(record map[string]interface{}) bool {
 	stateMutex.Lock() // Prevent concurrent read/writes to state
 	defer stateMutex.Unlock()
 
-	_, foundInBookmark := ParsedState.Value.Bookmarks[*ParsedConfig.StreamName].Bookmark[key]
+	_, foundInBookmark := ParsedState.Bookmark.Seen[key]
 	return !foundInBookmark // "keep" (true if not found)
 }
 

@@ -114,7 +114,7 @@ func ProduceSchemaMessage(schema map[string]interface{}) error {
 		Type:          "SCHEMA",
 		Stream:        *ParsedConfig.StreamName,
 		Schema:        schema,
-		KeyProperties: DerivedCatalog.Streams[0].KeyProperties,
+		KeyProperties: DerivedCatalog.KeyProperties,
 	}
 
 	messageJson, err := json.Marshal(message)

@@ -78,7 +78,7 @@ func Extract(discover bool) error {
 	if discover {
 		discoverCatalog()
 
-		schema := lib.DerivedCatalog.Streams[0].Schema
+		schema := lib.DerivedCatalog.Schema
 		if len(schema) == 0 {
 			return fmt.Errorf("error gathering schema from source")
 		}
@@ -91,7 +91,7 @@ func Extract(discover bool) error {
 	// If the catalog exists, begin listening for extracted records on ResultsChan
 	if !discover {
 
-		schema := lib.DerivedCatalog.Streams[0].Schema
+		schema := lib.DerivedCatalog.Schema
 		if len(schema) == 0 {
 			return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
 		}
@@ -129,10 +129,10 @@ func Extract(discover bool) error {
 func discoverCatalog() {
 	for record := range sources.ResultChan {
 		recordSchema, _ := lib.GenerateSchema(record)
-		existingSchema := lib.DerivedCatalog.Streams[0].Schema
+		existingSchema := lib.DerivedCatalog.Schema
 
 		properties, _ := lib.UpdateSchema(existingSchema, recordSchema)
-		lib.DerivedCatalog.Streams[0].Schema = properties
+		lib.DerivedCatalog.Schema = properties
 	}
 
 	lib.UpdateCatalogJSON()
