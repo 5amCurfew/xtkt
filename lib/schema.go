@@ -20,20 +20,19 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 	for key, value := range r {
 		prop := make(map[string]interface{})
 
-		// Handle _sdc_surrogate_key specially (required non-empty string)
-		if key == "_sdc_surrogate_key" {
+		// _sdc_surrogate_key, _sdc_unique_key
+		if key == "_sdc_surrogate_key" || key == "_sdc_unique_key" {
 			prop["type"] = "string"
 			prop["minLength"] = 1
 			properties[key] = prop
 			continue
 		}
 
-		// Handle _sdc_natural_key: required and non-nullable
+		// _sdc_natural_key: required and non-nullable
 		if key == "_sdc_natural_key" {
 			switch v := value.(type) {
 			case string:
 				prop["type"] = "string"
-				prop["minLength"] = 1
 			case bool:
 				prop["type"] = "boolean"
 			case int, int32, int64, float32, float64:

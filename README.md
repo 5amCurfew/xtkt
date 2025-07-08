@@ -59,13 +59,14 @@ Flags:
 
 `xtkt` adds the following metadata to records
 
-* `_sdc_surrogate_key`: SHA256 of a record
-* `_sdc_natural_key`: the unique key identifier of the record at source
+* `_sdc_natural_key`: the unique identifier of the record at source
+* `_sdc_surrogate_key`: SHA256 of the record
 * `_sdc_timestamp`: a timestamp (R3339) at the time of the data extraction
+* `_sdc_unique_key`: the unique identifier of extraction of the record
 
 ### :pencil: Catalog
 
-A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction. Discovery of the catalog can be run using the `--discover` flag which creates the `<stream_name>_catalog.json` file. This can then be altered for the definition of the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) sent to your target. Running `xtkt` in discovery will overwite the existing catalog.
+A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction. Discovery of the catalog can be run using the `--discover` flag which creates the `<stream_name>_catalog.json` file. This can then be altered for required schema validaiton. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected.
 
 Schema detection is naive using the data type of the first non-null value detected per property when generating the catalog.
 
@@ -75,7 +76,7 @@ $ xtkt config.json --discover
 
 ### :clipboard: State
 
-`xtkt` uses a state file to track the records processed for each stream. The state file is written to the current working directory and is named `<stream_name>_state.json` where the `bookmark` values are a list of `_sdc_surrogate_key` values already processed. Records that fail schema validation are recorded in the state file in `quarantine` list.
+`xtkt` uses a state file to track the last detected `_sdc_surrogate_key` per `_sdc_natural_key`. The state file is written to the current working directory and is named `<stream_name>_state.json` where the `bookmark` holds the latest `_sdc_surrogate_key` per `_sdc_natural_key`. Records that fail schema validation are recorded in the state file `quarantine` map (`_sdc_natural_key` -> `_sdc_timestamp`).
 
 ### :nut_and_bolt: Using with [Singer.io](https://www.singer.io/) Targets
 

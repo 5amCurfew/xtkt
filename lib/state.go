@@ -20,9 +20,9 @@ type State struct {
 }
 
 type Bookmark struct {
-	UpdatedAt  string              `json:"updated_at"`
-	Seen       map[string]struct{} `json:"seen"`
-	Quarantine map[string]string   `json:"quarantine"`
+	UpdatedAt  string            `json:"updated_at"`
+	Latest     map[string]string `json:"latest"`
+	Quarantine map[string]string `json:"quarantine"`
 }
 
 // CreateStateJSON creates a state JSON file for the stream
@@ -40,7 +40,7 @@ func CreateStateJSON() error {
 		Stream: *ParsedConfig.StreamName,
 		Bookmark: Bookmark{
 			UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
-			Seen:       map[string]struct{}{},
+			Latest:     map[string]string{},
 			Quarantine: map[string]string{},
 		},
 	}
@@ -77,10 +77,10 @@ func UpdateStateBookmark(record map[string]interface{}) {
 
 	// Access and modify the map
 	bookmark := ParsedState.Bookmark
-	key, _ := record["_sdc_surrogate_key"].(string)
+	key := fmt.Sprintf("%v", record["_sdc_natural_key"])
 
 	// Modify the state
-	bookmark.Seen[key] = struct{}{}
+	bookmark.Latest[key] = record["_sdc_surrogate_key"].(string)
 	bookmark.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 
 	// Update the map

@@ -82,18 +82,26 @@ func generateSurrogateKeyFields(record map[string]interface{}) error {
 	record["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
 	record["_sdc_timestamp"] = time.Now().UTC().Format(time.RFC3339)
 
+	h.Write([]byte(util.ToString(record)))
+	record["_sdc_unique_key"] = hex.EncodeToString(h.Sum(nil))
+
 	return nil
 }
 
 // Hold record against bookmark
 func recordVersusBookmark(record map[string]interface{}) bool {
-	key := record["_sdc_surrogate_key"].(string)
+	key := fmt.Sprintf("%v", record["_sdc_natural_key"])
 
-	stateMutex.RLock() // Shared lock for read-only access
+	stateMutex.RLock()
 	defer stateMutex.RUnlock()
 
-	_, foundInBookmark := ParsedState.Bookmark.Seen[key]
-	return !foundInBookmark // "keep" (true if not found)
+	sk, exist := ParsedState.Bookmark.Latest[key]
+	currentSK := record["_sdc_surrogate_key"].(string)
+
+	if !exist {
+		return true // new record
+	}
+	return currentSK != sk // updated if _sdc_surrogate_key has changed
 }
 
 // Validate record against Catalog
