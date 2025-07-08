@@ -12,10 +12,11 @@ import (
 )
 
 type ExecutionMetric struct {
-	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
-	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
-	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
-	NewRecords        uint64        `json:"new_records"`
+	ExecutionStart       time.Time     `json:"execution_start,omitempty"`
+	ExecutionEnd         time.Time     `json:"execution_end,omitempty"`
+	ExecutionDuration    time.Duration `json:"execution_duration,omitempty"`
+	NewRecords           uint64        `json:"new_records"`
+	NewQuarantineRecords uint64        `json:"new_quarantine_records"`
 }
 
 // Root function for extracting data from source
@@ -108,6 +109,7 @@ func Extract(discover bool) error {
 				}).Warn("record violates schema constraints in catalog - record _sdc_natural_key added to quarantine")
 
 				lib.UpdateStateQuarantine(record)
+				execution.NewQuarantineRecords += 1
 				continue
 			}
 

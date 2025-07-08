@@ -36,8 +36,6 @@ Fields can be hashed within records prior to being sent to your target using the
 
 Both integers and floats are sent as floats. All fields except the generated `_sdc_surrogate_key` and `_sdc_natural_key` (`records.unique_key_path`) field are considered `NULLABLE`.
 
-Schema detection is naive using the first non-null data type detected per field when generating the catalog.
-
 ### :computer: Installation
 
 Locally: `git clone git@github.com:5amCurfew/xtkt.git`; `make build`
@@ -69,13 +67,15 @@ Flags:
 
 A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction. Discovery of the catalog can be run using the `--discover` flag which creates the `<stream_name>_catalog.json` file. This can then be altered for the definition of the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) sent to your target. Running `xtkt` in discovery will overwite the existing catalog.
 
+Schema detection is naive using the data type of the first non-null value detected per property when generating the catalog.
+
 ```bash
 $ xtkt config.json --discover
 ```
 
 ### :clipboard: State
 
-`xtkt` uses a state file to track the records processed for each stream. The state file is written to the current working directory and is named `<stream_name>_state.json` where the `bookmark` values are a list of `_sdc_surrogate_key` values already processed. This defines the *[state message](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#state-message)* sent to your target.
+`xtkt` uses a state file to track the records processed for each stream. The state file is written to the current working directory and is named `<stream_name>_state.json` where the `bookmark` values are a list of `_sdc_surrogate_key` values already processed. Records that fail schema validation are recorded in the state file in `quarantine` list.
 
 ### :nut_and_bolt: Using with [Singer.io](https://www.singer.io/) Targets
 
