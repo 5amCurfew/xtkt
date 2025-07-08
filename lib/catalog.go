@@ -11,9 +11,9 @@ import (
 var DerivedCatalog *StreamCatalog
 
 type StreamCatalog struct {
-	Stream        string                 `json:"stream"`
 	KeyProperties []string               `json:"key_properties"`
 	Schema        map[string]interface{} `json:"schema"`
+	Stream        string                 `json:"stream"`
 }
 
 // Create <STREAM>_catalog.json
@@ -25,9 +25,9 @@ func CreateCatalogJSON() error {
 	streamName := *ParsedConfig.StreamName // Ensure ParsedConfig.StreamName is initialized
 
 	c := StreamCatalog{
-		Stream:        streamName,
 		KeyProperties: []string{"_sdc_surrogate_key"},
 		Schema:        map[string]interface{}{}, // Initialize as an empty map
+		Stream:        streamName,
 	}
 
 	// Write JSON file

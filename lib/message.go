@@ -8,4 +8,5 @@ type Message struct {
 	Value              interface{}            `json:"value,omitempty"`
 	KeyProperties      []string               `json:"key_properties,omitempty"`
 	BookmarkProperties []string               `json:"bookmark_properties,omitempty"`
+	Required           []string               `json:"required,omitempty"`
 }

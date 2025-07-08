@@ -63,7 +63,7 @@ Flags:
 
 * `_sdc_surrogate_key`: SHA256 of a record
 * `_sdc_natural_key`: the unique key identifier of the record at source
-* `_sdc_time_extracted`: a timestamp (R3339) at the time of the data extraction
+* `_sdc_timestamp`: a timestamp (R3339) at the time of the data extraction
 
 ### :pencil: Catalog
 

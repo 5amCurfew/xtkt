@@ -16,6 +16,14 @@ import (
 
 // Transform record including dropping fields, hashing sensitive fields, and validating against bookmark
 func ProcessRecord(record map[string]interface{}) (map[string]interface{}, error) {
+	if util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, record) == nil {
+		return nil, fmt.Errorf("unique_key field path not found in record")
+	}
+
+	if util.IsEmpty(util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, record)) {
+		return nil, fmt.Errorf("unique_key null or empty in record")
+	}
+
 	if ParsedConfig.Records.DropFieldPaths != nil {
 		if dropFieldsError := dropFields(record); dropFieldsError != nil {
 			return nil, fmt.Errorf("error dropping fields in ProcessRecord: %v", dropFieldsError)
@@ -69,15 +77,10 @@ func generateHashedFields(record map[string]interface{}) error {
 func generateSurrogateKeyFields(record map[string]interface{}) error {
 	h := sha256.New()
 	h.Write([]byte(util.ToString(record)))
-	if util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, record) != nil {
-		record["_sdc_natural_key"] = util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, record)
-	} else {
-		log.WithFields(log.Fields{
-			"unique_key_path": *ParsedConfig.Records.UniqueKeyPath,
-		}).Warn("unique_key field path not found in record")
-	}
+
+	record["_sdc_natural_key"] = util.GetValueAtPath(*ParsedConfig.Records.UniqueKeyPath, record)
 	record["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
-	record["_sdc_time_extracted"] = time.Now().UTC().Format(time.RFC3339)
+	record["_sdc_timestamp"] = time.Now().UTC().Format(time.RFC3339)
 
 	return nil
 }
@@ -86,8 +89,8 @@ func generateSurrogateKeyFields(record map[string]interface{}) error {
 func recordVersusBookmark(record map[string]interface{}) bool {
 	key := record["_sdc_surrogate_key"].(string)
 
-	stateMutex.Lock() // Prevent concurrent read/writes to state
-	defer stateMutex.Unlock()
+	stateMutex.RLock() // Shared lock for read-only access
+	defer stateMutex.RUnlock()
 
 	_, foundInBookmark := ParsedState.Bookmark.Seen[key]
 	return !foundInBookmark // "keep" (true if not found)

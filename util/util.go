@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -88,5 +89,27 @@ func DropFieldAtPath(path []string, input map[string]interface{}) error {
 	} else {
 		log.Warn(fmt.Sprintf("drop_field field path %s not found in record", path))
 		return nil
+	}
+}
+
+func IsEmpty(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+	switch v := value.(type) {
+	case string:
+		return v == ""
+	case bool:
+		return !v
+	case int, int32, int64:
+		return reflect.ValueOf(v).Int() == 0
+	case float32, float64:
+		return reflect.ValueOf(v).Float() == 0
+	case []interface{}:
+		return len(v) == 0
+	case map[string]interface{}:
+		return len(v) == 0
+	default:
+		return false
 	}
 }

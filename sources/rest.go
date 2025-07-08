@@ -64,7 +64,7 @@ func StreamRESTRecords(config lib.Config) error {
 		// Stream records
 		for _, item := range recordsInterfaceSlice {
 			if recordMap, ok := item.(map[string]interface{}); ok {
-				ExtractedChan <- recordMap
+				lib.ExtractedChan <- recordMap
 			} else {
 				log.WithFields(log.Fields{"item": item}).Warn("encountered non-map element in records array")
 			}

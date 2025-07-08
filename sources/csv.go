@@ -53,7 +53,7 @@ func StreamCSVRecords(config lib.Config) error {
 		for i, value := range row {
 			record[header[i]] = value
 		}
-		ExtractedChan <- record
+		lib.ExtractedChan <- record
 	}
 
 	return nil

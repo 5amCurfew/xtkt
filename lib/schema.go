@@ -19,13 +19,48 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 
 	for key, value := range r {
 		prop := make(map[string]interface{})
+
+		// Handle _sdc_surrogate_key specially (required non-empty string)
+		if key == "_sdc_surrogate_key" {
+			prop["type"] = "string"
+			prop["minLength"] = 1
+			properties[key] = prop
+			continue
+		}
+
+		// Handle _sdc_natural_key: required and non-nullable
+		if key == "_sdc_natural_key" {
+			switch v := value.(type) {
+			case string:
+				prop["type"] = "string"
+				prop["minLength"] = 1
+			case bool:
+				prop["type"] = "boolean"
+			case int, int32, int64, float32, float64:
+				prop["type"] = "number"
+			case map[string]interface{}:
+				subSchema, err := GenerateSchema(v)
+				if err != nil {
+					return nil, fmt.Errorf("error schema generation recursion: %w", err)
+				}
+				prop["type"] = "object"
+				prop["properties"] = subSchema["properties"]
+			case []interface{}:
+				prop["type"] = "array"
+			default:
+				prop["type"] = "string"
+			}
+			properties[key] = prop
+			continue
+		}
+
+		// General case for all other fields
 		switch v := value.(type) {
 		case bool:
 			prop["type"] = []string{"boolean", "null"}
 		case int, int32, int64, float32, float64:
 			prop["type"] = []string{"number", "null"}
 		case map[string]interface{}:
-			// Recursive call for nested objects
 			subSchema, err := GenerateSchema(v)
 			if err != nil {
 				return nil, fmt.Errorf("error schema generation recursion: %w", err)
@@ -33,17 +68,11 @@ func GenerateSchema(record interface{}) (map[string]interface{}, error) {
 			prop["type"] = []string{"object", "null"}
 			prop["properties"] = subSchema["properties"]
 		case []interface{}:
-			// Type array doesn't require `properties`
 			prop["type"] = []string{"array", "null"}
 		case nil:
-			// Skip null fields; wait for a first non-null value
 			continue
 		case string:
-			if key == "_sdc_surrogate_key" {
-				// Required and non-empty
-				prop["type"] = "string" // non-nullable
-				prop["minLength"] = 1   // must be non-empty
-			} else if _, err := time.Parse(time.RFC3339, v); err == nil {
+			if _, err := time.Parse(time.RFC3339, v); err == nil {
 				prop["type"] = []string{"string", "null"}
 				prop["format"] = "date-time"
 			} else if _, err := time.Parse("2006-01-02", v); err == nil {

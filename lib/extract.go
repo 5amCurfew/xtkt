@@ -1,10 +1,9 @@
-package sources
+package lib
 
 import (
-	"fmt"
+	"encoding/json"
 	"sync"
 
-	lib "github.com/5amCurfew/xtkt/lib"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,11 +12,11 @@ var ResultChan = make(chan map[string]interface{})
 var ProcessingWG sync.WaitGroup
 
 // Begin streaming records from source (and sending to ExtractedChan) and start goroutines to process records
-func ExtractRecords(streamFunc func(lib.Config) error) {
+func ExtractRecords(streamFunc func(Config) error) {
 	// begin a goroutine to stream records from source
 	go func() {
 		defer close(ExtractedChan)
-		if err := streamFunc(lib.ParsedConfig); err != nil {
+		if err := streamFunc(ParsedConfig); err != nil {
 			log.WithFields(log.Fields{"error": err}).Info("ExtractRecords: stream function failed")
 		}
 	}()
@@ -33,9 +32,13 @@ func ExtractRecords(streamFunc func(lib.Config) error) {
 func process(record map[string]interface{}) {
 	defer ProcessingWG.Done()
 
-	if processedData, err := lib.ProcessRecord(record); err == nil && processedData != nil {
+	if processedData, err := ProcessRecord(record); err == nil && processedData != nil {
 		ResultChan <- processedData
 	} else if err != nil {
-		log.Warn(fmt.Sprintf("error processing record %s: %v", record, err))
+		recordWithError, _ := json.Marshal(record)
+		log.WithFields(log.Fields{
+			"record": json.RawMessage(recordWithError), // logs as nested JSON, no escaping
+			"error":  err,
+		}).Warn("error processing record")
 	}
 }

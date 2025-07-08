@@ -10,7 +10,7 @@ import (
 	util "github.com/5amCurfew/xtkt/util"
 )
 
-var stateMutex sync.Mutex
+var stateMutex sync.RWMutex
 var ParsedState *State
 
 type State struct {
@@ -22,7 +22,7 @@ type State struct {
 type Bookmark struct {
 	UpdatedAt  string              `json:"updated_at"`
 	Seen       map[string]struct{} `json:"seen"`
-	Quarantine map[string]struct{} `json:"quarantine"`
+	Quarantine map[string]string   `json:"quarantine"`
 }
 
 // CreateStateJSON creates a state JSON file for the stream
@@ -41,7 +41,7 @@ func CreateStateJSON() error {
 		Bookmark: Bookmark{
 			UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
 			Seen:       map[string]struct{}{},
-			Quarantine: map[string]struct{}{},
+			Quarantine: map[string]string{},
 		},
 	}
 
@@ -71,17 +71,33 @@ func ReadStateJSON() (*State, error) {
 }
 
 // Update <STREAM>_state.json
-func UpdateState(record interface{}) {
+func UpdateStateBookmark(record map[string]interface{}) {
 	stateMutex.Lock() // Prevent concurrent read/writes to state
 	defer stateMutex.Unlock()
 
 	// Access and modify the map
 	bookmark := ParsedState.Bookmark
-	r := record.(map[string]interface{})
-	key, _ := r["_sdc_surrogate_key"].(string)
+	key, _ := record["_sdc_surrogate_key"].(string)
 
 	// Modify the state
 	bookmark.Seen[key] = struct{}{}
+	bookmark.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+
+	// Update the map
+	ParsedState.Bookmark = bookmark
+}
+
+// Update <STREAM>_state.json
+func UpdateStateQuarantine(record map[string]interface{}) {
+	stateMutex.Lock() // Prevent concurrent read/writes to state
+	defer stateMutex.Unlock()
+
+	// Access and modify the map
+	bookmark := ParsedState.Bookmark
+	key := fmt.Sprintf("%v", record["_sdc_natural_key"])
+
+	// Modify the state
+	bookmark.Quarantine[key] = time.Now().UTC().Format(time.RFC3339)
 	bookmark.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 
 	// Update the map
