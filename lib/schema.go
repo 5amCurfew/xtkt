@@ -131,7 +131,7 @@ func UpdateSchema(existingSchema, newSchema map[string]interface{}) (map[string]
 	}
 
 	existingSchema["properties"] = properties
-	existingSchema["type"] = "object"
+	existingSchema["type"] = []string{"object", "null"}
 
 	return existingSchema, nil
 }

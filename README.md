@@ -22,7 +22,7 @@
   * [File csv](#file-csv)
   * [File jsonl](#file-jsonl)
 
-**v0.5.0**
+**v0.5.1**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 
@@ -66,7 +66,7 @@ Flags:
 
 ### :pencil: Catalog
 
-A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction. Discovery of the catalog can be run using the `--discover` flag which creates the `<stream_name>_catalog.json` file. This can then be altered for required schema validaiton. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected.
+A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction for schema validation. Discovery of the catalog can be run using the `--discover` flag which infers and creates the `<stream_name>_catalog.json` file. This can then be altered for required specification. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected.
 
 Schema detection is naive using the data type of the first non-null value detected per property when generating the catalog.
 

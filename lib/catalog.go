@@ -22,11 +22,11 @@ func CreateCatalogJSON() error {
 		return fmt.Errorf("error creating catalog file stream name is nil")
 	}
 
-	streamName := *ParsedConfig.StreamName // Ensure ParsedConfig.StreamName is initialized
+	streamName := *ParsedConfig.StreamName // Ensure ParsedConfig.StreamName is initialised
 
 	c := StreamCatalog{
-		KeyProperties: []string{"_sdc_surrogate_key"},
-		Schema:        map[string]interface{}{}, // Initialize as an empty map
+		KeyProperties: []string{"_sdc_unique_key", "_sdc_surrogate_key"},
+		Schema:        map[string]interface{}{},
 		Stream:        streamName,
 	}
 

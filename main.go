@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.5.0"
+var version = "0.5.1"
 var discover bool = false
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 func Execute() {
 	rootCmd.Flags().BoolVar(&discover, "discover", false, "run the tap in discovery mode, creating the catalog")
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "error using xtkt: '%s'", err)
+		log.WithFields(log.Fields{"Error": err}).Fatalln("error using xtkt")
 		os.Exit(1)
 	} else {
 		os.Exit(0)
