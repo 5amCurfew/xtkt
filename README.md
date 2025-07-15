@@ -28,7 +28,7 @@
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_natural_key` (unique key) and `_sdc_surrogate_key` (version key)). Only new and updated records are sent to be processed by your target. 
+Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_surrogate_key` (SHA256 hash of the record), `_sdc_unique_key` (unique identifier for the extraction, combining `_sdc_surrogate_key` and `_sdc_timestamp`), and `_sdc_natural_key` (unique identifier in the source system)). Only new and updated records are sent to be processed by your target.
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
@@ -59,10 +59,10 @@ Flags:
 
 `xtkt` adds the following metadata to records
 
-* `_sdc_natural_key`: the unique identifier of the record at source
-* `_sdc_surrogate_key`: SHA256 of the record
-* `_sdc_timestamp`: a timestamp (R3339) at the time of the data extraction
-* `_sdc_unique_key`: the unique identifier of extraction of the record
+* `_sdc_natural_key`: Unique identifier of the record in the source system.
+* `_sdc_surrogate_key`: SHA256 hash of the record for secure identification.
+* `_sdc_timestamp`: Timestamp (RFC 3339) of when the data was extracted.
+* `_sdc_unique_key`: Unique identifier for the specific extraction of the record.
 
 ### :pencil: Catalog
 
