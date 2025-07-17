@@ -5,63 +5,62 @@ import (
 	"os"
 	"time"
 
-	lib "github.com/5amCurfew/xtkt/lib"
-	sources "github.com/5amCurfew/xtkt/sources"
+	"github.com/5amCurfew/xtkt/lib"
+	"github.com/5amCurfew/xtkt/models"
+	"github.com/5amCurfew/xtkt/sources"
 	"github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
 )
 
 type ExecutionMetric struct {
-	ExecutionStart       time.Time     `json:"execution_start,omitempty"`
-	ExecutionEnd         time.Time     `json:"execution_end,omitempty"`
-	ExecutionDuration    time.Duration `json:"execution_duration,omitempty"`
-	NewRecords           uint64        `json:"new_records"`
-	NewQuarantineRecords uint64        `json:"new_quarantine_records"`
+	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
+	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
+	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
+	Records           uint64        `json:"records"`
+	Skipped           uint64        `json:"skipped"`
 }
 
 // Root function for extracting data from source
-func Extract(discover bool) error {
+func Extract(discover bool, refresh bool) error {
 	var execution ExecutionMetric
 	execution.ExecutionStart = time.Now().UTC()
 
-	streamName := *lib.ParsedConfig.StreamName
-
 	// Create state.json
-	if _, err := os.Stat(fmt.Sprintf("%s_state.json", streamName)); err != nil {
-		err := lib.CreateStateJSON()
+	if _, err := os.Stat(fmt.Sprintf("%s_state.json", models.STREAM_NAME)); err != nil {
+		err := models.State.Create()
 		if err != nil {
-			return fmt.Errorf("error creating state.json: %w", err)
+			return fmt.Errorf("error creating state file: %w", err)
 		}
 	}
 
 	// Create catalog.json
-	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", streamName)); err != nil {
-		err := lib.CreateCatalogJSON()
+	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", models.STREAM_NAME)); err != nil {
+		err := models.DerivedCatalog.Create()
 		if err != nil {
-			return fmt.Errorf("error creating catalog.json: %w", err)
+			return fmt.Errorf("error creating catalog file: %w", err)
 		}
 	}
 
-	// Read current state
-	state, err := lib.ReadStateJSON()
-	if err != nil {
-		return fmt.Errorf("error reading state.json %w", err)
+	models.FULL_REFRESH = refresh
+
+	// Read latest state
+	stateErr := models.State.Read()
+	if stateErr != nil {
+		return fmt.Errorf("error reading state %w", stateErr)
 	}
-	lib.ParsedState = state
 
 	// Read latest catalog
-	catalog, err := lib.ReadCatalogJSON()
-	if err != nil {
-		return fmt.Errorf("error reading catalog.json %w", err)
+	catalogErr := models.DerivedCatalog.Read()
+	if catalogErr != nil {
+		return fmt.Errorf("error reading catalog %w", catalogErr)
 	}
-	lib.DerivedCatalog = catalog
 
-	// Initiate goroutine to begin extracting and processing records
+	// Initiate goroutine to begin extraction and transformation of records
 	go func() {
 		defer close(lib.ResultChan)
-		log.Info(fmt.Sprintf(`generating records from %s`, *lib.ParsedConfig.URL))
+		log.Info(fmt.Sprintf(`generating records from %s`, models.Config.URL))
 
-		switch *lib.ParsedConfig.SourceType {
+		switch models.Config.SourceType {
 		case "csv":
 			lib.ExtractRecords(sources.StreamCSVRecords)
 		case "jsonl":
@@ -75,54 +74,53 @@ func Extract(discover bool) error {
 		lib.ProcessingWG.Wait()
 	}()
 
-	// Run in discovery mode to create the catalog by listening for extracted records on ResultsChan
+	// Run in discovery mode to create the catalog by listening for records on ResultsChan
 	if discover {
 		discoverCatalog()
 
-		schema := lib.DerivedCatalog.Schema
+		schema := models.DerivedCatalog.Schema
 		if len(schema) == 0 {
 			return fmt.Errorf("error gathering schema from source")
 		}
 
-		if produceSchemaMessageError := lib.ProduceSchemaMessage(schema); produceSchemaMessageError != nil {
+		if produceSchemaMessageError := models.DerivedCatalog.Message(); produceSchemaMessageError != nil {
 			return fmt.Errorf("error generating schema message: %w", produceSchemaMessageError)
 		}
 	}
 
-	// If the catalog exists, begin listening for extracted records on ResultsChan
+	// If the catalog exists, begin listening for records on ResultsChan
 	if !discover {
 
-		schema := lib.DerivedCatalog.Schema
+		schema := models.DerivedCatalog.Schema
 		if len(schema) == 0 {
 			return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
 		}
 
-		if produceSchemaMessageError := lib.ProduceSchemaMessage(schema); produceSchemaMessageError != nil {
+		if produceSchemaMessageError := models.DerivedCatalog.Message(); produceSchemaMessageError != nil {
 			return fmt.Errorf("error generating schema message: %w", produceSchemaMessageError)
 		}
 
 		for record := range lib.ResultChan {
-			if valid, validateRecordSchemaError := lib.ValidateRecordSchema(record, schema); !valid {
+			if valid, validateRecordSchemaError := models.DerivedCatalog.RecordVersusCatalog(record); !valid {
 				log.WithFields(log.Fields{
 					"_sdc_natural_key": record["_sdc_natural_key"],
 					"error":            validateRecordSchemaError,
-				}).Warn("record violates schema constraints in catalog - record _sdc_natural_key added to quarantine")
+				}).Warn("record violates schema constraints in catalog - skipping...")
 
-				lib.UpdateStateQuarantine(record)
-				execution.NewQuarantineRecords += 1
+				execution.Skipped += 1
 				continue
 			}
 
-			if produceRecordMessageError := lib.ProduceRecordMessage(record); produceRecordMessageError != nil {
+			if produceRecordMessageError := lib.RecordMessage(record); produceRecordMessageError != nil {
 				return fmt.Errorf("error generating record message: %w", produceRecordMessageError)
 			}
 
-			lib.UpdateStateBookmark(record)
-			execution.NewRecords += 1
+			models.State.Update(record)
+			execution.Records += 1
 		}
 	}
 
-	util.WriteJSON(fmt.Sprintf("%s_state.json", *lib.ParsedConfig.StreamName), lib.ParsedState)
+	util.WriteJSON(fmt.Sprintf("%s_state.json", models.STREAM_NAME), models.State)
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)

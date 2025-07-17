@@ -22,19 +22,19 @@
   * [File csv](#file-csv)
   * [File jsonl](#file-jsonl)
 
-**v0.5.1**
+**v0.6.0**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 
 `xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
 
-Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_surrogate_key` (SHA256 hash of the record), `_sdc_unique_key` (unique identifier for the extraction, combining `_sdc_surrogate_key` and `_sdc_timestamp`), and `_sdc_natural_key` (unique identifier in the source system)). Only new and updated records are sent to be processed by your target.
+Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_surrogate_key` (SHA256 hash of the record), `_sdc_unique_key` (unique identifier for the extraction, combining `_sdc_surrogate_key` and `_sdc_timestamp`), and `_sdc_natural_key` (unique identifier in the source system)). By default (incremental) only new and updated records are sent to be processed by your target. For a full refresh of the stream, use the `--refresh` flag.
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
 Fields can be hashed within records prior to being sent to your target using the `records.sensitive_field_paths` field in your JSON configuration file (see examples below). This may be suitable for handling sensitive data.
 
-Both integers and floats are sent as floats. All fields except the generated `_sdc_surrogate_key` and `_sdc_natural_key` (`records.unique_key_path`) field are considered `NULLABLE`.
+Both integers and floats are sent as floats. All fields except `records.unique_key_path` field are considered `NULLABLE`.
 
 ### :computer: Installation
 
@@ -44,14 +44,15 @@ via Homebrew : `brew tap 5amCurfew/5amCurfew; brew install 5amCurfew/5amCurfew/x
 
 ```bash
 $ xtkt --help
-xtkt is a command line interface to extract data from a RESTful APIs, CSVs and JSONL files to pipe to any target that meets the Singer.io specification
+xtkt is a command line interface to extract data from RESTful APIs, CSVs, and JSONL files to pipe to any target that meets the Singer.io specification.
 
 Usage:
   xtkt [PATH_TO_CONFIG_JSON] [flags]
 
 Flags:
-      --discover   run the tap in discovery mode, creating the catalog
+  -d, --discover   run the tap in discovery mode, creating the catalog
   -h, --help       help for xtkt
+  -r, --refresh    extract all records (full refresh) rather than only new or modified records (incremental, default)
   -v, --version    version for xtkt
 ```
 
@@ -66,7 +67,7 @@ Flags:
 
 ### :pencil: Catalog
 
-A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction for schema validation. Discovery of the catalog can be run using the `--discover` flag which infers and creates the `<stream_name>_catalog.json` file. This can then be altered for required specification. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected.
+A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction for schema validation. Discovery of the catalog can be run using the `--discover` flag which infers and creates the `<stream_name>_catalog.json` file. This can then be altered for required specification. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected in records extracted.
 
 Schema detection is naive using the data type of the first non-null value detected per property when generating the catalog.
 
@@ -76,7 +77,7 @@ $ xtkt config.json --discover
 
 ### :clipboard: State
 
-`xtkt` uses a state file to track the last detected `_sdc_surrogate_key` per `_sdc_natural_key`. The state file is written to the current working directory and is named `<stream_name>_state.json` where the `bookmark` holds the latest `_sdc_surrogate_key` per `_sdc_natural_key`. Records that fail schema validation are recorded in the state file `quarantine` map (`_sdc_natural_key` -> `_sdc_timestamp`).
+`xtkt` uses a state file to track the last detected `_sdc_surrogate_key` per `_sdc_natural_key`. The state file is written to the current working directory and is named `<stream_name>_state.json` where the `bookmark` holds the latest `_sdc_surrogate_key` per `_sdc_natural_key`. Records that fail schema validation are skipped.
 
 ### :nut_and_bolt: Using with [Singer.io](https://www.singer.io/) Targets
 

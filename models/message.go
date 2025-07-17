@@ -1,4 +1,4 @@
-package lib
+package models
 
 type Message struct {
 	Type               string                 `json:"type"`

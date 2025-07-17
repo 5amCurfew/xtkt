@@ -9,10 +9,12 @@ import (
 	"strings"
 
 	lib "github.com/5amCurfew/xtkt/lib"
+	"github.com/5amCurfew/xtkt/models"
 )
 
-func StreamCSVRecords(config lib.Config) error {
-	url := *lib.ParsedConfig.URL
+// StreamCSVRecords streams records from a CSV file
+func StreamCSVRecords(config *models.StreamConfig) error {
+	url := config.URL
 
 	var reader *csv.Reader
 	switch {

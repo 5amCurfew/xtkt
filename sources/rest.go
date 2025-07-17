@@ -11,28 +11,29 @@ import (
 	"strconv"
 
 	lib "github.com/5amCurfew/xtkt/lib"
+	"github.com/5amCurfew/xtkt/models"
 	util "github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
 )
 
-// StreamRESTRecords streams records from a REST API based on the provided configuration
-func StreamRESTRecords(config lib.Config) error {
+// StreamRESTRecords streams records from a Rest-API
+func StreamRESTRecords(config *models.StreamConfig) error {
 	responseMapRecordsPath := []string{"results"}
 
 	for {
-		log.Info(fmt.Sprintf(`page: %s`, *config.URL))
+		log.Info(fmt.Sprintf(`page: %s`, config.URL))
 		response, err := getRequest()
 		if err != nil {
 			return fmt.Errorf("getRequest failed: %w", err)
 		}
 
-		normalised, err := normaliseResponse(response, config)
+		normalised, err := normaliseResponse(response, *config)
 		if err != nil {
 			return err
 		}
 
 		if config.Rest.Response.RecordsPath != nil {
-			responseMapRecordsPath = *config.Rest.Response.RecordsPath
+			responseMapRecordsPath = config.Rest.Response.RecordsPath
 		}
 
 		var responseMap map[string]interface{}
@@ -53,7 +54,7 @@ func StreamRESTRecords(config lib.Config) error {
 			}
 		}
 
-		if config.Rest.Response.Pagination != nil && *config.Rest.Response.Pagination {
+		if config.Rest.Response.Pagination {
 			if err := handlePagination(config, responseMap, records); err != nil {
 				if err == errNoMorePages {
 					return nil
@@ -69,7 +70,7 @@ func StreamRESTRecords(config lib.Config) error {
 }
 
 // normaliseResponse normalises the response from the REST API to a consistent format
-func normaliseResponse(response []byte, config lib.Config) ([]byte, error) {
+func normaliseResponse(response []byte, config models.StreamConfig) ([]byte, error) {
 	var data interface{}
 	if err := json.Unmarshal(response, &data); err != nil {
 		return nil, fmt.Errorf("error json.Unmarshal of response: %w", err)
@@ -99,27 +100,27 @@ func extractRecords(responseMap map[string]interface{}, path []string) ([]interf
 
 var errNoMorePages = fmt.Errorf("no more pages")
 
-func handlePagination(config lib.Config, responseMap map[string]interface{}, records []interface{}) error {
-	switch *config.Rest.Response.PaginationStrategy {
+func handlePagination(config *models.StreamConfig, responseMap map[string]interface{}, records []interface{}) error {
+	switch config.Rest.Response.PaginationStrategy {
 	case "next":
-		nextURL := util.GetValueAtPath(*config.Rest.Response.PaginationNextPath, responseMap)
+		nextURL := util.GetValueAtPath(config.Rest.Response.PaginationNextPath, responseMap)
 		if nextURL == nil || nextURL == "" {
 			return errNoMorePages
 		}
-		*config.URL = nextURL.(string)
+		config.URL = nextURL.(string)
 	case "query":
 		if len(records) == 0 {
 			return errNoMorePages
 		}
-		parsedURL, err := url.Parse(*config.URL)
+		parsedURL, err := url.Parse(config.URL)
 		if err != nil {
 			return fmt.Errorf("failed to parse URL: %w", err)
 		}
 		query := parsedURL.Query()
-		query.Set(*config.Rest.Response.PaginationQuery.QueryParameter, strconv.Itoa(*config.Rest.Response.PaginationQuery.QueryValue))
+		query.Set(config.Rest.Response.PaginationQuery.QueryParameter, strconv.Itoa(config.Rest.Response.PaginationQuery.QueryValue))
 		parsedURL.RawQuery = query.Encode()
-		*config.URL = parsedURL.String()
-		*config.Rest.Response.PaginationQuery.QueryValue += *config.Rest.Response.PaginationQuery.QueryIncrement
+		config.URL = parsedURL.String()
+		config.Rest.Response.PaginationQuery.QueryValue += config.Rest.Response.PaginationQuery.QueryIncrement
 	}
 	return nil
 }
@@ -128,12 +129,12 @@ func handlePagination(config lib.Config, responseMap map[string]interface{}, rec
 func getRequest() ([]byte, error) {
 	client := http.DefaultClient
 
-	req, err := http.NewRequest("GET", *lib.ParsedConfig.URL, nil)
+	req, err := http.NewRequest("GET", models.Config.URL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating get request: %w", err)
 	}
 
-	if *lib.ParsedConfig.Rest.Auth.Required {
+	if models.Config.Rest.Auth.Required {
 		if err := setAuthHeaders(req, client); err != nil {
 			return nil, err
 		}
@@ -154,61 +155,68 @@ func getRequest() ([]byte, error) {
 
 // setAuthHeaders sets the appropriate authentication headers based on the configured strategy
 func setAuthHeaders(req *http.Request, client *http.Client) error {
-	switch *lib.ParsedConfig.Rest.Auth.Strategy {
+	switch models.Config.Rest.Auth.Strategy {
 	case "basic":
-		req.SetBasicAuth(*lib.ParsedConfig.Rest.Auth.Basic.Username, *lib.ParsedConfig.Rest.Auth.Basic.Password)
+		req.SetBasicAuth(models.Config.Rest.Auth.Basic.Username, models.Config.Rest.Auth.Basic.Password)
 	case "token":
-		req.Header.Add(*lib.ParsedConfig.Rest.Auth.Token.Header, *lib.ParsedConfig.Rest.Auth.Token.HeaderValue)
+		req.Header.Add(models.Config.Rest.Auth.Token.Header, models.Config.Rest.Auth.Token.HeaderValue)
 	case "oauth":
-		accessToken, _ := getAccessToken(client, lib.ParsedConfig)
+		accessToken, _ := getAccessToken(client, models.Config)
 		header := "Authorization"
-		t := "Bearer " + accessToken.(string)
-		if lib.ParsedConfig.Rest.Auth.Token == nil {
-			lib.ParsedConfig.Rest.Auth.Token = &struct {
-				Header      *string `json:"header,omitempty"`
-				HeaderValue *string `json:"header_value,omitempty"`
-			}{Header: &header, HeaderValue: &t}
+		t := "Bearer " + accessToken
+
+		if models.Config.Rest.Auth.Token.Header == "" && models.Config.Rest.Auth.Token.HeaderValue == "" {
+			models.Config.Rest.Auth.Token = models.TokenAuthConfig{
+				Header:      header,
+				HeaderValue: t,
+			}
 		}
-		*lib.ParsedConfig.Rest.Auth.Strategy = "token"
+
+		models.Config.Rest.Auth.Strategy = "token"
 		return setAuthHeaders(req, client)
 	}
 	return nil
 }
 
 // getAccessToken gets an access token from the configured OAuth endpoint
-func getAccessToken(client *http.Client, config lib.Config) (interface{}, error) {
+func getAccessToken(client *http.Client, config models.StreamConfig) (string, error) {
+	const grantType = "refresh_token"
+
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
-	_ = writer.WriteField("client_id", *config.Rest.Auth.Oauth.ClientID)
-	_ = writer.WriteField("client_secret", *config.Rest.Auth.Oauth.ClientSecret)
-	_ = writer.WriteField("grant_type", "refresh_token")
-	_ = writer.WriteField("refresh_token", *config.Rest.Auth.Oauth.RefreshToken)
-	err := writer.Close()
-	if err != nil {
-		return nil, fmt.Errorf("error writer.Close(): %w", err)
+	writer.WriteField("client_id", config.Rest.Auth.OAuth.ClientID)
+	writer.WriteField("client_secret", config.Rest.Auth.OAuth.ClientSecret)
+	writer.WriteField("grant_type", grantType)
+	writer.WriteField("refresh_token", config.Rest.Auth.OAuth.RefreshToken)
+	if err := writer.Close(); err != nil {
+		return "", fmt.Errorf("error writer.Close(): %w", err)
 	}
 
-	authReq, err := http.NewRequest("POST", *config.Rest.Auth.Oauth.TokenURL, payload)
+	req, err := http.NewRequest("POST", config.Rest.Auth.OAuth.TokenURL, payload)
 	if err != nil {
-		return nil, fmt.Errorf("error creating auth post request: %w", err)
+		return "", fmt.Errorf("error creating auth post request: %w", err)
 	}
-	authReq.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	oauthTokenResp, err := client.Do(authReq)
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error auth post request: %w", err)
+		return "", fmt.Errorf("error auth post request: %w", err)
 	}
-	defer oauthTokenResp.Body.Close()
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response body: %w", err)
+	}
 
 	var responseMap map[string]interface{}
-	oauthResp, err := io.ReadAll(oauthTokenResp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
+	if err := json.Unmarshal(body, &responseMap); err != nil {
+		return "", fmt.Errorf("error json.Unmarshal of response: %w", err)
 	}
-	output := string(oauthResp)
 
-	if err := json.Unmarshal([]byte(output), &responseMap); err != nil {
-		return nil, fmt.Errorf("error json.unmarshal of response: %w", err)
+	token, ok := responseMap["access_token"].(string)
+	if !ok {
+		return "", fmt.Errorf("access_token not found in response")
 	}
-	return util.GetValueAtPath([]string{"access_token"}, responseMap), nil
+	return token, nil
 }

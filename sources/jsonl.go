@@ -9,11 +9,13 @@ import (
 	"strings"
 
 	lib "github.com/5amCurfew/xtkt/lib"
+	"github.com/5amCurfew/xtkt/models"
 	log "github.com/sirupsen/logrus"
 )
 
-func StreamJSONLRecords(config lib.Config) error {
-	url := *lib.ParsedConfig.URL
+// StreamJSONLRecords streams records from a JSON Lines (JSONL) file
+func StreamJSONLRecords(config *models.StreamConfig) error {
+	url := config.URL
 
 	var scanner *bufio.Scanner
 
