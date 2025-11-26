@@ -30,7 +30,7 @@
   - [Incremental vs. Full Refresh](#incremental-vs-full-refresh)
   - [Pipeline Diagram](#pipeline-diagram)
 
-**v0.7.0**
+**v0.7.1**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 
@@ -356,11 +356,11 @@ Oauth authentication required, records found in the response "records" array, no
 **Memory footprint at any moment:**
 - **1 record** in `ExtractedChan` (unbuffered)
 - **N records** in worker pool (being transformed in parallel)
-- **1 record** in `ResultChan` (unbuffered)
-- Total: **N+2 records** in memory (where N = number of concurrent workers)
+- **Up to 100 records** in `ResultChan` (buffered with capacity 100)
+- Total: **N+101 records** in memory (where N = number of concurrent workers, equal to `runtime.NumCPU()`)
 
 **Worker Pool Concurrency:**
-The worker pool is dynamically sized to `runtime.NumCPU()`, automatically scaling to the number of available CPU cores. This ensures efficient parallelism without memory bloat, regardless of source data size. For example, on a 4-core machine, a maximum of 4 records will be transformed concurrently, keeping memory usage bounded.
+The worker pool is dynamically sized to `runtime.NumCPU()`, automatically scaling to the number of available CPU cores. This ensures efficient parallelism without memory bloat, regardless of source data size. For example, on a 4-core machine, a maximum of 4 records will be transformed concurrently. The `ResultChan` buffer (100 records) decouples worker output speed from main thread processing speed, preventing workers from blocking while waiting for output.
 
 #### Extraction Pipeline
 
@@ -430,23 +430,23 @@ Extracted records are validated against the catalog schema using the `gojsonsche
       ├───────────────────────────────────┤     processing in
       │ Worker1: record1                  │     parallel
       │ • Drop fields                     │     (N in-flight)
-      │ • Hash sensitive data             │
+      │ • Hash sensitive data             │     N = runtime.NumCPU()
       │ • Generate metadata keys          │
       │ • Check bookmark (incremental)    │
       │                                   │
       │ Worker2: record2                  │
       │ (same transformations)            │
       │ .                                 │
-      │ .                                 |
-      |  WorkerN: recordN                 │
+      │ .                                 │
+      │ WorkerN: recordN                  │
       │ (same transformations)            │
       └────┬──────────────────────────────┘
            │
            ▼
-┌──────────────────────┐
-│ ResultChan           │  (unbuffered = 1 record max)
-│ capacity: 1 record   │  ◄─── Backpressure point
-└──────────┬───────────┘      (slows down workers)
+┌────────────────────────────┐
+│ ResultChan (BUFFERED)      │  (capacity: 100 records)
+│ buffer: up to 100 records  │  ◄─── Decouples worker
+└──────────┬─────────────────┘       output from main thread
            │
            │ for record := range ResultChan
            │ (serial: 1 at a time)
@@ -458,6 +458,12 @@ Extracted records are validated against the catalog schema using the `gojsonsche
       │ • Output RECORD msg   │
       │ • Update state        │
       └────┬──────────────────┘
+           │
+           ▼
+      ┌─────────────┐
+      │   stdout    │  (Singer.io format)
+      └─────────────┘
+```
            │
            ▼
       ┌─────────────┐

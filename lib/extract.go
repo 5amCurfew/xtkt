@@ -10,9 +10,19 @@ import (
 )
 
 var ExtractedChan = make(chan map[string]interface{})
-var ResultChan = make(chan map[string]interface{})
+var ResultChan = make(chan map[string]interface{}, 100)
 var ProcessingWG sync.WaitGroup
 var workerSem = make(chan struct{}, runtime.NumCPU()) // Limit concurrent workers to number of CPUs
+
+// TransformationMetrics tracks record transformation statistics
+type TransformationMetrics struct {
+	Processed uint64 `json:"processed"`
+	Skipped   uint64 `json:"skipped"`
+	Filtered  uint64 `json:"filtered"` // filtered by bookmark
+	mu        sync.Mutex
+}
+
+var TransformMetrics = &TransformationMetrics{}
 
 // ExtractRecords begins streaming records from source (sending to ExtractedChan) and start goroutines to extract records
 func ExtractRecords(streamFunc func(*models.StreamConfig) error) {
@@ -37,6 +47,10 @@ func extractRecord(record map[string]interface{}) {
 	defer ProcessingWG.Done()
 	defer func() { <-workerSem }() // Release semaphore
 
+	TransformMetrics.mu.Lock()
+	TransformMetrics.Processed += 1
+	TransformMetrics.mu.Unlock()
+
 	if processedData, err := transformRecord(record); err == nil && processedData != nil {
 		ResultChan <- processedData
 	} else if err != nil {
@@ -45,5 +59,9 @@ func extractRecord(record map[string]interface{}) {
 			"record": json.RawMessage(recordWithError), // logs as nested JSON, no escaping
 			"error":  err,
 		}).Warn("error processing record - skipping...")
+
+		TransformMetrics.mu.Lock()
+		TransformMetrics.Skipped += 1
+		TransformMetrics.mu.Unlock()
 	}
 }

@@ -16,8 +16,11 @@ type ExecutionMetric struct {
 	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
 	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
 	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
-	Records           uint64        `json:"records"`
+	Processed         uint64        `json:"processed"`
+	Emitted           uint64        `json:"emitted"`
 	Skipped           uint64        `json:"skipped"`
+	PerSecond         float64       `json:"per_second"`
+	Filtered          uint64        `json:"filtered"`
 }
 
 // Root function for extracting data from source
@@ -116,7 +119,7 @@ func Extract(discover bool, refresh bool) error {
 			}
 
 			models.State.Update(record)
-			execution.Records += 1
+			execution.Emitted += 1
 		}
 	}
 
@@ -124,6 +127,16 @@ func Extract(discover bool, refresh bool) error {
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
+
+	// Add transformation metrics
+	execution.Processed = lib.TransformMetrics.Processed
+	execution.Filtered = lib.TransformMetrics.Filtered
+
+	// Calculate records per second based on records processed
+	if execution.ExecutionDuration.Seconds() > 0 {
+		execution.PerSecond = float64(execution.Processed) / execution.ExecutionDuration.Seconds()
+	}
+
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
 	return nil
 }
