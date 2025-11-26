@@ -2,6 +2,7 @@ package lib
 
 import (
 	"encoding/json"
+	"runtime"
 	"sync"
 
 	"github.com/5amCurfew/xtkt/models"
@@ -11,6 +12,7 @@ import (
 var ExtractedChan = make(chan map[string]interface{})
 var ResultChan = make(chan map[string]interface{})
 var ProcessingWG sync.WaitGroup
+var workerSem = make(chan struct{}, runtime.NumCPU()) // Limit concurrent workers to number of CPUs
 
 // ExtractRecords begins streaming records from source (sending to ExtractedChan) and start goroutines to extract records
 func ExtractRecords(streamFunc func(*models.StreamConfig) error) {
@@ -25,6 +27,7 @@ func ExtractRecords(streamFunc func(*models.StreamConfig) error) {
 	// begin a goroutine for each extracted record, processing the record (sending to the ResultChan)
 	for record := range ExtractedChan {
 		ProcessingWG.Add(1)
+		workerSem <- struct{}{} // Acquire semaphore
 		go extractRecord(record)
 	}
 }
@@ -32,6 +35,7 @@ func ExtractRecords(streamFunc func(*models.StreamConfig) error) {
 // extractRecord processes a record (sending to the ResultChan)
 func extractRecord(record map[string]interface{}) {
 	defer ProcessingWG.Done()
+	defer func() { <-workerSem }() // Release semaphore
 
 	if processedData, err := transformRecord(record); err == nil && processedData != nil {
 		ResultChan <- processedData

@@ -9,20 +9,28 @@
 ![Release on Homebrew](https://github.com/5amCurfew/xtkt/actions/workflows/release.yml/badge.svg)
 
 - [:computer: Installation](#computer-installation)
-- [:floppy_disk: Metadata](#floppy_disk-metadata)
+- [:floppy\_disk: Metadata](#floppy_disk-metadata)
 - [:pencil: Catalog](#pencil-catalog)
 - [:clipboard: State](#clipboard-state)
-- [:nut_and_bolt: Using with Singer.io Targets](#nut_and_bolt-using-with-singerio-targets)
+- [:nut\_and\_bolt: Using with Singer.io Targets](#nut_and_bolt-using-with-singerio-targets)
 - [:wrench: Config.json](#wrench-configjson)
+  - [xtkt](#xtkt)
+  - [rest](#rest)
 - [:rocket: Examples](#rocket-examples)
-  * [Rick & Morty API](#rick-&-morty-api)
-  * [Github API](#github-api)
-  * [Strava API](#strava-api)
-  * [Salesforce API](#salesforce-api)
-  * [File csv](#file-csv)
-  * [File jsonl](#file-jsonl)
+  - [Rick \& Morty API](#rick--morty-api)
+  - [Github API](#github-api)
+  - [Strava API](#strava-api)
+  - [Salesforce API](#salesforce-api)
+  - [File csv](#file-csv)
+  - [File jsonl](#file-jsonl)
+- [:gear: How it works](#gear-how-it-works)
+  - [Extraction Pipeline](#extraction-pipeline)
+  - [Schema Discovery](#schema-discovery)
+  - [Schema Validation](#schema-validation)
+  - [Incremental vs. Full Refresh](#incremental-vs-full-refresh)
+  - [Pipeline Diagram](#pipeline-diagram)
 
-**v0.6.0**
+**v0.7.0**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 
@@ -341,4 +349,118 @@ Oauth authentication required, records found in the response "records" array, no
         ]
     }
 }
+```
+
+### :gear: How it works
+
+**Memory footprint at any moment:**
+- **1 record** in `ExtractedChan` (unbuffered)
+- **N records** in worker pool (being transformed in parallel)
+- **1 record** in `ResultChan` (unbuffered)
+- Total: **N+2 records** in memory (where N = number of concurrent workers)
+
+**Worker Pool Concurrency:**
+The worker pool is dynamically sized to `runtime.NumCPU()`, automatically scaling to the number of available CPU cores. This ensures efficient parallelism without memory bloat, regardless of source data size. For example, on a 4-core machine, a maximum of 4 records will be transformed concurrently, keeping memory usage bounded.
+
+#### Extraction Pipeline
+
+`xtkt` processes data through a concurrent, multi-stage pipeline:
+
+1. **Stream Stage**: Records are streamed from the configured source (REST API, CSV, or JSONL) into an extraction channel via a dedicated goroutine.
+
+2. **Worker Stage**: For each extracted record, a new goroutine is spawned to process it independently, allowing parallel record transformation.
+
+3. **Transform Stage**: Each record undergoes the following transformations:
+   - Validation of required unique key field
+   - Dropping of specified fields (via `records.drop_field_paths`)
+   - Hashing of sensitive fields (via `records.sensitive_field_paths`)
+   - Generation of Singer.io metadata fields (`_sdc_natural_key`, `_sdc_surrogate_key`, `_sdc_timestamp`, `_sdc_unique_key`)
+   - Validation against stream bookmark (for incremental extraction only; skipped with `--refresh` flag)
+
+4. **Output Stage**: Transformed records are sent to the results channel and formatted as Singer.io RECORD messages to stdout.
+
+#### Schema Discovery
+
+Running `xtkt` with the `--discover` flag initiates schema discovery mode:
+
+1. **Schema Generation**: As records stream in, the first record generates an initial JSON schema by inferring types from field values.
+2. **Schema Evolution**: Subsequent records are used to merge and refine the schema, adding new properties and updating type information.
+3. **Catalog Creation**: The evolved schema is persisted to a `<stream_name>_catalog.json` file containing:
+   - Stream name
+   - Key properties (`_sdc_unique_key`, `_sdc_surrogate_key`)
+   - Inferred schema with property types and constraints
+4. **Schema Message Output**: A Singer.io SCHEMA message is emitted to stdout for consumption by target systems.
+
+#### Schema Validation
+
+Extracted records are validated against the catalog schema using the `gojsonschema` library. Validation rules include:
+- Singer.io metadata fields (`_sdc_surrogate_key`, `_sdc_unique_key`) are required strings
+- The `_sdc_natural_key` field is non-nullable with an inferred type
+- All other fields are nullable by default
+- ISO 8601 and RFC 3339 timestamps are automatically detected and marked with `"format": "date-time"`
+- Records failing validation are skipped with a warning
+
+#### Incremental vs. Full Refresh
+
+- **Incremental (default)**: `xtkt` maintains a state file (`<stream_name>_state.json`) tracking the latest `_sdc_surrogate_key` for each `_sdc_natural_key`. Only new or updated records (identified by a changed surrogate key) are sent downstream.
+- **Full Refresh** (`--refresh` flag): All records are sent regardless of state, bypassing the bookmark comparison check.
+
+
+#### Pipeline Diagram
+
+```
+┌──────────────┐
+│   SOURCE     │  (CSV, JSONL, REST API)
+│              │
+└──────┬───────┘
+       │
+       │ Stream Goroutine (buffered: infinite records)
+       │
+       ▼
+┌──────────────────────┐
+│ ExtractedChan        │  (unbuffered = 1 record max)
+│ capacity: 1 record   │  ◄─── Backpressure point
+└──────────┬───────────┘      (slows down source)
+           │
+           │ for record := range ExtractedChan
+           │
+      ┌────▼──────────────────────────────┐
+      │ Worker Pool                       │
+      │ (N goroutines, 1 per record)      │◄─── Multiple records
+      ├───────────────────────────────────┤     processing in
+      │ Worker1: record1                  │     parallel
+      │ • Drop fields                     │     (N in-flight)
+      │ • Hash sensitive data             │
+      │ • Generate metadata keys          │
+      │ • Check bookmark (incremental)    │
+      │                                   │
+      │ Worker2: record2                  │
+      │ (same transformations)            │
+      │ .                                 │
+      │ .                                 |
+      |  WorkerN: recordN                 │
+      │ (same transformations)            │
+      └────┬──────────────────────────────┘
+           │
+           ▼
+┌──────────────────────┐
+│ ResultChan           │  (unbuffered = 1 record max)
+│ capacity: 1 record   │  ◄─── Backpressure point
+└──────────┬───────────┘      (slows down workers)
+           │
+           │ for record := range ResultChan
+           │ (serial: 1 at a time)
+           │
+      ┌────▼──────────────────┐
+      │ Main Goroutine        │
+      ├───────────────────────┤
+      │ • Validate schema     │
+      │ • Output RECORD msg   │
+      │ • Update state        │
+      └────┬──────────────────┘
+           │
+           ▼
+      ┌─────────────┐
+      │   stdout    │  (Singer.io format)
+      └─────────────┘
 ```
