@@ -464,9 +464,3 @@ Extracted records are validated against the catalog schema using the `gojsonsche
       │   stdout    │  (Singer.io format)
       └─────────────┘
 ```
-           │
-           ▼
-      ┌─────────────┐
-      │   stdout    │  (Singer.io format)
-      └─────────────┘
-```
