@@ -38,12 +38,12 @@ func ExtractRecords(streamFunc func(*models.StreamConfig) error) {
 	for record := range ExtractedChan {
 		ProcessingWG.Add(1)
 		workerSem <- struct{}{} // Block here when every core already runs a transform goroutine
-		go extractRecord(record)
+		go processRecord(record)
 	}
 }
 
-// extractRecord processes a record (sending to the ResultChan)
-func extractRecord(record map[string]interface{}) {
+// processRecord processes a record (sending to the ResultChan)
+func processRecord(record map[string]interface{}) {
 	defer ProcessingWG.Done()
 	defer func() { <-workerSem }() // Release semaphore
 

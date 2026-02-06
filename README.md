@@ -391,6 +391,20 @@ Running `xtkt` with the `--discover` flag initiates schema discovery mode:
    - Inferred schema with property types and constraints
 4. **Schema Message Output**: A Singer.io SCHEMA message is emitted to stdout for consumption by target systems.
 
+Alternatively, you can define the JSON schema yourself `<YOUR_STREAM_NAME>_catalog.json`
+```javascript
+{
+  "key_properties": [
+    "_sdc_unique_key",
+    "_sdc_surrogate_key"
+  ],
+  ...
+  <YOUR_JSON_SCHEMA>
+  ...
+  "stream_name": "<YOUR_STREAM_NAME>"
+}
+```
+
 #### Schema Validation
 
 Extracted records are validated against the catalog schema using the `gojsonschema` library. Validation rules include:
