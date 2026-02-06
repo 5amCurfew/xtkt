@@ -9,10 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ExtractedChan = make(chan map[string]interface{})
-var ResultChan = make(chan map[string]interface{}, 100)
-var ProcessingWG sync.WaitGroup
-var workerSem = make(chan struct{}, runtime.NumCPU()) // Limit concurrent workers to number of CPUs
+var ExtractedChan = make(chan map[string]interface{})   // Unbuffered channel for extracted records; processing goroutines will read from this channel
+var ResultChan = make(chan map[string]interface{}, 100) // Buffered channel to prevent blocking on writes when processing is slower than extraction
+var ProcessingWG sync.WaitGroup                         // WaitGroup to track processing goroutines
+var workerSem = make(chan struct{}, runtime.NumCPU())   // Concurrency cap keeps CPU-bound transforms from outnumbering cores
 
 // TransformationMetrics tracks record transformation statistics
 type TransformationMetrics struct {
@@ -37,7 +37,7 @@ func ExtractRecords(streamFunc func(*models.StreamConfig) error) {
 	// begin a goroutine for each extracted record, processing the record (sending to the ResultChan)
 	for record := range ExtractedChan {
 		ProcessingWG.Add(1)
-		workerSem <- struct{}{} // Acquire semaphore
+		workerSem <- struct{}{} // Block here when every core already runs a transform goroutine
 		go extractRecord(record)
 	}
 }
