@@ -9,16 +9,27 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-var DerivedCatalog StreamCatalog
+// Compile-time verification that StreamCatalog implements Model interface
+var _ Model = (*StreamCatalog)(nil)
 
+// StreamCatalog represents a stream's schema catalog and implements the Model interface.
+// It manages the JSON schema definition, key properties, and provides validation
+// capabilities for records against the catalog schema.
 type StreamCatalog struct {
 	KeyProperties []string               `json:"key_properties"`
 	Schema        map[string]interface{} `json:"schema"`
 	Stream        string                 `json:"stream"`
 }
 
-// Create <STREAM>_catalog.json
-func (c *StreamCatalog) Create() error {
+var DerivedCatalog StreamCatalog
+
+// Create creates a catalog JSON file for the stream
+func (c *StreamCatalog) Create(source ...interface{}) error {
+	// Check if file already exists
+	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", STREAM_NAME)); err == nil {
+		// File exists, read it instead of creating new
+		return c.Read()
+	}
 
 	c.Stream = STREAM_NAME
 	if c.Stream == "" {
@@ -60,8 +71,8 @@ func (c *StreamCatalog) Update() error {
 	return nil
 }
 
-// RecordVersusCatalog validates record against Catalog
-func (c *StreamCatalog) RecordVersusCatalog(record map[string]interface{}) (bool, error) {
+// ValidateRecordAgainstCatalog validates record against Catalog
+func (c *StreamCatalog) ValidateRecordAgainstCatalog(record map[string]interface{}) (bool, error) {
 	schemaLoader := gojsonschema.NewGoLoader(c.Schema)
 	recordLoader := gojsonschema.NewGoLoader(record)
 
@@ -76,20 +87,7 @@ func (c *StreamCatalog) RecordVersusCatalog(record map[string]interface{}) (bool
 
 // Message generates a schema message from the derived catalog
 func (c *StreamCatalog) Message() error {
-	message := Message{
-		Type:          "SCHEMA",
-		Stream:        c.Stream,
-		Schema:        c.Schema,
-		KeyProperties: c.KeyProperties,
-	}
-
-	messageJson, err := json.Marshal(message)
-	if err != nil {
-		return fmt.Errorf("error CREATING SCHEMA MESSAGE: %w", err)
-	}
-
-	os.Stdout.Write(messageJson)
-	os.Stdout.Write([]byte("\n"))
-
-	return nil
+	var schema Schema
+	schema.Create(c.Schema)
+	return schema.Message()
 }

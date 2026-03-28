@@ -5,12 +5,34 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func ToString(v interface{}) string {
 	return fmt.Sprintf("%v", v)
+}
+
+// ToKeyString converts a value to a string suitable for use as a map key,
+// avoiding scientific notation for numeric values
+func ToKeyString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+
+	switch val := v.(type) {
+	case float64:
+		// Format without scientific notation
+		return strconv.FormatFloat(val, 'f', -1, 64)
+	case float32:
+		return strconv.FormatFloat(float64(val), 'f', -1, 32)
+	case string:
+		return val
+	default:
+		// For all other types (int, int64, bool, etc.), use standard formatting
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 func WriteJSON(fileName string, data interface{}) error {
