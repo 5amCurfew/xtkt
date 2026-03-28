@@ -28,9 +28,10 @@
   - [Schema Discovery](#schema-discovery)
   - [Schema Validation](#schema-validation)
   - [Incremental vs. Full Refresh](#incremental-vs-full-refresh)
+  - [Models \& Design Patterns](#models--design-patterns)
   - [Pipeline Diagram](#pipeline-diagram)
 
-**v0.7.1**
+**v0.8.0**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 
@@ -85,7 +86,13 @@ $ xtkt config.json --discover
 
 ### :clipboard: State
 
-`xtkt` uses a state file to track the last detected `_sdc_surrogate_key` per `_sdc_natural_key`. The state file is written to the current working directory and is named `<stream_name>_state.json` where the `bookmark` holds the latest `_sdc_surrogate_key` per `_sdc_natural_key`. Records that fail schema validation are skipped.
+`xtkt` uses a state file to track each record's surrogate key and last seen timestamp by natural key. The state file is written to the current working directory and is named `<stream_name>_state.json`. 
+
+Each bookmark entry contains:
+- `surrogate_key`: The SHA256 hash of the record for change detection
+- `last_seen`: The timestamp when the record was last extracted
+
+This enables both incremental extraction (detecting changes via surrogate key comparison) and potential deletion detection at source (by identifying records not seen since the previous extraction). Records that fail schema validation are skipped.
 
 ### :nut_and_bolt: Using with [Singer.io](https://www.singer.io/) Targets
 
@@ -416,8 +423,31 @@ Extracted records are validated against the catalog schema using the `gojsonsche
 
 #### Incremental vs. Full Refresh
 
-- **Incremental (default)**: `xtkt` maintains a state file (`<stream_name>_state.json`) tracking the latest `_sdc_surrogate_key` for each `_sdc_natural_key`. Only new or updated records (identified by a changed surrogate key) are sent downstream.
+- **Incremental (default)**: `xtkt` maintains a state file (`<stream_name>_state.json`) tracking both the surrogate key and last seen timestamp for each `_sdc_natural_key`. Only new or updated records (identified by a changed surrogate key) are sent downstream. The timestamp tracking enables potential deletion detection by identifying records not seen since a previous extraction.
 - **Full Refresh** (`--refresh` flag): All records are sent regardless of state, bypassing the bookmark comparison check.
+
+#### Models & Design Patterns
+
+The codebase follows a consistent Model interface pattern for all persistable entities and in-memory data structures:
+
+**Model Interface**: All persistable entities (`StreamState`, `StreamCatalog`, `StreamConfig`) implement a common `Model` interface with lifecycle methods:
+- `Create(source ...interface{})`: Initialize from various source types (file paths, data maps, etc.)
+- `Read()`: Load data from persistent storage
+- `Update()`: Write changes back to storage  
+- `Message()`: Generate Singer.io specification messages
+
+**Record & Schema Types**: While not persisted, `Record` and `Schema` follow similar patterns for consistency:
+- `Record`: Wraps `map[string]interface{}` with transformation methods (`Update()` for field dropping, hashing, metadata generation; `PassesBookmark()` for incremental filtering)
+- `Schema`: Wraps `map[string]interface{}` with schema operations (`Merge()` for combining inferred schemas from multiple records)
+
+**State Management**: The `StreamState` model tracks extraction progress with:
+- `LastExtractionStartedAt`: Timestamp when the current extraction run began
+- `Bookmark.UpdatedAt`: Timestamp of the most recently processed record
+- `Bookmark.Latest`: Map of natural keys to `BookmarkEntry` objects containing:
+  - `surrogate_key`: SHA256 hash of the record for change detection
+  - `last_seen`: Timestamp when the record was last extracted, enabling deletion inference
+
+This architecture ensures single responsibility, testability, and consistent behavior across all data models while maintaining flexibility through variadic parameters in `Create()` methods.
 
 
 #### Pipeline Diagram

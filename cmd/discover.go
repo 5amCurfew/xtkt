@@ -7,13 +7,18 @@ import (
 
 // discoverCatalog infers and updates the catalog based on processed records
 func discoverCatalog() {
-	for record := range lib.ResultChan {
-		recordSchema, _ := lib.GenerateSchema(record)
-		existingSchema := models.DerivedCatalog.Schema
+	var catalogSchema models.Schema
+	catalogSchema.Create(models.DerivedCatalog.Schema)
 
-		properties, _ := lib.UpdateSchema(existingSchema, recordSchema)
-		models.DerivedCatalog.Schema = properties
+	for record := range lib.ResultChan {
+		// Update the schema with the new record
+		if err := catalogSchema.Merge(record); err != nil {
+			// Log error but continue processing
+			continue
+		}
 	}
 
+	// Update the catalog's schema with the merged schema
+	models.DerivedCatalog.Schema = catalogSchema.ToMap()
 	models.DerivedCatalog.Update()
 }

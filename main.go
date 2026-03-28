@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -11,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.7.1"
+var version = "0.8.0"
 var discover bool = false
 var refresh bool = false
 
@@ -48,7 +47,7 @@ var rootCmd = &cobra.Command{
 			log.Info("no config JSON path provided, defaulting to config.json")
 		}
 
-		if err := readConfig(cfgPath); err != nil {
+		if err := models.Config.Create(cfgPath); err != nil {
 			log.WithFields(log.Fields{"Error": err}).Fatalln("Failed to parse config JSON")
 			return fmt.Errorf("error parsing config JSON: %w", err)
 		}
@@ -62,18 +61,4 @@ var rootCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func readConfig(filePath string) error {
-
-	config, readConfigError := os.ReadFile(filePath)
-	if readConfigError != nil {
-		return fmt.Errorf("error parseConfigJson reading config.json: %w", readConfigError)
-	}
-
-	if jsonError := json.Unmarshal(config, &models.Config); jsonError != nil {
-		return fmt.Errorf("error parseConfigJson unmarshlling config.json: %w", jsonError)
-	}
-
-	return nil
 }

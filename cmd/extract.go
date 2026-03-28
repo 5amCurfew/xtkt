@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/5amCurfew/xtkt/lib"
 	"github.com/5amCurfew/xtkt/models"
 	"github.com/5amCurfew/xtkt/sources"
-	"github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,37 +26,40 @@ func Extract(discover bool, refresh bool) error {
 	var execution ExecutionMetric
 	execution.ExecutionStart = time.Now().UTC()
 
-	// Create state.json
-	if _, err := os.Stat(fmt.Sprintf("%s_state.json", models.STREAM_NAME)); err != nil {
-		err := models.State.Create()
-		if err != nil {
-			return fmt.Errorf("error creating state file: %w", err)
-		}
+	// initialise state and catalog files
+	if err := models.State.Create(); err != nil {
+		return fmt.Errorf("error initialising state: %w", err)
 	}
 
-	// Create catalog.json
-	if _, err := os.Stat(fmt.Sprintf("%s_catalog.json", models.STREAM_NAME)); err != nil {
-		err := models.DerivedCatalog.Create()
-		if err != nil {
-			return fmt.Errorf("error creating catalog file: %w", err)
-		}
+	// Mark the start of this extraction run
+	models.State.StartExtraction()
+
+	if err := models.DerivedCatalog.Create(); err != nil {
+		return fmt.Errorf("error initialising catalog: %w", err)
 	}
 
 	models.FULL_REFRESH = refresh
 
-	// Read latest state
-	stateErr := models.State.Read()
-	if stateErr != nil {
-		return fmt.Errorf("error reading state %w", stateErr)
+	// Start the record extraction stream
+	startRecordStream()
+
+	// Run in discovery mode or extraction mode
+	if discover {
+		if err := runDiscoveryMode(); err != nil {
+			return err
+		}
+	} else {
+		if err := processRecords(&execution); err != nil {
+			return err
+		}
 	}
 
-	// Read latest catalog
-	catalogErr := models.DerivedCatalog.Read()
-	if catalogErr != nil {
-		return fmt.Errorf("error reading catalog %w", catalogErr)
-	}
+	// Finalize extraction and log metrics
+	return finaliseExtraction(&execution)
+}
 
-	// Initiate goroutine to begin extraction and transformation of records
+// startRecordStream initiates the goroutine to extract and transform records
+func startRecordStream() {
 	go func() {
 		defer close(lib.ResultChan)
 		log.Info(fmt.Sprintf(`generating records from %s`, models.Config.URL))
@@ -76,54 +77,67 @@ func Extract(discover bool, refresh bool) error {
 
 		lib.ProcessingWG.Wait()
 	}()
+}
 
-	// Run in discovery mode to create the catalog by listening for records on ResultsChan
-	if discover {
-		discoverCatalog()
+// runDiscoveryMode runs catalog discovery and validates the schema
+func runDiscoveryMode() error {
+	discoverCatalog()
 
-		schema := models.DerivedCatalog.Schema
-		if len(schema) == 0 {
-			return fmt.Errorf("error gathering schema from source")
-		}
-
-		if produceSchemaMessageError := models.DerivedCatalog.Message(); produceSchemaMessageError != nil {
-			return fmt.Errorf("error generating schema message: %w", produceSchemaMessageError)
-		}
+	if len(models.DerivedCatalog.Schema) == 0 {
+		return fmt.Errorf("error gathering schema from source")
 	}
 
-	// If the catalog exists, begin listening for records on ResultsChan
-	if !discover {
-
-		schema := models.DerivedCatalog.Schema
-		if len(schema) == 0 {
-			return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
-		}
-
-		if produceSchemaMessageError := models.DerivedCatalog.Message(); produceSchemaMessageError != nil {
-			return fmt.Errorf("error generating schema message: %w", produceSchemaMessageError)
-		}
-
-		for record := range lib.ResultChan {
-			if valid, validateRecordSchemaError := models.DerivedCatalog.RecordVersusCatalog(record); !valid {
-				log.WithFields(log.Fields{
-					"_sdc_natural_key": record["_sdc_natural_key"],
-					"error":            validateRecordSchemaError,
-				}).Warn("record violates schema constraints in catalog - skipping...")
-
-				execution.Skipped += 1
-				continue
-			}
-
-			if produceRecordMessageError := lib.RecordMessage(record); produceRecordMessageError != nil {
-				return fmt.Errorf("error generating record message: %w", produceRecordMessageError)
-			}
-
-			models.State.Update(record)
-			execution.Emitted += 1
-		}
+	if err := models.DerivedCatalog.Message(); err != nil {
+		return fmt.Errorf("error generating schema message: %w", err)
 	}
 
-	util.WriteJSON(fmt.Sprintf("%s_state.json", models.STREAM_NAME), models.State)
+	return nil
+}
+
+// processRecords processes records from the stream and validates against catalog
+func processRecords(execution *ExecutionMetric) error {
+	if len(models.DerivedCatalog.Schema) == 0 {
+		return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
+	}
+
+	if err := models.DerivedCatalog.Message(); err != nil {
+		return fmt.Errorf("error generating schema message: %w", err)
+	}
+
+	for record := range lib.ResultChan {
+		if valid, err := models.DerivedCatalog.ValidateRecordAgainstCatalog(record); !valid {
+			log.WithFields(log.Fields{
+				"_sdc_natural_key": record["_sdc_natural_key"],
+				"error":            err,
+			}).Warn("record violates schema constraints in catalog - skipping...")
+
+			execution.Skipped += 1
+			continue
+		}
+
+		var rec models.Record
+		if err := rec.Create(record); err != nil {
+			return fmt.Errorf("error creating record: %w", err)
+		}
+
+		if err := rec.Message(); err != nil {
+			return fmt.Errorf("error generating record message: %w", err)
+		}
+
+		// Note: UpdateBookmark is now called earlier in lib/extract.go
+		// to ensure last_seen is updated for all records (including unchanged)
+
+		execution.Emitted += 1
+	}
+
+	return nil
+}
+
+// finaliseExtraction writes state, calculates metrics, and logs results
+func finaliseExtraction(execution *ExecutionMetric) error {
+	if err := models.State.Update(); err != nil {
+		return fmt.Errorf("error writing state: %w", err)
+	}
 
 	execution.ExecutionEnd = time.Now().UTC()
 	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
