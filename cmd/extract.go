@@ -11,14 +11,16 @@ import (
 )
 
 type ExecutionMetric struct {
-	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
-	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
-	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
-	Processed         uint64        `json:"processed"`
 	Emitted           uint64        `json:"emitted"`
-	Skipped           uint64        `json:"skipped"`
+	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
+	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
+	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
 	PerSecond         float64       `json:"per_second"`
-	Filtered          uint64        `json:"filtered"`
+	Processed         uint64        `json:"processed"`
+	Skipped           uint64        `json:"skipped"`
+	SkippedBookmark   uint64        `json:"skipped_bookmark"`
+	SkippedSchema     uint64        `json:"skipped_schema_validation"`
+	SkippedTransform  uint64        `json:"skipped_transform"`
 }
 
 // Root function for extracting data from source
@@ -39,6 +41,7 @@ func Extract(discover bool, refresh bool) error {
 	}
 
 	models.FULL_REFRESH = refresh
+	models.DISCOVER_MODE = discover
 
 	// Start the record extraction stream
 	startRecordStream()
@@ -111,7 +114,7 @@ func processRecords(execution *ExecutionMetric) error {
 				"error":            err,
 			}).Warn("record violates schema constraints in catalog - skipping...")
 
-			execution.Skipped += 1
+			execution.SkippedSchema += 1
 			continue
 		}
 
@@ -124,8 +127,10 @@ func processRecords(execution *ExecutionMetric) error {
 			return fmt.Errorf("error generating record message: %w", err)
 		}
 
-		// Note: UpdateBookmark is now called earlier in lib/extract.go
-		// to ensure last_seen is updated for all records (including unchanged)
+		// Only records that pass schema validation should advance state.
+		if !models.DISCOVER_MODE {
+			models.State.UpdateBookmark(rec.ToMap())
+		}
 
 		execution.Emitted += 1
 	}
@@ -144,7 +149,9 @@ func finaliseExtraction(execution *ExecutionMetric) error {
 
 	// Add transformation metrics
 	execution.Processed = lib.TransformMetrics.Processed
-	execution.Filtered = lib.TransformMetrics.Filtered
+	execution.SkippedBookmark = lib.TransformMetrics.SkippedBookmark
+	execution.SkippedTransform = lib.TransformMetrics.Skipped
+	execution.Skipped = execution.SkippedTransform + execution.SkippedSchema
 
 	// Calculate records per second based on records processed
 	if execution.ExecutionDuration.Seconds() > 0 {

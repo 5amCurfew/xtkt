@@ -23,6 +23,7 @@ type StreamConfig struct {
 var Config StreamConfig
 var STREAM_NAME string
 var FULL_REFRESH bool
+var DISCOVER_MODE bool
 
 // Create loads the StreamConfig from a JSON file
 // Expects a single string parameter containing the file path

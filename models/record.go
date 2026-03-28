@@ -128,10 +128,10 @@ func (r Record) ToMap() map[string]interface{} {
 
 // PassesBookmark checks if the record should be emitted based on the bookmark state.
 // Returns true if the record is new or has been updated since the last extraction.
-// Always returns true when FULL_REFRESH is enabled.
+// Always returns true when FULL_REFRESH or DISCOVER_MODE is enabled.
 func (r Record) PassesBookmark() bool {
-	// Skip bookmark check if doing full refresh
-	if FULL_REFRESH {
+	// Skip bookmark check if doing full refresh or discovery
+	if FULL_REFRESH || DISCOVER_MODE {
 		return true
 	}
 

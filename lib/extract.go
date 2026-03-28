@@ -16,10 +16,10 @@ var workerSem = make(chan struct{}, runtime.NumCPU())   // Concurrency cap keeps
 
 // TransformationMetrics tracks record transformation statistics
 type TransformationMetrics struct {
-	Processed uint64 `json:"processed"`
-	Skipped   uint64 `json:"skipped"`
-	Filtered  uint64 `json:"filtered"` // filtered by bookmark
-	mu        sync.Mutex
+	Processed       uint64 `json:"processed"`
+	Skipped         uint64 `json:"skipped"`
+	SkippedBookmark uint64 `json:"skipped_bookmark"` // skipped by bookmark
+	mu              sync.Mutex
 }
 
 var TransformMetrics = &TransformationMetrics{}
@@ -79,14 +79,19 @@ func processRecord(record map[string]interface{}) {
 		return
 	}
 
-	// Update bookmark for all successfully processed records (before filtering)
-	// This ensures last_seen is updated even for unchanged records (deletion detection)
-	models.State.UpdateBookmark(rec.ToMap())
+	// Evaluate bookmark filtering against the previous state before updating it
+	// so new records still emit on the first run.
+	passesBookmark := rec.PassesBookmark()
 
 	// Check if record passes bookmark filter
-	if !rec.PassesBookmark() {
+	if !passesBookmark {
+		// Unchanged records still refresh bookmark state so last_seen remains current.
+		if !models.DISCOVER_MODE {
+			models.State.UpdateBookmark(rec.ToMap())
+		}
+
 		TransformMetrics.mu.Lock()
-		TransformMetrics.Filtered += 1
+		TransformMetrics.SkippedBookmark += 1
 		TransformMetrics.mu.Unlock()
 		return
 	}

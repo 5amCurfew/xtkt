@@ -46,7 +46,7 @@ func (s Schema) Update() error {
 }
 
 // Merge merges this schema with another schema (from a new record)
-func (s Schema) Merge(newRecord map[string]interface{}) error {
+func (s *Schema) Merge(newRecord map[string]interface{}) error {
 	// Generate schema from the new record
 	newSchema, err := generateSchemaFromRecord(newRecord)
 	if err != nil {
@@ -61,14 +61,14 @@ func (s Schema) Merge(newRecord map[string]interface{}) error {
 
 	// Update this schema with merged values
 	for k, v := range merged {
-		s[k] = v
+		(*s)[k] = v
 	}
 
 	return nil
 }
 
 // Message generates a SCHEMA type message and writes it to stdout
-func (s Schema) Message() error {
+func (s *Schema) Message() error {
 	message := Message{
 		Type:          "SCHEMA",
 		Stream:        STREAM_NAME,
