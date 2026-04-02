@@ -14,23 +14,17 @@ var ResultChan = make(chan map[string]interface{}, 100) // Buffered channel to p
 var ProcessingWG sync.WaitGroup                         // WaitGroup to track processing goroutines
 var workerSem = make(chan struct{}, runtime.NumCPU())   // Concurrency cap keeps CPU-bound transforms from outnumbering cores
 
-// TransformationMetrics tracks record transformation statistics
-type TransformationMetrics struct {
-	Processed       uint64 `json:"processed"`
-	Skipped         uint64 `json:"skipped"`
-	SkippedBookmark uint64 `json:"skipped_bookmark"` // skipped by bookmark
-	mu              sync.Mutex
-}
-
-var TransformMetrics = &TransformationMetrics{}
-
 // ExtractRecords begins streaming records from source (sending to ExtractedChan) and start goroutines to extract records (sending to ResultChan)
 func ExtractRecords(sourceFunc func(*models.StreamConfig) error) {
 	// begin a goroutine to stream records from source
 	go func() {
 		defer close(ExtractedChan)
 		if err := sourceFunc(&models.Config); err != nil {
-			log.WithFields(log.Fields{"error": err}).Info("ProcessRecords: source function failed")
+			log.WithFields(log.Fields{
+				"error":       err,
+				"source_type": models.Config.SourceType,
+				"url":         models.Config.URL,
+			}).Error("source extraction failed")
 		}
 	}()
 
@@ -58,10 +52,10 @@ func processRecord(record map[string]interface{}) {
 		log.WithFields(log.Fields{
 			"record": json.RawMessage(recordWithError),
 			"error":  err,
-		}).Warn("error creating record - skipping...")
+		}).Warn("record creation failed; not emitting")
 
 		TransformMetrics.mu.Lock()
-		TransformMetrics.Skipped += 1
+		TransformMetrics.TransformFailed += 1
 		TransformMetrics.mu.Unlock()
 		return
 	}
@@ -71,10 +65,10 @@ func processRecord(record map[string]interface{}) {
 		log.WithFields(log.Fields{
 			"record": json.RawMessage(recordWithError), // logs as nested JSON, no escaping
 			"error":  err,
-		}).Warn("error processing record - skipping...")
+		}).Warn("record transformation failed; not emitting")
 
 		TransformMetrics.mu.Lock()
-		TransformMetrics.Skipped += 1
+		TransformMetrics.TransformFailed += 1
 		TransformMetrics.mu.Unlock()
 		return
 	}
@@ -91,7 +85,7 @@ func processRecord(record map[string]interface{}) {
 		}
 
 		TransformMetrics.mu.Lock()
-		TransformMetrics.SkippedBookmark += 1
+		TransformMetrics.FilteredBookmark += 1
 		TransformMetrics.mu.Unlock()
 		return
 	}

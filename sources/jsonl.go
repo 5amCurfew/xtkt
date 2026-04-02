@@ -47,7 +47,10 @@ func StreamJSONLRecords(config *models.StreamConfig) error {
 
 		record := make(map[string]interface{})
 		if err := json.Unmarshal(lineCopy, &record); err != nil {
-			log.WithFields(log.Fields{"error": err}).Warn("streamJSONLRecords: json.Unmarshal failed")
+			log.WithFields(log.Fields{
+				"error": err,
+				"url":   url,
+			}).Warn("jsonl record decode failed; not emitting")
 			continue
 		}
 

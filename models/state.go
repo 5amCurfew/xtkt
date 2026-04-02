@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 )
@@ -38,7 +37,7 @@ func (s *StreamState) Create(source ...interface{}) error {
 		return fmt.Errorf("error creating state file: stream name is required")
 	}
 	s.Bookmark = Bookmark{
-		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+		UpdatedAt: util.NowTimestamp(),
 		Latest:    map[string]BookmarkEntry{},
 	}
 
@@ -98,7 +97,7 @@ func (s *StreamState) Message() error {
 func (s *StreamState) StartExtraction() {
 	StateMutex.Lock()
 	defer StateMutex.Unlock()
-	s.LastExtractionStartedAt = time.Now().UTC().Format(time.RFC3339)
+	s.LastExtractionStartedAt = util.NowTimestamp()
 }
 
 // UpdateBookmark updates the bookmark with information from a record
@@ -108,8 +107,8 @@ func (s *StreamState) UpdateBookmark(record map[string]interface{}) {
 
 	// Convert natural key to string for bookmark storage (avoiding scientific notation)
 	key := util.ToKeyString(record["_sdc_natural_key"])
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-	
+	timestamp := util.NowTimestamp()
+
 	s.Bookmark.Latest[key] = BookmarkEntry{
 		SurrogateKey: record["_sdc_surrogate_key"].(string),
 		LastSeen:     timestamp,

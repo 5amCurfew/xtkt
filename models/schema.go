@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	util "github.com/5amCurfew/xtkt/util"
 )
 
 // Compile-time verification that Schema implements Model interface
@@ -17,19 +19,44 @@ var _ Model = (*Schema)(nil)
 // with parameterized methods for flexibility.
 type Schema map[string]interface{}
 
+func (s *Schema) initEmpty() {
+	*s = make(Schema)
+	(*s)["type"] = "object"
+	(*s)["properties"] = make(map[string]interface{})
+}
+
+func (s *Schema) ensureInitialized() {
+	if *s == nil {
+		s.initEmpty()
+		return
+	}
+
+	if _, ok := (*s)["properties"].(map[string]interface{}); !ok {
+		(*s)["properties"] = make(map[string]interface{})
+	}
+
+	if _, ok := (*s)["type"]; !ok {
+		(*s)["type"] = "object"
+	}
+}
+
 // Create initialises a new Schema, optionally from existing data
 func (s *Schema) Create(data ...interface{}) error {
 	if len(data) > 0 && data[0] != nil {
-		if schemaData, ok := data[0].(map[string]interface{}); ok {
+		switch schemaData := data[0].(type) {
+		case Schema:
+			*s = schemaData
+		case map[string]interface{}:
 			*s = Schema(schemaData)
-		} else {
-			return fmt.Errorf("schema data must be map[string]interface{}, got %T", data[0])
+		default:
+			return fmt.Errorf("schema data must be models.Schema or map[string]interface{}, got %T", data[0])
 		}
 	} else {
-		*s = make(Schema)
-		(*s)["type"] = "object"
-		(*s)["properties"] = make(map[string]interface{})
+		s.initEmpty()
+		return nil
 	}
+
+	s.ensureInitialized()
 	return nil
 }
 
@@ -47,6 +74,12 @@ func (s Schema) Update() error {
 
 // Merge merges this schema with another schema (from a new record)
 func (s *Schema) Merge(newRecord map[string]interface{}) error {
+	if s == nil {
+		return fmt.Errorf("schema is nil")
+	}
+
+	s.ensureInitialized()
+
 	// Generate schema from the new record
 	newSchema, err := generateSchemaFromRecord(newRecord)
 	if err != nil {
@@ -185,7 +218,7 @@ func generateSchemaFromRecord(record interface{}) (map[string]interface{}, error
 		case nil:
 			continue
 		case string:
-			if _, err := time.Parse(time.RFC3339, v); err == nil {
+			if util.IsTimestampString(v) {
 				prop["type"] = []string{"string", "null"}
 				prop["format"] = "date-time"
 			} else if _, err := time.Parse("2006-01-02", v); err == nil {

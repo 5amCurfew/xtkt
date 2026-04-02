@@ -21,7 +21,10 @@ func StreamRESTRecords(config *models.StreamConfig) error {
 	responseMapRecordsPath := []string{"results"}
 
 	for {
-		log.Info(fmt.Sprintf(`page: %s`, config.URL))
+		log.WithFields(log.Fields{
+			"source_type": config.SourceType,
+			"url":         config.URL,
+		}).Info("requesting source page")
 		response, err := getRequest()
 		if err != nil {
 			return fmt.Errorf("getRequest failed: %w", err)
@@ -50,7 +53,10 @@ func StreamRESTRecords(config *models.StreamConfig) error {
 			if recordMap, ok := item.(map[string]interface{}); ok {
 				lib.ExtractedChan <- recordMap
 			} else {
-				log.WithFields(log.Fields{"item": item}).Warn("encountered non-map element in records array")
+				log.WithFields(log.Fields{
+					"item": item,
+					"url":  config.URL,
+				}).Warn("records array contained non-object item")
 			}
 		}
 

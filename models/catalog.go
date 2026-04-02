@@ -16,9 +16,10 @@ var _ Model = (*StreamCatalog)(nil)
 // It manages the JSON schema definition, key properties, and provides validation
 // capabilities for records against the catalog schema.
 type StreamCatalog struct {
-	KeyProperties []string               `json:"key_properties"`
-	Schema        map[string]interface{} `json:"schema"`
-	Stream        string                 `json:"stream"`
+	KeyProperties      []string `json:"key_properties"`
+	Schema             Schema   `json:"schema"`
+	SchemaDiscoveredAt string   `json:"schema_discovered_at,omitempty"`
+	Stream             string   `json:"stream"`
 }
 
 var DerivedCatalog StreamCatalog
@@ -36,7 +37,7 @@ func (c *StreamCatalog) Create(source ...interface{}) error {
 		return fmt.Errorf("error creating catalog file: stream name is required")
 	}
 	c.KeyProperties = []string{"_sdc_unique_key", "_sdc_surrogate_key"}
-	c.Schema = map[string]interface{}{}
+	c.Schema = Schema{}
 
 	fileName := fmt.Sprintf("%s_catalog.json", c.Stream)
 	err := util.WriteJSON(fileName, c)

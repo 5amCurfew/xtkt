@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	util "github.com/5amCurfew/xtkt/util"
 	log "github.com/sirupsen/logrus"
@@ -72,7 +71,7 @@ func (r Record) Update() error {
 				log.WithFields(log.Fields{
 					"sensitive_field_path": path,
 					"_sdc_natural_key":     util.ToKeyString(util.GetValueAtPath(Config.Records.UniqueKeyPath, r)),
-				}).Warn("field path not found in record for hashing (sensitive fields)")
+				}).Warn("sensitive field path not found; skipping hash")
 			}
 		}
 	}
@@ -84,7 +83,7 @@ func (r Record) Update() error {
 	// Store natural key as its original type
 	r["_sdc_natural_key"] = util.GetValueAtPath(Config.Records.UniqueKeyPath, r)
 	r["_sdc_surrogate_key"] = hex.EncodeToString(h.Sum(nil))
-	r["_sdc_timestamp"] = time.Now().UTC().Format(time.RFC3339)
+	r["_sdc_timestamp"] = util.NowTimestamp()
 
 	h.Write([]byte(util.ToString(r)))
 	r["_sdc_unique_key"] = hex.EncodeToString(h.Sum(nil))

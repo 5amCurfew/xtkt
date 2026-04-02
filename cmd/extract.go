@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/5amCurfew/xtkt/lib"
 	"github.com/5amCurfew/xtkt/models"
@@ -10,62 +9,85 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ExecutionMetric struct {
-	Emitted           uint64        `json:"emitted"`
-	ExecutionDuration time.Duration `json:"execution_duration,omitempty"`
-	ExecutionEnd      time.Time     `json:"execution_end,omitempty"`
-	ExecutionStart    time.Time     `json:"execution_start,omitempty"`
-	PerSecond         float64       `json:"per_second"`
-	Processed         uint64        `json:"processed"`
-	Skipped           uint64        `json:"skipped"`
-	SkippedBookmark   uint64        `json:"skipped_bookmark"`
-	SkippedSchema     uint64        `json:"skipped_schema_validation"`
-	SkippedTransform  uint64        `json:"skipped_transform"`
+// Extract runs the default extraction flow.
+func Extract(refresh bool) error {
+	execution := lib.NewExecutionMetric()
+	if err := initialiseRun(false, refresh); err != nil {
+		return err
+	}
+
+	if err := ensureCatalogSchemaAvailable(); err != nil {
+		return err
+	}
+
+	startRecordStream()
+
+	if err := processRecords(&execution); err != nil {
+		return err
+	}
+
+	return finaliseExtraction(&execution)
 }
 
-// Root function for extracting data from source
-func Extract(discover bool, refresh bool) error {
-	var execution ExecutionMetric
-	execution.ExecutionStart = time.Now().UTC()
+func logAndWrapError(message string, err error, fields log.Fields) error {
+	entry := log.WithField("error", err)
+	if len(fields) > 0 {
+		entry = entry.WithFields(fields)
+	}
+	entry.Error(message)
+	return fmt.Errorf("%s: %w", message, err)
+}
+
+func logAndReturnError(message string, fields log.Fields) error {
+	entry := log.NewEntry(log.StandardLogger())
+	if len(fields) > 0 {
+		entry = entry.WithFields(fields)
+	}
+	entry.Error(message)
+	return fmt.Errorf(message)
+}
+
+func initialiseRun(discover bool, refresh bool) error {
+	models.FULL_REFRESH = refresh
+	models.DISCOVER_MODE = discover
 
 	// initialise state and catalog files
 	if err := models.State.Create(); err != nil {
-		return fmt.Errorf("error initialising state: %w", err)
+		return logAndWrapError("state initialisation failed", err, log.Fields{
+			"discover": discover,
+			"refresh":  refresh,
+		})
 	}
 
 	// Mark the start of this extraction run
 	models.State.StartExtraction()
 
 	if err := models.DerivedCatalog.Create(); err != nil {
-		return fmt.Errorf("error initialising catalog: %w", err)
+		return logAndWrapError("catalog initialisation failed", err, log.Fields{
+			"discover": discover,
+			"refresh":  refresh,
+		})
 	}
 
-	models.FULL_REFRESH = refresh
-	models.DISCOVER_MODE = discover
+	return nil
+}
 
-	// Start the record extraction stream
-	startRecordStream()
-
-	// Run in discovery mode or extraction mode
-	if discover {
-		if err := runDiscoveryMode(); err != nil {
-			return err
-		}
-	} else {
-		if err := processRecords(&execution); err != nil {
-			return err
-		}
+func ensureCatalogSchemaAvailable() error {
+	if len(models.DerivedCatalog.Schema) == 0 {
+		return logAndReturnError("catalog schema unavailable; run discovery first", nil)
 	}
 
-	// Finalize extraction and log metrics
-	return finaliseExtraction(&execution)
+	return nil
 }
 
 // startRecordStream initiates the goroutine to extract and transform records
 func startRecordStream() {
 	go func() {
 		defer close(lib.ResultChan)
-		log.Info(fmt.Sprintf(`generating records from %s`, models.Config.URL))
+		log.WithFields(log.Fields{
+			"source_type": models.Config.SourceType,
+			"url":         models.Config.URL,
+		}).Info("starting record extraction")
 
 		switch models.Config.SourceType {
 		case "csv":
@@ -75,36 +97,21 @@ func startRecordStream() {
 		case "rest":
 			lib.ExtractRecords(sources.StreamRESTRecords)
 		default:
-			log.Info("unsupported data source")
+			log.WithField("source_type", models.Config.SourceType).Warn("unsupported source type")
 		}
 
 		lib.ProcessingWG.Wait()
 	}()
 }
 
-// runDiscoveryMode runs catalog discovery and validates the schema
-func runDiscoveryMode() error {
-	discoverCatalog()
-
-	if len(models.DerivedCatalog.Schema) == 0 {
-		return fmt.Errorf("error gathering schema from source")
-	}
-
-	if err := models.DerivedCatalog.Message(); err != nil {
-		return fmt.Errorf("error generating schema message: %w", err)
-	}
-
-	return nil
-}
-
 // processRecords processes records from the stream and validates against catalog
-func processRecords(execution *ExecutionMetric) error {
-	if len(models.DerivedCatalog.Schema) == 0 {
-		return fmt.Errorf("error gathering schema from catalog - ensure the catalog exists by running xtkt <CONFIG> --discover")
+func processRecords(execution *lib.ExecutionMetric) error {
+	if err := ensureCatalogSchemaAvailable(); err != nil {
+		return err
 	}
 
 	if err := models.DerivedCatalog.Message(); err != nil {
-		return fmt.Errorf("error generating schema message: %w", err)
+		return logAndWrapError("schema message generation failed", err, nil)
 	}
 
 	for record := range lib.ResultChan {
@@ -112,19 +119,23 @@ func processRecords(execution *ExecutionMetric) error {
 			log.WithFields(log.Fields{
 				"_sdc_natural_key": record["_sdc_natural_key"],
 				"error":            err,
-			}).Warn("record violates schema constraints in catalog - skipping...")
+			}).Warn("record failed schema validation; not emitting")
 
-			execution.SkippedSchema += 1
+			execution.NotEmitted.SchemaValidationFailed += 1
 			continue
 		}
 
 		var rec models.Record
 		if err := rec.Create(record); err != nil {
-			return fmt.Errorf("error creating record: %w", err)
+			return logAndWrapError("record creation failed", err, log.Fields{
+				"record": record,
+			})
 		}
 
 		if err := rec.Message(); err != nil {
-			return fmt.Errorf("error generating record message: %w", err)
+			return logAndWrapError("record message generation failed", err, log.Fields{
+				"_sdc_natural_key": rec["_sdc_natural_key"],
+			})
 		}
 
 		// Only records that pass schema validation should advance state.
@@ -139,24 +150,12 @@ func processRecords(execution *ExecutionMetric) error {
 }
 
 // finaliseExtraction writes state, calculates metrics, and logs results
-func finaliseExtraction(execution *ExecutionMetric) error {
+func finaliseExtraction(execution *lib.ExecutionMetric) error {
 	if err := models.State.Update(); err != nil {
-		return fmt.Errorf("error writing state: %w", err)
+		return logAndWrapError("state update failed", err, nil)
 	}
 
-	execution.ExecutionEnd = time.Now().UTC()
-	execution.ExecutionDuration = execution.ExecutionEnd.Sub(execution.ExecutionStart)
-
-	// Add transformation metrics
-	execution.Processed = lib.TransformMetrics.Processed
-	execution.SkippedBookmark = lib.TransformMetrics.SkippedBookmark
-	execution.SkippedTransform = lib.TransformMetrics.Skipped
-	execution.Skipped = execution.SkippedTransform + execution.SkippedSchema
-
-	// Calculate records per second based on records processed
-	if execution.ExecutionDuration.Seconds() > 0 {
-		execution.PerSecond = float64(execution.Processed) / execution.ExecutionDuration.Seconds()
-	}
+	execution.Complete()
 
 	log.WithFields(log.Fields{"metrics": execution}).Info("execution metrics")
 	return nil

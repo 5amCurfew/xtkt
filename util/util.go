@@ -6,12 +6,28 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
+const TimestampFormat = time.RFC3339Nano
+
 func ToString(v interface{}) string {
 	return fmt.Sprintf("%v", v)
+}
+
+func FormatTimestamp(timestamp time.Time) string {
+	return timestamp.UTC().Format(TimestampFormat)
+}
+
+func NowTimestamp() string {
+	return FormatTimestamp(time.Now())
+}
+
+func IsTimestampString(value string) bool {
+	_, err := time.Parse(TimestampFormat, value)
+	return err == nil
 }
 
 // ToKeyString converts a value to a string suitable for use as a map key,
@@ -109,7 +125,7 @@ func DropFieldAtPath(path []string, input map[string]interface{}) error {
 		delete(currentMap, lastKey)
 		return nil
 	} else {
-		log.Warn(fmt.Sprintf("drop_field field path %s not found in record", path))
+		log.WithField("drop_field_path", path).Warn("drop field path not found; skipping")
 		return nil
 	}
 }

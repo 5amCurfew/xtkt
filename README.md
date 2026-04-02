@@ -31,7 +31,7 @@
   - [Models \& Design Patterns](#models--design-patterns)
   - [Pipeline Diagram](#pipeline-diagram)
 
-**v0.8.1**
+**v0.8.2**
 
 `xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
 
@@ -71,12 +71,12 @@ Flags:
 
 * `_sdc_natural_key`: Unique identifier of the record in the source system.
 * `_sdc_surrogate_key`: SHA256 hash of the record for secure identification.
-* `_sdc_timestamp`: Timestamp (RFC 3339) of when the data was extracted.
+* `_sdc_timestamp`: Timestamp (RFC 3339 with sub-second precision) of when the data was extracted.
 * `_sdc_unique_key`: Unique identifier for the specific extraction of the record.
 
 ### :pencil: Catalog
 
-A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction for schema validation. Discovery of the catalog can be run using the `--discover` flag which infers and creates the `<stream_name>_catalog.json` file. This can then be altered for required specification. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected in records extracted.
+A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction for schema validation. Discovery of the catalog can be run using the `--discover` flag which infers and creates the `<stream_name>_catalog.json` file. This can then be altered for required specification. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected in records extracted, and refresh the `schema_discovered_at` timestamp.
 
 Schema detection is naive using the data type of the first non-null value detected per property when generating the catalog.
 
@@ -90,7 +90,7 @@ $ xtkt config.json --discover
 
 Each bookmark entry contains:
 - `surrogate_key`: The SHA256 hash of the record for change detection
-- `last_seen`: The timestamp when the record was last extracted
+- `last_seen`: The timestamp when the record was last extracted, with sub-second precision
 
 This enables both incremental extraction (detecting changes via surrogate key comparison) and potential deletion detection at source (by identifying records not seen since the previous extraction). Records that fail schema validation are skipped.
 
@@ -395,6 +395,7 @@ Running `xtkt` with the `--discover` flag initiates schema discovery mode:
 3. **Catalog Creation**: The evolved schema is persisted to a `<stream_name>_catalog.json` file containing:
    - Stream name
    - Key properties (`_sdc_unique_key`, `_sdc_surrogate_key`)
+    - Schema discovery timestamp (`schema_discovered_at`)
    - Inferred schema with property types and constraints
 4. **Schema Message Output**: A Singer.io SCHEMA message is emitted to stdout for consumption by target systems.
 
@@ -405,6 +406,7 @@ Alternatively, you can define the JSON schema yourself `<YOUR_STREAM_NAME>_catal
     "_sdc_unique_key",
     "_sdc_surrogate_key"
   ],
+    "schema_discovered_at": "2026-04-03T00:23:25.123456789Z",
   ...
   <YOUR_JSON_SCHEMA>
   ...
