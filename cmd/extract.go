@@ -30,20 +30,10 @@ func Extract(refresh bool) error {
 }
 
 func logAndWrapError(message string, err error, fields log.Fields) error {
-	entry := log.WithField("error", err)
-	if len(fields) > 0 {
-		entry = entry.WithFields(fields)
-	}
-	entry.Error(message)
 	return fmt.Errorf("%s: %w", message, err)
 }
 
 func logAndReturnError(message string, fields log.Fields) error {
-	entry := log.NewEntry(log.StandardLogger())
-	if len(fields) > 0 {
-		entry = entry.WithFields(fields)
-	}
-	entry.Error(message)
 	return fmt.Errorf(message)
 }
 

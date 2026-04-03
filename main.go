@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/5amCurfew/xtkt/cmd"
 	"github.com/5amCurfew/xtkt/models"
@@ -9,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.8.3"
+var version = "0.8.4"
 var discover bool = false
 var refresh bool = false
 
@@ -19,6 +20,9 @@ func main() {
 
 func Execute() {
 	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(os.Stderr)
+	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
 
 	rootCmd.Flags().BoolVarP(&discover, "discover", "d", false, "run the tap in discovery mode, creating the catalog")
 	rootCmd.Flags().BoolVarP(&refresh, "refresh", "r", false, "extract all records (full refresh) rather than only new or modified records (incremental, default)")
@@ -44,10 +48,6 @@ var rootCmd = &cobra.Command{
 		}
 
 		if err := models.Config.Create(cfgPath); err != nil {
-			log.WithFields(log.Fields{
-				"config_path": cfgPath,
-				"error":       err,
-			}).Error("config parsing failed")
 			return fmt.Errorf("error parsing config JSON: %w", err)
 		}
 
@@ -61,16 +61,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		if err != nil {
-			mode := "extract"
-			if discover {
-				mode = "discover"
-			}
-			log.WithFields(log.Fields{
-				"mode":    mode,
-				"refresh": refresh,
-				"error":   err,
-			}).Error("command run failed")
-			return fmt.Errorf("failed to extract records: %w", err)
+			return fmt.Errorf("command run failed: %w", err)
 		}
 
 		return nil

@@ -31,7 +31,7 @@
   - [Models \& Design Patterns](#models--design-patterns)
   - [Pipeline Diagram](#pipeline-diagram)
 
-**v0.8.3**
+**v0.8.4**
 
 `xtkt` ("extract") is a data extraction tool that follows the [Singer.io specification](https://hub.meltano.com/singer/spec/). Supported sources include RESTful APIs, csv and jsonl. Each stream is handled independently and deletion-at-source is not detected.
 
