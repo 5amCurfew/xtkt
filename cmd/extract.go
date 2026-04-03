@@ -115,7 +115,7 @@ func processRecords(execution *lib.ExecutionMetric) error {
 	}
 
 	for record := range lib.ResultChan {
-		if valid, err := models.DerivedCatalog.ValidateRecordAgainstCatalog(record); !valid {
+		if valid, err := models.DerivedCatalog.ValidateRecordAgainstCatalog(record.ToMap()); !valid {
 			log.WithFields(log.Fields{
 				"_sdc_natural_key": record["_sdc_natural_key"],
 				"error":            err,
@@ -125,22 +125,15 @@ func processRecords(execution *lib.ExecutionMetric) error {
 			continue
 		}
 
-		var rec models.Record
-		if err := rec.Create(record); err != nil {
-			return logAndWrapError("record creation failed", err, log.Fields{
-				"record": record,
-			})
-		}
-
-		if err := rec.Message(); err != nil {
+		if err := record.Message(); err != nil {
 			return logAndWrapError("record message generation failed", err, log.Fields{
-				"_sdc_natural_key": rec["_sdc_natural_key"],
+				"_sdc_natural_key": record["_sdc_natural_key"],
 			})
 		}
 
 		// Only records that pass schema validation should advance state.
 		if !models.DISCOVER_MODE {
-			models.State.UpdateBookmark(rec.ToMap())
+			models.State.UpdateBookmark(record.ToMap())
 		}
 
 		execution.Emitted += 1

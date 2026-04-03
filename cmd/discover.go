@@ -49,7 +49,7 @@ func discoverCatalog() error {
 
 	for record := range lib.ResultChan {
 		// Update the schema with the new record
-		if err := catalogSchema.Merge(record); err != nil {
+		if err := catalogSchema.Merge(record.ToMap()); err != nil {
 			log.WithFields(log.Fields{
 				"_sdc_natural_key": record["_sdc_natural_key"],
 				"error":            err,

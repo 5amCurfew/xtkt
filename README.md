@@ -31,13 +31,13 @@
   - [Models \& Design Patterns](#models--design-patterns)
   - [Pipeline Diagram](#pipeline-diagram)
 
-**v0.8.2**
+**v0.8.3**
 
-`xtkt` ("extract") is a data extraction tool that follows the Singer.io specification. Supported sources include RESTful APIs, csv and jsonl.
+`xtkt` ("extract") is a data extraction tool that follows the [Singer.io specification](https://hub.meltano.com/singer/spec/). Supported sources include RESTful APIs, csv and jsonl. Each stream is handled independently and deletion-at-source is not detected.
 
-`xtkt` can be pipe'd to any target that meets the Singer.io specification but has been designed and tested for databases such as SQLite & Postgres. Each stream is handled independently and deletion-at-source is not detected.
+Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_surrogate_key` (SHA256 hash of the record), `_sdc_unique_key` (unique identifier for the extraction, combining `_sdc_surrogate_key` and `_sdc_timestamp`), and `_sdc_natural_key` (unique identifier in the source system)).
 
-Extracted records are versioned, with new and updated data being treated as distinct records (with resulting keys `_sdc_surrogate_key` (SHA256 hash of the record), `_sdc_unique_key` (unique identifier for the extraction, combining `_sdc_surrogate_key` and `_sdc_timestamp`), and `_sdc_natural_key` (unique identifier in the source system)). By default (incremental) only new and updated records are sent to be processed by your target. For a full refresh of the stream, use the `--refresh` flag.
+By default (incremental) only new and updated records are sent to be processed by your target. For a full refresh of the stream, use the `--refresh` flag.
 
 Fields can be dropped from records prior to being sent to your target using the `records.drop_field_paths` field in your JSON configuration file (see examples below). This may be suitable for dropping redundant, large objects within a record.
 
@@ -76,7 +76,9 @@ Flags:
 
 ### :pencil: Catalog
 
-A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction for schema validation. Discovery of the catalog can be run using the `--discover` flag which infers and creates the `<stream_name>_catalog.json` file. This can then be altered for required specification. This schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected in records extracted, and refresh the `schema_discovered_at` timestamp.
+A [catalog](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#catalog) is required for the extraction for schema validation. Discovery of the catalog can be run using the `--discover` flag which infers and creates the `<stream_name>_catalog.json` file. This can then be altered for required specification. 
+
+The schema is read and sent as the [*schema message*](https://github.com/singer-io/getting-started/blob/master/docs/SPEC.md#schema-message) to your target. Running `xtkt` in `--discovery` will update an existing catalog if new properties are detected in records extracted, and refresh the `schema_discovered_at` timestamp.
 
 Schema detection is naive using the data type of the first non-null value detected per property when generating the catalog.
 
@@ -90,9 +92,11 @@ $ xtkt config.json --discover
 
 Each bookmark entry contains:
 - `surrogate_key`: The SHA256 hash of the record for change detection
-- `last_seen`: The timestamp when the record was last extracted, with sub-second precision
+- `last_seen`: The timestamp when the record was last extracted
 
-This enables both incremental extraction (detecting changes via surrogate key comparison) and potential deletion detection at source (by identifying records not seen since the previous extraction). Records that fail schema validation are skipped.
+This enables both incremental extraction (detecting changes via surrogate key comparison) and potential deletion detection at source (by identifying records not seen since the previous extraction). 
+
+Records that fail schema validation are skipped.
 
 ### :nut_and_bolt: Using with [Singer.io](https://www.singer.io/) Targets
 
@@ -128,12 +132,13 @@ $ xtkt config.json 2>&1 | jq .
     "records": { // required <object>: describes handling of records
         "unique_key_path": ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>: path to unique key of records
         "drop_field_paths": [ // optional <array[array]>: paths to remove within records
-            ["<key_path_1>", "<key_path_2>", ...], // required <array[string]>
+            ["<drop_key_path_1_1>", "<drop_key_path_1_2>", ...], // required <array[string]>
+            ["<drop_key_path_2_1>", "<drop_key_path_2_2>", ...],
             ...
         ],
         "sensitive_field_paths": [ // optional <array[array]>: array of paths of fields to hash
-            ["<sensitive_path_1_1>", "<sensitive_path_1_2>", ...], // required <array[string]>
-            ["<sensitive_path_2_1>", "<sensitive_path_2_2>", ...],
+            ["<sensitive_key_path_1_1>", "<sensitive_key_path_1_2>", ...], // required <array[string]>
+            ["<sensitive_key_path_2_1>", "<sensitive_key_path_2_2>", ...],
             ...
         ],
     }
@@ -382,7 +387,7 @@ The worker pool is dynamically sized to `runtime.NumCPU()`, automatically scalin
    - Dropping of specified fields (via `records.drop_field_paths`)
    - Hashing of sensitive fields (via `records.sensitive_field_paths`)
    - Generation of Singer.io metadata fields (`_sdc_natural_key`, `_sdc_surrogate_key`, `_sdc_timestamp`, `_sdc_unique_key`)
-   - Validation against stream bookmark (for incremental extraction only; skipped with `--refresh` flag)
+   - Validation against stream bookmark (for incremental extraction only; skipped when run with the `--refresh` flag)
 
 4. **Output Stage**: Transformed records are sent to the results channel and formatted as Singer.io RECORD messages to stdout.
 
@@ -395,7 +400,7 @@ Running `xtkt` with the `--discover` flag initiates schema discovery mode:
 3. **Catalog Creation**: The evolved schema is persisted to a `<stream_name>_catalog.json` file containing:
    - Stream name
    - Key properties (`_sdc_unique_key`, `_sdc_surrogate_key`)
-    - Schema discovery timestamp (`schema_discovered_at`)
+   - Schema discovery timestamp (`schema_discovered_at`)
    - Inferred schema with property types and constraints
 4. **Schema Message Output**: A Singer.io SCHEMA message is emitted to stdout for consumption by target systems.
 

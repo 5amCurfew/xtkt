@@ -9,10 +9,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ExtractedChan = make(chan map[string]interface{})   // Unbuffered channel for extracted records; processing goroutines will read from this channel
-var ResultChan = make(chan map[string]interface{}, 100) // Buffered channel to prevent blocking on writes when processing is slower than extraction
-var ProcessingWG sync.WaitGroup                         // WaitGroup to track processing goroutines
-var workerSem = make(chan struct{}, runtime.NumCPU())   // Concurrency cap keeps CPU-bound transforms from outnumbering cores
+var ExtractedChan = make(chan map[string]interface{}) // Unbuffered channel for extracted records; processing goroutines will read from this channel
+var ResultChan = make(chan models.Record, 100)        // Buffered channel to prevent blocking on writes when processing is slower than extraction
+var ProcessingWG sync.WaitGroup                       // WaitGroup to track processing goroutines
+var workerSem = make(chan struct{}, runtime.NumCPU()) // Concurrency cap keeps CPU-bound transforms from outnumbering cores
 
 // ExtractRecords begins streaming records from source (sending to ExtractedChan) and start goroutines to extract records (sending to ResultChan)
 func ExtractRecords(sourceFunc func(*models.StreamConfig) error) {
@@ -90,5 +90,5 @@ func processRecord(record map[string]interface{}) {
 		return
 	}
 
-	ResultChan <- rec.ToMap()
+	ResultChan <- rec
 }
