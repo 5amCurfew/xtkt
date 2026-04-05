@@ -13,6 +13,7 @@ func Discover(refresh bool) error {
 	if err := initialiseRun(true, refresh); err != nil {
 		return err
 	}
+	defer models.State.StopBookmarkUpdates()
 
 	startRecordStream()
 

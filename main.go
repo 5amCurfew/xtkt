@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var version = "0.8.4"
+var version = "0.8.5"
 var discover bool = false
 var refresh bool = false
 

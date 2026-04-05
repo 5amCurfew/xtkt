@@ -15,6 +15,7 @@ func Extract(refresh bool) error {
 	if err := initialiseRun(false, refresh); err != nil {
 		return err
 	}
+	defer models.State.StopBookmarkUpdates()
 
 	if err := ensureCatalogSchemaAvailable(); err != nil {
 		return err
@@ -59,12 +60,14 @@ func initialiseRun(discover bool, refresh bool) error {
 		})
 	}
 
+	models.State.StartBookmarkUpdates()
+
 	return nil
 }
 
 func ensureCatalogSchemaAvailable() error {
 	if len(models.DerivedCatalog.Schema) == 0 {
-		return logAndReturnError("catalog schema unavailable; run discovery first", nil)
+		return logAndReturnError("catalog schema unavailable; this can be generated using discovery mode", nil)
 	}
 
 	return nil
@@ -123,7 +126,7 @@ func processRecords(execution *lib.ExecutionMetric) error {
 
 		// Only records that pass schema validation should advance state.
 		if !models.DISCOVER_MODE {
-			models.State.UpdateBookmark(record.ToMap())
+			models.State.QueueBookmarkUpdate(record.ToMap(), true)
 		}
 
 		execution.Emitted += 1
@@ -134,6 +137,8 @@ func processRecords(execution *lib.ExecutionMetric) error {
 
 // finaliseExtraction writes state, calculates metrics, and logs results
 func finaliseExtraction(execution *lib.ExecutionMetric) error {
+	models.State.StopBookmarkUpdates()
+
 	if err := models.State.Update(); err != nil {
 		return logAndWrapError("state update failed", err, nil)
 	}

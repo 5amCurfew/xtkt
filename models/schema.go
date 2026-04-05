@@ -25,7 +25,7 @@ func (s *Schema) initEmpty() {
 	(*s)["properties"] = make(map[string]interface{})
 }
 
-func (s *Schema) ensureInitialized() {
+func (s *Schema) ensureInitialised() {
 	if *s == nil {
 		s.initEmpty()
 		return
@@ -56,7 +56,7 @@ func (s *Schema) Create(data ...interface{}) error {
 		return nil
 	}
 
-	s.ensureInitialized()
+	s.ensureInitialised()
 	return nil
 }
 
@@ -78,7 +78,7 @@ func (s *Schema) Merge(newRecord map[string]interface{}) error {
 		return fmt.Errorf("schema is nil")
 	}
 
-	s.ensureInitialized()
+	s.ensureInitialised()
 
 	// Generate schema from the new record
 	newSchema, err := generateSchemaFromRecord(newRecord)

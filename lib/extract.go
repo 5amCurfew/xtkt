@@ -81,7 +81,7 @@ func processRecord(record map[string]interface{}) {
 	if !passesBookmark {
 		// Unchanged records still refresh bookmark state so last_seen remains current.
 		if !models.DISCOVER_MODE {
-			models.State.UpdateBookmark(rec.ToMap())
+			models.State.QueueBookmarkUpdate(rec.ToMap(), false)
 		}
 
 		TransformMetrics.mu.Lock()

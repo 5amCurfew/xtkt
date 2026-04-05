@@ -19,10 +19,12 @@ type StreamState struct {
 	Stream                  string   `json:"stream"`
 	LastExtractionStartedAt string   `json:"last_extraction_started_at,omitempty"`
 	Bookmark                Bookmark `json:"bookmark"`
+	PreviousBookmark        Bookmark `json:"-"`
 }
 
-var StateMutex sync.RWMutex
 var State StreamState
+var bookmarkUpdates chan BookmarkUpdate
+var bookmarkUpdaterWG sync.WaitGroup
 
 // Create creates a state JSON file for the stream
 func (s *StreamState) Create(source ...interface{}) error {
@@ -61,6 +63,10 @@ func (s *StreamState) Read() error {
 		return fmt.Errorf("error unmarshaling state json: %w", err)
 	}
 
+	if s.Bookmark.Latest == nil {
+		s.Bookmark.Latest = map[string]BookmarkEntry{}
+	}
+
 	return nil
 }
 
@@ -95,34 +101,104 @@ func (s *StreamState) Message() error {
 
 // StartExtraction sets the extraction start timestamp for this run
 func (s *StreamState) StartExtraction() {
-	StateMutex.Lock()
-	defer StateMutex.Unlock()
 	s.LastExtractionStartedAt = util.NowTimestamp()
+	s.PreviousBookmark = s.Bookmark.Clone()
 }
 
-// UpdateBookmark updates the bookmark with information from a record
-func (s *StreamState) UpdateBookmark(record map[string]interface{}) {
-	StateMutex.Lock()
-	defer StateMutex.Unlock()
+// StartBookmarkUpdates starts the single-writer goroutine that owns bookmark mutations.
+func (s *StreamState) StartBookmarkUpdates() {
+	if bookmarkUpdates != nil {
+		return
+	}
+
+	if s.Bookmark.Latest == nil {
+		s.Bookmark.Latest = map[string]BookmarkEntry{}
+	}
+
+	bookmarkUpdates = make(chan BookmarkUpdate, 1024)
+	bookmarkUpdaterWG.Add(1)
+
+	go func() {
+		defer bookmarkUpdaterWG.Done()
+		for update := range bookmarkUpdates {
+			s.applyBookmarkUpdate(update)
+		}
+	}()
+}
+
+// StopBookmarkUpdates drains outstanding bookmark updates before final state persistence.
+func (s *StreamState) StopBookmarkUpdates() {
+	if bookmarkUpdates == nil {
+		return
+	}
+
+	close(bookmarkUpdates)
+	bookmarkUpdaterWG.Wait()
+	bookmarkUpdates = nil
+}
+
+// QueueBookmarkUpdate enqueues a bookmark mutation for the current extraction run.
+func (s *StreamState) QueueBookmarkUpdate(record map[string]interface{}, emitted bool) {
+	update := BookmarkUpdate{
+		NaturalKey:   record["_sdc_natural_key"],
+		SurrogateKey: record["_sdc_surrogate_key"].(string),
+		Timestamp:    util.NowTimestamp(),
+		Emitted:      emitted,
+	}
+
+	if bookmarkUpdates == nil {
+		s.applyBookmarkUpdate(update)
+		return
+	}
+
+	bookmarkUpdates <- update
+}
+
+func (s *StreamState) applyBookmarkUpdate(update BookmarkUpdate) {
+	if s.Bookmark.Latest == nil {
+		s.Bookmark.Latest = map[string]BookmarkEntry{}
+	}
 
 	// Convert natural key to string for bookmark storage (avoiding scientific notation)
-	key := util.ToKeyString(record["_sdc_natural_key"])
-	timestamp := util.NowTimestamp()
-
-	s.Bookmark.Latest[key] = BookmarkEntry{
-		SurrogateKey: record["_sdc_surrogate_key"].(string),
-		LastSeen:     timestamp,
+	key := util.ToKeyString(update.NaturalKey)
+	entry := s.Bookmark.Latest[key]
+	if update.Emitted {
+		entry.LastEmitted = update.Timestamp
 	}
-	s.Bookmark.UpdatedAt = timestamp
+
+	entry.SurrogateKey = update.SurrogateKey
+	entry.LastSeen = update.Timestamp
+	s.Bookmark.Latest[key] = entry
+	s.Bookmark.UpdatedAt = update.Timestamp
 }
 
 // BookmarkEntry tracks the surrogate key and last seen timestamp for a record
 type BookmarkEntry struct {
 	SurrogateKey string `json:"surrogate_key"`
 	LastSeen     string `json:"last_seen"`
+	LastEmitted  string `json:"last_emitted,omitempty"`
+}
+
+type BookmarkUpdate struct {
+	NaturalKey   interface{}
+	SurrogateKey string
+	Timestamp    string
+	Emitted      bool
 }
 
 type Bookmark struct {
 	UpdatedAt string                   `json:"updated_at"`
 	Latest    map[string]BookmarkEntry `json:"latest"`
+}
+
+func (b Bookmark) Clone() Bookmark {
+	latest := make(map[string]BookmarkEntry, len(b.Latest))
+	for key, entry := range b.Latest {
+		latest[key] = entry
+	}
+
+	return Bookmark{
+		UpdatedAt: b.UpdatedAt,
+		Latest:    latest,
+	}
 }

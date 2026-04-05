@@ -136,11 +136,7 @@ func (r Record) PassesBookmark() bool {
 
 	// Convert natural key to string for bookmark lookup (avoiding scientific notation)
 	key := util.ToKeyString(r["_sdc_natural_key"])
-
-	StateMutex.RLock()
-	defer StateMutex.RUnlock()
-
-	entry, exist := State.Bookmark.Latest[key]
+	entry, exist := State.PreviousBookmark.Latest[key]
 	currentSK := r["_sdc_surrogate_key"].(string)
 
 	if !exist {

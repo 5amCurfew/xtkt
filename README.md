@@ -31,7 +31,7 @@
   - [Models \& Design Patterns](#models--design-patterns)
   - [Pipeline Diagram](#pipeline-diagram)
 
-**v0.8.4**
+**v0.8.5**
 
 `xtkt` ("extract") is a data extraction tool that follows the [Singer.io specification](https://hub.meltano.com/singer/spec/). Supported sources include RESTful APIs, csv and jsonl. Each stream is handled independently and deletion-at-source is not detected.
 
@@ -88,11 +88,12 @@ $ xtkt config.json --discover
 
 ### :clipboard: State
 
-`xtkt` uses a state file to track each record's surrogate key and last seen timestamp by natural key. The state file is written to the current working directory and is named `<stream_name>_state.json`. 
+`xtkt` uses a state file to track each record's surrogate key and extraction timestamps by natural key. The state file is written to the current working directory and is named `<stream_name>_state.json`. 
 
 Each bookmark entry contains:
 - `surrogate_key`: The SHA256 hash of the record for change detection
 - `last_seen`: The timestamp when the record was last extracted
+- `last_emitted`: The timestamp when the record last passed incremental filtering and schema validation and was emitted downstream
 
 This enables both incremental extraction (detecting changes via surrogate key comparison) and potential deletion detection at source (by identifying records not seen since the previous extraction). 
 
@@ -452,7 +453,8 @@ The codebase follows a consistent Model interface pattern for all persistable en
 - `Bookmark.UpdatedAt`: Timestamp of the most recently processed record
 - `Bookmark.Latest`: Map of natural keys to `BookmarkEntry` objects containing:
   - `surrogate_key`: SHA256 hash of the record for change detection
-  - `last_seen`: Timestamp when the record was last extracted, enabling deletion inference
+    - `last_seen`: Timestamp when the record was last extracted, enabling deletion inference
+    - `last_emitted`: Timestamp when the record last passed filtering and was emitted to stdout
 
 This architecture ensures single responsibility, testability, and consistent behavior across all data models while maintaining flexibility through variadic parameters in `Create()` methods.
 
@@ -460,58 +462,99 @@ This architecture ensures single responsibility, testability, and consistent beh
 #### Pipeline Diagram
 
 ```
-┌──────────────┐
-│   SOURCE     │  (CSV, JSONL, REST API)
-│              │
-└──────┬───────┘
-       │
-       │ Stream Goroutine (buffered: infinite records)
-       │
-       ▼
-┌──────────────────────┐
-│ ExtractedChan        │  (unbuffered = 1 record max)
-│ capacity: 1 record   │  ◄─── Backpressure point
-└──────────┬───────────┘      (slows down source)
-           │
-           │ for record := range ExtractedChan
-           │
-      ┌────▼──────────────────────────────┐
-      │ Worker Pool                       │
-      │ (N goroutines, 1 per record)      │◄─── Multiple records
-      ├───────────────────────────────────┤     processing in
-      │ Worker1: record1                  │     parallel
-      │ • Drop fields                     │     (N in-flight)
-      │ • Hash sensitive data             │     N = runtime.NumCPU()
-      │ • Generate metadata keys          │
-      │ • Check bookmark (incremental)    │
-      │                                   │
-      │ Worker2: record2                  │
-      │ (same transformations)            │
-      │ .                                 │
-      │ .                                 │
-      │ WorkerN: recordN                  │
-      │ (same transformations)            │
-      └────┬──────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              xtkt Record Flow                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  CLI start
+     │
+     ├─ Load config
+     ├─ Create/read state file: <stream_name>_state.json
+     ├─ Snapshot previous bookmark state for incremental comparison
+     ├─ Create/read catalog file: <stream_name>_catalog.json
+     └─ Start single-writer bookmark updater goroutine
            │
            ▼
-┌────────────────────────────┐
-│ ResultChan (BUFFERED)      │  (capacity: 100 records)
-│ buffer: up to 100 records  │  ◄─── Decouples worker
-└──────────┬─────────────────┘       output from main thread
-           │
-           │ for record := range ResultChan
-           │ (serial: 1 at a time)
-           │
-      ┌────▼──────────────────┐
-      │ Main Goroutine        │
-      ├───────────────────────┤
-      │ • Validate schema     │
-      │ • Output RECORD msg   │
-      │ • Update state        │
-      └────┬──────────────────┘
-           │
-           ▼
-      ┌─────────────┐
-      │   stdout    │  (Singer.io format)
-      └─────────────┘
+  ┌───────────────────────────────┐
+  │ Source streamer goroutine     │
+  │ StreamCSVRecords              │
+  │ StreamJSONLRecords            │
+  │ StreamRESTRecords             │
+  └───────────────┬───────────────┘
+                  │ emits raw source maps
+                  ▼
+  ┌───────────────────────────────┐
+  │ ExtractedChan                 │
+  │ unbuffered                    │
+  │ backpressure reaches source   │
+  └───────────────┬───────────────┘
+                  │ one worker per received record
+                  ▼
+  ┌──────────────────────────────────────────────────────────────────────────┐
+  │ Worker pool                                                              │
+  │ up to runtime.NumCPU() records transformed concurrently                  │
+  ├──────────────────────────────────────────────────────────────────────────┤
+  │ For each record:                                                         │
+  │ 1. Create Record wrapper                                                 │
+  │ 2. Validate records.unique_key_path exists and is not empty              │
+  │ 3. Drop configured fields: records.drop_field_paths                      │
+  │ 4. Hash configured fields: records.sensitive_field_paths                 │
+  │ 5. Generate metadata:                                                    │
+  │    - _sdc_natural_key                                                    │
+  │    - _sdc_surrogate_key                                                  │
+  │    - _sdc_timestamp                                                      │
+  │    - _sdc_unique_key                                                     │
+  │ 6. Incremental filter check against previous bookmark snapshot           │
+  │    - discover mode      => always pass                                   │
+  │    - --refresh          => always pass                                   │
+  │    - natural key unseen => pass                                          │
+  │    - surrogate changed  => pass                                          │
+  │    - surrogate same     => filtered                                      │
+  └──────────────┬───────────────────────────────────────────────────────────┘
+                 │
+       ┌─────────┴───────────────────────────────────────────┐
+       │                                                     │
+       │ pass bookmark                                       │ fail bookmark
+       ▼                                                     ▼
+  ┌───────────────────────┐                         ┌──────────────────────────┐
+  │ ResultChan            │                         │ Queue bookmark update    │
+  │ buffered (100)        │                         │ last_seen only           │
+  │ decouples workers     │                         │ record is not emitted    │
+  └───────────┬───────────┘                         └─────────────┬────────────┘
+              │                                                   │
+              │ serial consumer                                   │
+              ▼                                                   │
+  ┌──────────────────────────────────────────────────────────┐    │
+  │ Main goroutine                                           │    │
+  │ 1. Validate record against catalog schema                │    │
+  │ 2. If invalid: warn and drop                             │    │
+  │ 3. If valid: emit Singer RECORD message to stdout        │    │
+  │ 4. Queue bookmark update                                 │    │
+  │    - last_seen always updated for this processed record  │    │
+  │    - last_emitted updated only after successful emit     │    │
+  └───────────────┬──────────────────────────────────────────┘    │
+                  │                                               │
+                  ├───────────────► stdout                        │
+                  │                 Singer SCHEMA + RECORD msgs   │
+                  │                                               │
+                  ▼                                               ▼
+       ┌─────────────────────────────────────────────────────────────────┐
+       │ Single-writer state updater goroutine                           │
+       │ owns Bookmark.Latest mutations for the current run              │
+       │ avoids worker contention on shared map writes                   │
+       └──────────────────────────────┬──────────────────────────────────┘
+                                      │
+                                      ▼
+       ┌─────────────────────────────────────────────────────────────────┐
+       │ Finalisation                                                    │
+       │ - drain bookmark update channel                                 │
+       │ - write state JSON                                              │
+       │ - log execution metrics                                         │
+       └─────────────────────────────────────────────────────────────────┘
+
+  Discovery mode differences:
+  - workers still transform records and bypass bookmark filtering
+  - ResultChan feeds schema merge instead of record emission
+  - catalog is updated and emitted as a SCHEMA message
+  - bookmark state is not advanced during discovery
 ```
